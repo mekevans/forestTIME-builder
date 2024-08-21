@@ -23,10 +23,20 @@ create_all_tables <- function(con, rawdat_dir, delete_downloads = F, state = "al
                           state = state)
   
   if(delete_downloads) {
-    list.files(rawdat_dir,
-               recursive = T,
-               full.names = T) |> 
-      file.remove()
+    
+    available_files <- list.files(rawdat_dir,
+                                  recursive = T,
+                                  full.names = f)
+    
+    if(state != "all") {
+      possible_files <- lapply(state, FUN = function(x) paste0(x, c("_COND.csv", "_PLOT.csv", "_TREE.csv"))) |> unlist()
+      files_to_delete <- available_files[ which(available_files %in% possible_files)]
+    } else {
+      files_to_delete <- available_files
+    }
+    
+    file.remove(files_to_delete)
+    
   }
   
   add_cns_to_db(con)
