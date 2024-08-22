@@ -37,7 +37,7 @@ if (file.exists(database_path)) {
 con <- dbConnect(duckdb(dbdir = database_path))
 
 # Create database tables
-create_all_tables(con, rawdat_dir = csv_dir, delete_downloads = !exists("delete_files"))
+create_all_tables(con, rawdat_dir = csv_dir, delete_downloads = !exists("delete_files"), state = state_to_use)
 
 # Store parquets #### 
 
