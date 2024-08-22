@@ -11,18 +11,32 @@ source(here::here("R", "add_sapling_transitions_to_db.R"))
 #' @param con db connection
 #' @param rawdat_dir where the raw csvs are
 #' @param delete_downloads whether or not to delete downloaded .csv files after adding them to db.
+#' @param state which state(s) to create tables for. Defaults to "all" but can be a character vector of two letter state abbreviations.
 #'
 #' @return nothing
 #' @export
 #'
-create_all_tables <- function(con, rawdat_dir, delete_downloads = F) {
+create_all_tables <- function(con, rawdat_dir, delete_downloads = F, state = "all") {
+  
   import_tables_from_csvs(con = con,
-                          csv_dir = rawdat_dir)
+                          csv_dir = rawdat_dir, 
+                          state = state)
+  
   if(delete_downloads) {
-    list.files(rawdat_dir,
-               recursive = T,
-               full.names = T) |> 
-      file.remove()
+    
+    available_files <- list.files(rawdat_dir,
+                                  recursive = T,
+                                  full.names = f)
+    
+    if(state != "all") {
+      possible_files <- lapply(state, FUN = function(x) paste0(x, c("_COND.csv", "_PLOT.csv", "_TREE.csv"))) |> unlist()
+      files_to_delete <- available_files[ which(available_files %in% possible_files)]
+    } else {
+      files_to_delete <- available_files
+    }
+    
+    file.remove(files_to_delete)
+    
   }
   
   add_cns_to_db(con)
