@@ -35,3 +35,9 @@ library(ggplot2)
 ggplot(all_file_sizes, aes(state, total_size_mb, color = extension)) +
   geom_point() +
   theme(legend.position = "bottom")
+
+expected_actions_artifacts <- all_file_sizes |>
+  filter(extension == "parquet")
+
+sum(expected_actions_artifacts$total_size_mb)
+
