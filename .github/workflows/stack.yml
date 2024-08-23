@@ -11,7 +11,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
       - name: Dependencies
-      - uses: r-lib/actions/setup-renv@v2
+        uses: r-lib/actions/setup-renv@v2
       - name: Set up directories
         run: Rscript -e 'source("scripts/01-state-by-state/CT-state-parquet.R")'
       - name: Upload artifacts
