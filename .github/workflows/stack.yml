@@ -11,6 +11,9 @@ jobs:
       - name: Run apt-get
         run: |
           sudo apt-get update
+      - name: Install libcurl
+        run: |
+          sudo apt-get install libcurl4-openssl-dev
       - name: Check out repository
         uses: actions/checkout@v4
       - name: Dependencies
@@ -31,6 +34,9 @@ jobs:
       - name: Run apt-get
         run: |
           sudo apt-get update
+      - name: Install libcurl
+        run: |
+          sudo apt-get install libcurl4-openssl-dev
       - name: Check out repository
         uses: actions/checkout@v4
       - name: Dependencies
