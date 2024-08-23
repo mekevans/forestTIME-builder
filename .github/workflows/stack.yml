@@ -28,7 +28,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
       - name: Dependencies
-      - uses: r-lib/actions/setup-renv@v2
+        uses: r-lib/actions/setup-renv@v2
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
