@@ -7,7 +7,7 @@ library(dplyr)
 
 # Specify the path to .duckdb file for database
 database_path <-
-  here::here("data", "db", "foresttime-from-state-parquet.duckdb")
+  here::here("data", "db", "foresttime-from-state-parquet(3).duckdb")
 
 if (!file.exists(database_path)) {
   warning("Database file not found.")
@@ -17,6 +17,12 @@ if (!file.exists(database_path)) {
 con <- dbConnect(duckdb(dbdir = database_path))
 
 # Get annualized for first state
+
+first_state <- tbl(con, "plot") |>
+  select(STATECD) |>
+  distinct() |>
+  head(n = 1) |>
+  collect()
 
 first_state <- as.character(first_state$STATECD[1])
 
