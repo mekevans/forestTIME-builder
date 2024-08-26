@@ -92,7 +92,13 @@ stack_text <- "  stack:
       - name: Stack files
         run: Rscript -e 'source(\"scripts/02-create_db_from_parquet.R\")'
       - name: Push to Zenodo
-        run: Rscript -e 'source(\"scripts/03-upload_parquet_db_zenodo.R\")'" |>
+        run: Rscript -e 'source(\"scripts/03-upload_parquet_db_zenodo.R\")'
+      - name: Check db
+        run: Rscript -e 'source(\"scripts/04-check_db.R\")'
+      - name: Check saplings
+        run: Rscript -e 'source(\"scripts/05-check_saplings.R\")'
+      - name: Check annualized
+        run: Rscript -e 'source(\"scripts/06-check-annualized.R\")'" |>
   gsub(pattern = "CT", replacement = paste(states_to_write, collapse = ", "))
 
 allText <- paste0(header,
