@@ -25,7 +25,7 @@ first_state <- tbl(con, "plot") |>
   head(n = 1) |>
   collect()
 
-first_state <- first_state$STATECD[1]
+first_state <- as.character(first_state$STATECD[1])
 
 one_state_saplings <- tbl(con, "sapling_transitions") |>
   mutate(STATECD = substr(PLOT_COMPOSITE_ID, 1, 2)) |>

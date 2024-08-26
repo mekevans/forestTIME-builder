@@ -18,7 +18,7 @@ con <- dbConnect(duckdb(dbdir = database_path))
 
 # Get annualized for first state
 
-first_state <- first_state$STATECD[1]
+first_state <- as.character(first_state$STATECD[1])
 
 one_state_annual <- tbl(con, "tree_annualized") |>
   mutate(STATE = substr(TREE_COMPOSITE_ID, 1, 2)) |>
