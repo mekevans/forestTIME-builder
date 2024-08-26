@@ -25,7 +25,7 @@ jobs:
       - name: Dependencies
         uses: r-lib/actions/setup-renv@v2
       - name: Set state
-        run: Rscipt -e 'state_to_use <- "AL"'
+        run: Rscript -e 'state_to_use <- "AL"'
       - name: Generate state database
         run: Rscript -e 'source("scripts/01-state-by-state/generic-state-parquet.R")'
       - name: Upload artifacts
@@ -55,7 +55,7 @@ jobs:
       - name: Dependencies
         uses: r-lib/actions/setup-renv@v2
       - name: Set state
-        run: Rscipt -e 'state_to_use <- "AK"'
+        run: Rscript -e 'state_to_use <- "AK"'
       - name: Generate state database
         run: Rscript -e 'source("scripts/01-state-by-state/generic-state-parquet.R")'
       - name: Upload artifacts

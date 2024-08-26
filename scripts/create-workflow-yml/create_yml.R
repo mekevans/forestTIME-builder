@@ -43,7 +43,7 @@ for(i in 1:length(states_to_write)) {
       - name: Dependencies
         uses: r-lib/actions/setup-renv@v2
       - name: Set state
-        run: Rscipt -e 'state_to_use <- \"CT\"'
+        run: Rscript -e 'state_to_use <- \"CT\"'
       - name: Generate state database
         run: Rscript -e 'source(\"scripts/01-state-by-state/generic-state-parquet.R\")'
       - name: Upload artifacts
