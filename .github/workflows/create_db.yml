@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Dependencies
         uses: r-lib/actions/setup-renv@v2
-      - name: Set up directories
+      - name: Generate state database
         run: Rscript -e 'source("scripts/01-state-by-state/CT-state-parquet.R")'
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -52,7 +52,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Dependencies
         uses: r-lib/actions/setup-renv@v2
-      - name: Set up directories
+      - name: Generate state database
         run: Rscript -e 'source("scripts/01-state-by-state/AZ-state-parquet.R")'
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -62,6 +62,8 @@ jobs:
   stack:
     runs-on: ubuntu-latest
     needs: [CT, AZ]
+    env:
+      ZENODO_TOKEN: ${{ secrets.ZENODO_TOKEN }}
     steps:
       - name: Set up R
         uses: r-lib/actions/setup-r@v2
@@ -88,3 +90,5 @@ jobs:
           merge-multiple: true
       - name: Stack files
         run: Rscript -e 'source("scripts/02-create_db_from_parquet.R")'
+      - name: Push to Zenodo
+        run: Rscript -e 'source("scripts/parallels/07-upload_parquet_db_zenodo.R")'
