@@ -3,7 +3,7 @@ all_states <- read.csv(here::here("data", "fips.csv")) |>
   filter(STATE != "DC", 
          STATEFP < 60)
 
-states_to_write <- all_states$STATE[1:10]
+states_to_write <- all_states$STATE[1:2]
 
 # Write header
 
@@ -42,8 +42,10 @@ for(i in 1:length(states_to_write)) {
         uses: actions/checkout@v4
       - name: Dependencies
         uses: r-lib/actions/setup-renv@v2
+      - name: Set state
+        run: Rscipt -e 'state_to_use <- \"CT\"'
       - name: Generate state database
-        run: Rscript -e 'source(\"scripts/01-state-by-state/CT-state-parquet.R\")'
+        run: Rscript -e 'source(\"scripts/01-state-by-state/generic-state-parquet.R\")'
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -90,7 +92,7 @@ stack_text <- "  stack:
       - name: Stack files
         run: Rscript -e 'source(\"scripts/02-create_db_from_parquet.R\")'
       - name: Push to Zenodo
-        run: Rscript -e 'source(\"scripts/parallels/07-upload_parquet_db_zenodo.R\")'" |>
+        run: Rscript -e 'source(\"scripts/03-upload_parquet_db_zenodo.R\")'" |>
   gsub(pattern = "CT", replacement = paste(states_to_write, collapse = ", "))
 
 allText <- paste0(header,
