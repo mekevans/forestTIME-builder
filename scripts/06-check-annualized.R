@@ -7,7 +7,7 @@ library(dplyr)
 
 # Specify the path to .duckdb file for database
 database_path <-
-  here::here("data", "db", "foresttime-from-state-parquet(3).duckdb")
+  here::here("data", "db", "foresttime-from-state-parquet.duckdb")
 
 if (!file.exists(database_path)) {
   warning("Database file not found.")
