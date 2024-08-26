@@ -91,4 +91,4 @@ jobs:
       - name: Stack files
         run: Rscript -e 'source("scripts/02-create_db_from_parquet.R")'
       - name: Push to Zenodo
-        run: Rscript -e 'source("scripts/parallels/07-upload_parquet_db_zenodo.R")'
+        run: Rscript -e 'source("scripts/parallels/03-upload_parquet_db_zenodo.R")'
