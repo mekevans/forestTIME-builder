@@ -27,7 +27,7 @@ jobs:
       - name: Set state
         run: Rscript -e 'state_to_use <- "AL"'
       - name: Generate state database
-        run: Rscript -e 'source("scripts/01-state-by-state/generic-state-parquet.R")'
+        run: Rscript -e 'source("scripts/01-state-by-state/AL-state-parquet.R")'
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -57,7 +57,7 @@ jobs:
       - name: Set state
         run: Rscript -e 'state_to_use <- "AK"'
       - name: Generate state database
-        run: Rscript -e 'source("scripts/01-state-by-state/generic-state-parquet.R")'
+        run: Rscript -e 'source("scripts/01-state-by-state/AK-state-parquet.R")'
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:

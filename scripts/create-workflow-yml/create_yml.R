@@ -45,7 +45,7 @@ for(i in 1:length(states_to_write)) {
       - name: Set state
         run: Rscript -e 'state_to_use <- \"CT\"'
       - name: Generate state database
-        run: Rscript -e 'source(\"scripts/01-state-by-state/generic-state-parquet.R\")'
+        run: Rscript -e 'source(\"scripts/01-state-by-state/CT-state-parquet.R\")'
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
