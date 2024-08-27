@@ -10,12 +10,12 @@ I anticipate that *most* users of forestTIME will not run this code. Instead it 
 - `R` contains functions to download data, create tables, and add them to the database. These functions hardly ever change.
 - `scripts` contains a workflow to run the functions in `R` to generate a database and push it to Zenodo. These workflows have undergone a lot of recent change to navigate trade-offs in terms of local vs. automated, all at once vs. state by state, etc. To generate a forestTIME .duckdb, run the scripts in `scripts` in order/following the instructions in the comments.
 
-## TODOs
+## Automation and Zenodo push
 
-Current to-do items are:
-
-- (Re)-modularizing the workflow in `scripts` so that it is easy to generate a forestTIME database from *already downloaded* data files. This is fully supported by the underlying functions and is just not how this particular iteration of the workflow is set up.
-- Troubleshooting the automated workflow to run without burning up too much GH actions bandwidth or creating an impossibly large git repo. Ideas: (1) use .csvs instead of parquets; (2) push everything to Zenodo archives instead of git. 
+- These scripts run automatically via GitHub actions, currently on a push to this branch. This can be updated to a scheduled job.
+- One workflow runs for each state, generating state-level database tables which are stored as .parquet files. The .parquet files are stored as GitHub artifacts. A final workflow runs to stack all of the state-level tables into one database, which is uploaded to a Zenodo archive. This is currently private, located at: https://zenodo.org/records/13377070. This can be updated to a public archive when we are ready.
+- To modify the workflow scripts, *don't* modify the files in `scripts/01-state-by-state`. Instead modify the text in `scripts/create-workflow-yml.R` and then run that script to automatically generate the state-level scripts.
+- To set up a push to Zenodo from GitHub actions, generate a Zenodo token in your Zenodo account and supply this as an environment variable as an Actions secret in the GitHub repository. 
 
 
 ------------------------------------------------------------------------
