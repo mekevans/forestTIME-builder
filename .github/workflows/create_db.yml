@@ -1,6 +1,6 @@
 on:
   push:
-    branches: toy-artifacts
+    branches: main
 
 jobs:
   AL:

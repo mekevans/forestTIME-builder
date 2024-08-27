@@ -9,7 +9,7 @@ states_to_write <- all_states$STATE
 
 header <- "on:
   push:
-    branches: toy-artifacts
+    branches: main
 
 jobs:
 "
