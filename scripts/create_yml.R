@@ -3,13 +3,15 @@ all_states <- read.csv(here::here("data", "fips.csv")) |>
   filter(STATE != "DC", 
          STATEFP < 60)
 
-states_to_write <- all_states$STATE
+#states_to_write <- all_states$STATE
+
+states_to_write <- "ID"
 
 # Write header
 
 header <- "on:
   push:
-    branches: main
+    branches: carbon
 
 jobs:
 "
