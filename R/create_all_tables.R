@@ -26,10 +26,10 @@ create_all_tables <- function(con, rawdat_dir, delete_downloads = F, state = "al
     
     available_files <- list.files(rawdat_dir,
                                   recursive = T,
-                                  full.names = f)
+                                  full.names = T)
     
     if(state != "all") {
-      possible_files <- lapply(state, FUN = function(x) paste0(x, c("_COND.csv", "_PLOT.csv", "_TREE.csv"))) |> unlist()
+      possible_files <- lapply(state, FUN = function(x) paste0(rawdat_dir, "/", x, c("_COND.csv", "_PLOT.csv", "_TREE.csv"))) |> unlist()
       files_to_delete <- available_files[ which(available_files %in% possible_files)]
     } else {
       files_to_delete <- available_files
