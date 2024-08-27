@@ -3,9 +3,7 @@ all_states <- read.csv(here::here("data", "fips.csv")) |>
   filter(STATE != "DC", 
          STATEFP < 60)
 
-#states_to_write <- all_states$STATE
-
-states_to_write <- "ID"
+states_to_write <- all_states$STATE
 
 # Write header
 
