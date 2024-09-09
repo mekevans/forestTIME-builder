@@ -1,13 +1,13 @@
 # This script takes the individual state .parquet files for each table
 # stacks them into a single table
-# and adds each table to a single database. 
+# and adds each table to a single database.
 
 library(duckdb)
 library(DBI)
 
 # Create a data/db directory if none exists:
 
-if(!dir.exists(here::here("data", "db"))) {
+if (!dir.exists(here::here("data", "db"))) {
   dir.create(here::here("data", "db"), recursive = T)
 }
 
@@ -21,24 +21,25 @@ con <- dbConnect(duckdb(dbdir = database_path))
 
 # Get the list of paths to the available parquet files.
 # There are individual parquet files for each state for most of the tables.
-# They all have the same path with the table name substituted out. 
+# They all have the same path with the table name substituted out.
 # E.g. "plot" for the plot table.
 # So you can just get the path to the plot table, and then swap out the table names.
-parquet_files <- paste0(
-  "data/parquet/",
-  list.files(here::here("data", "parquet"), pattern = "plot")) |>
+parquet_files <- paste0("data/parquet/", list.files(here::here("data", "parquet"), pattern = "plot")) |>
   paste(collapse = "', '")
 
 # There is only one all_invyrs file.
-all_invyrs_files <- paste0("data/parquet/", list.files(here::here("data", "parquet"), pattern = "all_invyrs")[1])
+all_invyrs_files <- paste0("data/parquet/",
+                           list.files(here::here("data", "parquet"), pattern = "all_invyrs")[1])
 
 # Construct the queries to copy all rows from each set of state tables to the consolidated table
 
 ## The tree tables are partitioned within each state to keep the files small;
-## all the other tables have just one file per state. 
-tree_query <- paste0("CREATE TABLE tree AS SELECT * FROM read_parquet(['",
-                     "data/parquet/tree_table_*.parquet/*/*",
-                     "'], hive_partitioning = true)")
+## all the other tables have just one file per state.
+tree_query <- paste0(
+  "CREATE TABLE tree AS SELECT * FROM read_parquet(['",
+  "data/parquet/tree_table_*.parquet/*/*",
+  "'], hive_partitioning = true)"
+)
 plot_query <- paste0("CREATE TABLE plot AS SELECT * FROM read_parquet(['",
                      parquet_files,
                      "'])")
@@ -53,26 +54,33 @@ all_invyrs_query <- paste0("CREATE TABLE all_invyrs AS SELECT * FROM read_parque
                            "'])") |>
   gsub(pattern = "plot", replacement = "all_invyrs")
 
+ref_species_file <- paste0("data/parquet/",
+                           list.files(here::here("data", "parquet"), pattern = "ref_species"))[1]
+
+ref_species_query <- paste0("CREATE TABLE ref_species AS SELECT * FROM read_parquet(['",
+                            ref_species_file,
+                            "'])")
+
+ref_tree_decay_prop_file <- paste0("data/parquet/",
+                           list.files(here::here("data", "parquet"), pattern = "ref_tree_decay_prop"))[1]
+
+ref_tree_decay_prop_query <- paste0("CREATE TABLE ref_tree_decay_prop AS SELECT * FROM read_parquet(['",
+                            ref_tree_decay_prop_file,
+                            "'])")
+
 
 # Run the queries
-dbExecute(con,
-          tree_query)
-dbExecute(con,
-          plot_query)
-dbExecute(con,
-          cond_query)
-dbExecute(con,
-          qa_flags_query)
-dbExecute(con,
-          tree_info_composite_id_query)
-dbExecute(con,
-          sapling_transitions_query)
-dbExecute(con,
-          tree_annualized_query)
-dbExecute(con,
-          tree_cns_query)
-dbExecute(con,
-          all_invyrs_query)
+dbExecute(con, tree_query)
+dbExecute(con, plot_query)
+dbExecute(con, cond_query)
+dbExecute(con, qa_flags_query)
+dbExecute(con, tree_info_composite_id_query)
+dbExecute(con, sapling_transitions_query)
+dbExecute(con, tree_annualized_query)
+dbExecute(con, tree_cns_query)
+dbExecute(con, all_invyrs_query)
+dbExecute(con, ref_species_query)
+dbExecute(con, ref_tree_decay_prop_query)
 
 # Clean up
 dbDisconnect(con, shutdown = TRUE)

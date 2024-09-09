@@ -3,13 +3,13 @@ all_states <- read.csv(here::here("data", "fips.csv")) |>
   filter(STATE != "DC", 
          STATEFP < 60)
 
-states_to_write <- all_states$STATE
+states_to_write <- all_states$STATE[1:4]
 
 # Write header
 
 header <- "on:
   push:
-    branches: main
+    branches: nsvb-variables
 
 jobs:
 "
