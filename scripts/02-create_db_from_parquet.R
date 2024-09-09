@@ -69,6 +69,14 @@ ref_tree_decay_prop_query <- paste0("CREATE TABLE ref_tree_decay_prop AS SELECT 
                             "'])")
 
 
+ref_tree_carbon_ratio_dead_file <- paste0("data/parquet/",
+                                   list.files(here::here("data", "parquet"), pattern = "ref_tree_carbon_ratio_dead"))[1]
+
+ref_tree_carbon_ratio_dead_query <- paste0("CREATE TABLE ref_tree_carbon_ratio_dead AS SELECT * FROM read_parquet(['",
+                                                   ref_tree_carbon_ratio_dead_file,
+                                                  "'])")
+
+
 # Run the queries
 dbExecute(con, tree_query)
 dbExecute(con, plot_query)

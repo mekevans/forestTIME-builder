@@ -58,6 +58,24 @@ download_csv_from_datamart <- function(states, rawdat_dir, overwrite = FALSE) {
     
     on.exit(options(timeout = 60))
   }
+  if(overwrite | 
+     !file.exists(here::here("data", "rawdat", "REF_TREE_CARBON_RATIO_DEAD.csv"))) {
+    
+    url <- paste0("https://apps.fs.usda.gov/fia/datamart/CSV/REF_TREE_CARBON_RATIO_DEAD.csv")
+    
+    csv_file <- file.path("data/rawdat", basename(url))
+    
+    options(timeout = 200)
+    
+    system.time(downloaded <- try(utils::download.file(url, destfile = csv_file)))
+    
+    
+    if ("try-error" %in% class(downloaded)) {
+      stop("Download failed")
+    }
+    
+    on.exit(options(timeout = 60))
+  }
 }
 
 #' Check if files are already downloaded
