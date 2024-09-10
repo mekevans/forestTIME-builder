@@ -2,9 +2,9 @@ library(dplyr)
 all_states <- read.csv(here::here("data", "fips.csv")) |>
   filter(STATE != "DC", 
          STATEFP < 60) |>
-  filter(STATE == "MN")
+  filter(STATE %in% c("AK", "MN"))
 
-states_to_write <- all_states$STATE[1:4]
+states_to_write <- all_states$STATE
 
 # Write header
 
