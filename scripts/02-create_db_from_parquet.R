@@ -89,6 +89,7 @@ dbExecute(con, tree_cns_query)
 dbExecute(con, all_invyrs_query)
 dbExecute(con, ref_species_query)
 dbExecute(con, ref_tree_decay_prop_query)
+dbExecute(con, ref_tree_carbon_ratio_dead_query)
 
 # Clean up
 dbDisconnect(con, shutdown = TRUE)
