@@ -1,7 +1,8 @@
 library(dplyr)
 all_states <- read.csv(here::here("data", "fips.csv")) |>
   filter(STATE != "DC", 
-         STATEFP < 60)
+         STATEFP < 60) |>
+  filter(STATE == "MN")
 
 states_to_write <- all_states$STATE[1:4]
 

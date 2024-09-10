@@ -3,7 +3,7 @@ on:
     branches: nsvb-variables
 
 jobs:
-  AL:
+  MN:
     runs-on: ubuntu-latest
     steps:
       - name: Set up R
@@ -25,107 +25,17 @@ jobs:
       - name: Dependencies
         uses: r-lib/actions/setup-renv@v2
       - name: Set state
-        run: Rscript -e 'state_to_use <- "AL"'
+        run: Rscript -e 'state_to_use <- "MN"'
       - name: Generate state database
-        run: Rscript -e 'source("scripts/01-state-by-state/AL-state-parquet.R")'
+        run: Rscript -e 'source("scripts/01-state-by-state/MN-state-parquet.R")'
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: AL
+          name: MN
           path: data/parquet/*
-  AK:
+NANANA  stack:
     runs-on: ubuntu-latest
-    steps:
-      - name: Set up R
-        uses: r-lib/actions/setup-r@v2
-      - name: Run apt-get
-        run: |
-          sudo apt-get update
-      - name: Install libcurl
-        run: |
-          sudo apt-get install libcurl4-openssl-dev
-      - name: Install redland dep
-        run: |
-          sudo apt-get install librdf0-dev
-      - name: Install sodium dep
-        run: |
-          sudo apt-get install libsodium-dev
-      - name: Check out repository
-        uses: actions/checkout@v4
-      - name: Dependencies
-        uses: r-lib/actions/setup-renv@v2
-      - name: Set state
-        run: Rscript -e 'state_to_use <- "AK"'
-      - name: Generate state database
-        run: Rscript -e 'source("scripts/01-state-by-state/AK-state-parquet.R")'
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: AK
-          path: data/parquet/*
-  AZ:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set up R
-        uses: r-lib/actions/setup-r@v2
-      - name: Run apt-get
-        run: |
-          sudo apt-get update
-      - name: Install libcurl
-        run: |
-          sudo apt-get install libcurl4-openssl-dev
-      - name: Install redland dep
-        run: |
-          sudo apt-get install librdf0-dev
-      - name: Install sodium dep
-        run: |
-          sudo apt-get install libsodium-dev
-      - name: Check out repository
-        uses: actions/checkout@v4
-      - name: Dependencies
-        uses: r-lib/actions/setup-renv@v2
-      - name: Set state
-        run: Rscript -e 'state_to_use <- "AZ"'
-      - name: Generate state database
-        run: Rscript -e 'source("scripts/01-state-by-state/AZ-state-parquet.R")'
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: AZ
-          path: data/parquet/*
-  AR:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set up R
-        uses: r-lib/actions/setup-r@v2
-      - name: Run apt-get
-        run: |
-          sudo apt-get update
-      - name: Install libcurl
-        run: |
-          sudo apt-get install libcurl4-openssl-dev
-      - name: Install redland dep
-        run: |
-          sudo apt-get install librdf0-dev
-      - name: Install sodium dep
-        run: |
-          sudo apt-get install libsodium-dev
-      - name: Check out repository
-        uses: actions/checkout@v4
-      - name: Dependencies
-        uses: r-lib/actions/setup-renv@v2
-      - name: Set state
-        run: Rscript -e 'state_to_use <- "AR"'
-      - name: Generate state database
-        run: Rscript -e 'source("scripts/01-state-by-state/AR-state-parquet.R")'
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: AR
-          path: data/parquet/*
-  stack:
-    runs-on: ubuntu-latest
-    needs: [AL, AK, AZ, AR]
+    needs: [MN, NA, NA, NA]
     env:
       ZENODO_TOKEN: ${{ secrets.ZENODO_TOKEN }}
     steps:
