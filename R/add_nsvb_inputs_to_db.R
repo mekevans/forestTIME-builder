@@ -45,7 +45,7 @@ add_nsvb_vars_to_db <- function(con) {
     mutate(ACTUALHT = ifelse(is.na(ACTUALHT),
                              HT,
                              ACTUALHT),
-           CULL = ifelse(is.na(CULL), 0, CULL)) |>
+           CULL = ifelse(is.na(CULL), 0, as.numeric(CULL))) |>
     left_join(tbl(con, "plot") |>
                 select(PLT_CN, ECOSUBCD)) |>
     left_join(tbl(con, "cond") |>
@@ -81,16 +81,16 @@ add_nsvb_vars_to_db <- function(con) {
     left_join(
       tbl(con, "ref_tree_carbon_ratio_dead") |>
         select(SFTWD_HRDWD, DECAYCD, CARBON_RATIO)
-    ) |>
+    ) |> 
     mutate(CULL_DECAY_RATIO = ifelse(STATUSCD == 1,
                                      CULL_DECAY_RATIO,
                                      1),
            STANDING_DEAD_CD = ifelse(STATUSCD == 1,
                                      0,
-                                     STANDING_DEAD_CD),
+                                     as.numeric(STANDING_DEAD_CD)),
            DECAYCD = ifelse(STATUSCD == 1,
                             0,
-                            DECAYCD),
+                            as.numeric(DECAYCD)),
            DECAY_WD = ifelse(STATUSCD == 1,
                              1,
                              DENSITY_PROP),
