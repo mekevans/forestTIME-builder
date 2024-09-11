@@ -23,7 +23,7 @@ add_nsvb_vars_to_db <- function(con) {
     return()
   }
   
- nsvb_vars <- tbl(con, "tree") |>
+  nsvb_vars <- tbl(con, "tree") |>
     select(
       PLT_CN,
       TREE_CN,
@@ -103,8 +103,10 @@ add_nsvb_vars_to_db <- function(con) {
            C_FRAC = ifelse(STATUSCD == 1,
                            CARBON_RATIO_LIVE * 100,
                            CARBON_RATIO * 100)) |>
+    mutate(DEAD_AND_STANDING = STATUSCD == 2 && STANDING_DEAD_CD == 1,
+           LIVE = STATUSCD == 1) |>
     filter(COND_STATUS_CD == 1,
-           STATUSCD == 1 | (STATUSCD == 2 && STANDING_DEAD_CD == 1)) |>
+           DEAD_AND_STANDING | LIVE) |>
     rename(TRE_CN = TREE_CN) |>
     select(-CONDID,
            -COND_STATUS_CD,
@@ -112,15 +114,17 @@ add_nsvb_vars_to_db <- function(con) {
            -CARBON_RATIO,
            -DENSITY_PROP,
            -BARK_LOSS_PROP,
-           -BRANCH_LOSS_PROP) |>
+           -BRANCH_LOSS_PROP,
+           -DEAD_AND_STANDING,
+           -LIVE) |>
     collect()
- 
- arrow::to_duckdb(nsvb_vars,
-                  table_name = "nsvb_vars",
-                  con = con)
- dbExecute(con,
-           "CREATE TABLE nsvb_vars AS SELECT * FROM nsvb_vars")
- 
- return()
- 
+  
+  arrow::to_duckdb(nsvb_vars,
+                   table_name = "nsvb_vars",
+                   con = con)
+  dbExecute(con,
+            "CREATE TABLE nsvb_vars AS SELECT * FROM nsvb_vars")
+  
+  return()
+  
 }
