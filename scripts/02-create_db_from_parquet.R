@@ -49,6 +49,8 @@ tree_info_composite_id_query <- gsub("plot", "tree_info_composite_id", plot_quer
 sapling_transitions_query <- gsub("plot", "sapling_transitions", plot_query)
 tree_annualized_query <- gsub("plot", "tree_annualized", plot_query)
 tree_cns_query <- gsub("plot", "tree_cns", plot_query)
+nsvb_vars_query <- gsub("plot", "nsvb_vars", plot_query)
+
 all_invyrs_query <- paste0("CREATE TABLE all_invyrs AS SELECT * FROM read_parquet(['",
                            all_invyrs_files,
                            "'])") |>
@@ -90,6 +92,7 @@ dbExecute(con, all_invyrs_query)
 dbExecute(con, ref_species_query)
 dbExecute(con, ref_tree_decay_prop_query)
 dbExecute(con, ref_tree_carbon_ratio_dead_query)
+dbExecute(con, nsvb_vars_query)
 
 # Clean up
 dbDisconnect(con, shutdown = TRUE)

@@ -4,6 +4,7 @@ source(here::here("R", "add_qa_flags_to_db.R"))
 source(here::here("R", "add_info_table_to_db.R"))
 source(here::here("R", "add_tree_annualized_to_db.R"))
 source(here::here("R", "add_sapling_transitions_to_db.R"))
+source(here::here("R", "add_nsvb_inputs_to_db.R"))
 
 
 #' Create all tables for foresttime db
@@ -44,5 +45,6 @@ create_all_tables <- function(con, rawdat_dir, delete_downloads = F, state = "al
   add_info_table_to_db(con)
   add_annual_estimates_to_db(con)
   add_saplings_to_db(con)
+  add_nsvb_vars_to_db(con)
   
 }

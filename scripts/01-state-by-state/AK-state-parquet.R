@@ -53,6 +53,7 @@ all_invyrs_parquet_query <- gsub("plot", "all_invyrs", plot_parquet_query)
 ref_species_parquet_query <- gsub("plot", "ref_species", plot_parquet_query)
 ref_tree_decay_prop_parquet_query <- gsub("plot", "ref_tree_decay_prop", plot_parquet_query)
 ref_tree_carbon_ratio_dead_parquet_query <- gsub("plot", "ref_tree_carbon_ratio_dead", plot_parquet_query)
+nsvb_vars_query <- gsub("plot", "nsvb_vars", plot_parquet_query)
 
 dbExecute(con,
           tree_parquet_query)
@@ -78,5 +79,8 @@ dbExecute(con,
           ref_tree_decay_prop_parquet_query)
 dbExecute(con,
           ref_tree_carbon_ratio_dead_parquet_query)
+dbExecute(con,
+          nsvb_vars_query)
+
 dbDisconnect(con, shutdown = TRUE)
 
