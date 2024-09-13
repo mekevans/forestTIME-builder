@@ -1,6 +1,6 @@
 on:
   push:
-    branches: nsvb-variables
+    branches: add_nsvb_test
 
 jobs:
   AK:
