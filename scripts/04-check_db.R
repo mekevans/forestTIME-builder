@@ -25,11 +25,16 @@ expected_table_names <-
   c(
     'all_invyrs',
     'cond',
+    'nsvb_vars',
     'plot',
     'qa_flags',
+    'ref_species',
+    'ref_tree_carbon_ratio_dead',
+    'ref_tree_decay_prop',
     'sapling_transitions',
     'tree',
     'tree_annualized',
+    'tree_carbon',
     'tree_cns',
     'tree_info_composite_id'
   )
