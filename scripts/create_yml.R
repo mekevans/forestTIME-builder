@@ -1,7 +1,8 @@
 library(dplyr)
 all_states <- read.csv(here::here("data", "fips.csv")) |>
   filter(STATE != "DC", 
-         STATEFP < 60)
+         STATEFP < 60) |>
+  filter(STATE %in% c("AK", "MN"))
 
 states_to_write <- all_states$STATE
 
@@ -9,7 +10,7 @@ states_to_write <- all_states$STATE
 
 header <- "on:
   push:
-    branches: main
+    branches: add_nsvb_test
 
 jobs:
 "

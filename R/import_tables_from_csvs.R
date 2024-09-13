@@ -66,6 +66,10 @@ import_tables_from_csvs <- function(con, csv_dir, state = "all") {
   cond_concat_query <- "ALTER TABLE cond ADD COLUMN PLOT_COMPOSITE_ID TEXT"
   cond_update_query <- "UPDATE cond SET PLOT_COMPOSITE_ID = CONCAT_WS('_', STATECD, UNITCD, COUNTYCD, PLOT)"
   
+  sp_query <- "CREATE table ref_species AS SELECT * FROM read_csv('data/rawdat/REF_SPECIES.csv')"
+  decay_query <- "CREATE table ref_tree_decay_prop AS SELECT * FROM read_csv('data/rawdat/REF_TREE_DECAY_PROP.csv')"
+  carbon_ratio_dead_query <- "CREATE table ref_tree_carbon_ratio_dead AS SELECT * FROM read_csv('data/rawdat/REF_TREE_CARBON_RATIO_DEAD.csv')"
+  
   dbExecute(con, tree_query)
   dbExecute(con, tree_name_query)
   dbExecute(con, tree_concat_query)
@@ -80,7 +84,9 @@ import_tables_from_csvs <- function(con, csv_dir, state = "all") {
   dbExecute(con, cond_name_query)
   dbExecute(con, cond_concat_query)
   dbExecute(con, cond_update_query)
-  
+  dbExecute(con, sp_query)  
+  dbExecute(con, decay_query)  
+  dbExecute(con, carbon_ratio_dead_query)  
   
   return()
   

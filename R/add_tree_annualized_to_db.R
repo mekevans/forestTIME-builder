@@ -35,9 +35,10 @@ add_annual_estimates_to_db <- function(con) {
            DIA = as.numeric(DIA),
            MORTYR = as.numeric(MORTYR),
            INVYR = as.numeric(INVYR)) |>
+    mutate(ACTUALHT = ifelse(is.na(ACTUALHT),
+                             HT,
+                             ACTUALHT)) |>
     left_join(tbl(con, "tree_info_composite_id")) |>
-    filter(NRECORDS > 1) |>
-    filter(!is.na(DIA),!is.na(HT),!is.na(ACTUALHT)) |>
     select(
       TREE_COMPOSITE_ID,
       INVYR,
@@ -55,7 +56,6 @@ add_annual_estimates_to_db <- function(con) {
     )  |>
     group_by(TREE_COMPOSITE_ID) |>
     mutate(
-      NRECORDS_NONA = n(),
       next_INVYR = lead(INVYR, order_by = INVYR),
       next_DIA = lead(DIA, order_by = INVYR),
       next_HT = lead(HT, order_by = INVYR),
@@ -63,7 +63,6 @@ add_annual_estimates_to_db <- function(con) {
       last_MORTYR = max(MORTYR),
       first_INVYR = min(INVYR)
     ) |>
-    filter(NRECORDS_NONA > 1) |>
     mutate(next_INVYR = next_INVYR - 1) |>
     mutate(next_INVYR = ifelse(is.na(next_INVYR), INVYR, next_INVYR)) |>
     mutate(INVYR_diff = next_INVYR + 1 - INVYR) |>
@@ -80,12 +79,30 @@ add_annual_estimates_to_db <- function(con) {
       next_ACTUALHT = ifelse(is.na(next_ACTUALHT), ACTUALHT, next_ACTUALHT)
     ) |> 
     mutate(
-      DIA_slope = (next_DIA - DIA) / INVYR_diff,
-      HT_slope = (next_HT - HT) / INVYR_diff,
-      ACTUALHT_slope = (next_ACTUALHT - ACTUALHT) / INVYR_diff,
-      DIA_slope_mort = (next_DIA - DIA) / MORTYR_diff,
-      HT_slope_mort = (next_HT - HT) / MORTYR_diff,
-      ACTUALHT_slope_mort = (next_ACTUALHT - ACTUALHT) / MORTYR_diff
+      DIA_slope = ifelse(any(is.na(next_DIA),
+                             is.na(DIA)),
+                         NA,
+                         (next_DIA - DIA) / INVYR_diff),
+      HT_slope = ifelse(any(is.na(next_HT),
+                            is.na(HT)),
+                        NA,
+                        (next_HT - HT) / INVYR_diff),
+      ACTUALHT_slope = ifelse(any(is.na(next_ACTUALHT),
+                                  is.na(ACTUALHT)),
+                              NA,
+                              (next_ACTUALHT - ACTUALHT) / INVYR_diff),
+      DIA_slope_mort = ifelse(any(is.na(next_DIA),
+                                  is.na(DIA)),
+                              NA,
+                              (next_DIA - DIA) / MORTYR_diff),
+      HT_slope_mort = ifelse(any(is.na(next_HT),
+                                 is.na(HT)),
+                             NA,
+                             (next_HT - HT) / MORTYR_diff),
+      ACTUALHT_slope_mort = ifelse(any(is.na(next_ACTUALHT),
+                                       is.na(ACTUALHT)),
+                                   NA,
+                                   (next_ACTUALHT - ACTUALHT) / MORTYR_diff)
     ) 
   
   all_years <- tbl(con, "tree") |>
@@ -93,7 +110,7 @@ add_annual_estimates_to_db <- function(con) {
     distinct() |>
     cross_join(tbl(con, "all_invyrs")) |>
     arrange(TREE_COMPOSITE_ID, INVYR) |>
-    rename(YEAR = INVYR)
+    rename(YEAR = INVYR) 
   
   by <-
     join_by(TREE_COMPOSITE_ID,
