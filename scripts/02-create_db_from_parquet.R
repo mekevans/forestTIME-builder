@@ -24,7 +24,7 @@ con <- dbConnect(duckdb(dbdir = database_path))
 # They all have the same path with the table name substituted out.
 # E.g. "plot" for the plot table.
 # So you can just get the path to the plot table, and then swap out the table names.
-parquet_files <- paste0("data/parquet/", list.files(here::here("data", "parquet"), pattern = "nsvb_vars")) |>
+parquet_files <- paste0("data/parquet/", list.files(here::here("data", "parquet"), pattern = "plot")) |>
   paste(collapse = "', '")
 
 # There is only one all_invyrs file.
