@@ -42,10 +42,14 @@ add_nsvb_vars_to_db <- function(con) {
       DECAYCD,
       CR
     ) |>
+    mutate(ACTUAL_HT = as.numeric(ACTUALHT),
+           HT = as.numeric(HT),
+           DIA = as.numeric(DIA),
+           CULL = as.numeric(CULL)) |>
     mutate(ACTUALHT = ifelse(is.na(ACTUALHT),
                              HT,
-                             ACTUALHT),
-           CULL = ifelse(is.na(CULL), 0, as.numeric(CULL))) |>
+                             as.numeric(ACTUALHT)),
+           CULL = ifelse(is.na(CULL), 0, CULL)) |>
     left_join(tbl(con, "plot") |>
                 select(PLT_CN, ECOSUBCD)) |>
     left_join(tbl(con, "cond") |>
@@ -103,6 +107,9 @@ add_nsvb_vars_to_db <- function(con) {
            C_FRAC = ifelse(STATUSCD == 1,
                            CARBON_RATIO_LIVE * 100,
                            CARBON_RATIO * 100)) |>
+    mutate(STATUSCD = as.numeric(STATUSCD),
+           STANDING_DEAD_CD = as.numeric(STANDING_DEAD_CD),
+           COND_STATUS_CD = as.numeric(COND_STATUS_CD)) |>
     mutate(DEAD_AND_STANDING = STATUSCD == 2 && STANDING_DEAD_CD == 1,
            LIVE = STATUSCD == 1) |>
     filter(COND_STATUS_CD == 1,

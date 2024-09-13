@@ -8,7 +8,10 @@
 # trees from one plot
 fiadb <- tbl(con, "nsvb_vars") |>
   filter(JENKINS_SPGRPCD < 10, !is.na(HT)) |>
-  mutate(CR = as.numeric(CR)) |>
+  mutate(CR = as.numeric(CR),
+         HT = as.numeric(HT),
+         DIA = as.numeric(DIA),
+         ACTUALHT = as.numeric(ACTUALHT)) |>
   collect()
 
 # these are actually mean

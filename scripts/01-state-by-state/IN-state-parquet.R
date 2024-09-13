@@ -50,6 +50,11 @@ sapling_transitions_parquet_query <- gsub("plot", "sapling_transitions", plot_pa
 tree_annualized_parquet_query <- gsub("plot", "tree_annualized", plot_parquet_query)
 tree_cns_parquet_query <- gsub("plot", "tree_cns", plot_parquet_query)
 all_invyrs_parquet_query <- gsub("plot", "all_invyrs", plot_parquet_query)
+ref_species_parquet_query <- gsub("plot", "ref_species", plot_parquet_query)
+ref_tree_decay_prop_parquet_query <- gsub("plot", "ref_tree_decay_prop", plot_parquet_query)
+ref_tree_carbon_ratio_dead_parquet_query <- gsub("plot", "ref_tree_carbon_ratio_dead", plot_parquet_query)
+nsvb_vars_query <- gsub("plot", "nsvb_vars", plot_parquet_query)
+tree_carbon_query <- gsub("plot", "tree_carbon", plot_parquet_query)
 
 dbExecute(con,
           tree_parquet_query)
@@ -69,7 +74,15 @@ dbExecute(con,
           tree_cns_parquet_query)
 dbExecute(con,
           all_invyrs_parquet_query)
+dbExecute(con,
+          ref_species_parquet_query)
+dbExecute(con,
+          ref_tree_decay_prop_parquet_query)
+dbExecute(con,
+          ref_tree_carbon_ratio_dead_parquet_query)
+dbExecute(con,
+          nsvb_vars_query)
+dbExecute(con,
+          tree_carbon_query)
 
 dbDisconnect(con, shutdown = TRUE)
-
-
