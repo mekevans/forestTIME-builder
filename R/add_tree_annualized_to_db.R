@@ -5,7 +5,7 @@
 #' @return nothing
 #' @export
 #' @importFrom DBI dbListTables dbSendStatement
-#' @importFrom dplyr collect select distinct arrange group_by mutate ungroup left_join summarize n filter cross_join join_by lead inner_join
+#' @importFrom dplyr collect select distinct  group_by mutate ungroup left_join summarize n filter cross_join join_by lead inner_join
 #' @importFrom arrow to_duckdb
 add_annual_estimates_to_db <- function(con) {
   existing_tables <- dbListTables(con)
@@ -29,16 +29,24 @@ add_annual_estimates_to_db <- function(con) {
     dbSendStatement(con, "CREATE TABLE all_invyrs AS SELECT * FROM all_invyrs")
   }
   
+  
   trees <- tbl(con, "tree")  |>
-    mutate(ACTUALHT = as.numeric(ACTUALHT),
-           HT = as.numeric(HT),
-           DIA = as.numeric(DIA),
-           MORTYR = as.numeric(MORTYR),
-           INVYR = as.numeric(INVYR)) |>
-    mutate(ACTUALHT = ifelse(is.na(ACTUALHT),
-                             HT,
-                             ACTUALHT)) |>
-    left_join(tbl(con, "tree_info_composite_id")) |>
+    #filter(PLOT_COMPOSITE_ID == "27_2_61_20675") |>
+    mutate(
+      ACTUALHT = as.numeric(ACTUALHT),
+      HT = as.numeric(HT),
+      DIA = as.numeric(DIA),
+      MORTYR = as.numeric(MORTYR),
+      INVYR = as.numeric(INVYR)
+    ) |>
+    mutate(ACTUALHT = ifelse(is.na(ACTUALHT), HT, ACTUALHT)) |>
+    group_by(TREE_COMPOSITE_ID) |>
+    filter(all(STATUSCD == 1) |
+             ((any(STATUSCD == 1) && any(STATUSCD == 2))),
+           all(!is.na(DIA)),
+           all(!is.na(HT)),
+           all(!is.na(ACTUALHT))) |>
+    ungroup() |>
     select(
       TREE_COMPOSITE_ID,
       INVYR,
@@ -49,121 +57,194 @@ add_annual_estimates_to_db <- function(con) {
       PLT_CN,
       CONDID,
       MORTYR,
-      STATUSCD,
-      DEATH,
-      DAMAGE,
-      DISTURBANCE
-    )  |>
-    group_by(TREE_COMPOSITE_ID) |>
-    mutate(
-      next_INVYR = lead(INVYR, order_by = INVYR),
-      next_DIA = lead(DIA, order_by = INVYR),
-      next_HT = lead(HT, order_by = INVYR),
-      next_ACTUALHT = lead(ACTUALHT, order_by = INVYR),
-      last_MORTYR = max(MORTYR),
-      first_INVYR = min(INVYR)
-    ) |>
-    mutate(next_INVYR = next_INVYR - 1) |>
-    mutate(next_INVYR = ifelse(is.na(next_INVYR), INVYR, next_INVYR)) |>
-    mutate(INVYR_diff = next_INVYR + 1 - INVYR) |>
-    mutate(MORTYR_diff = ifelse(
-      is.na(last_MORTYR),
-      INVYR_diff,
-      ifelse(last_MORTYR < next_INVYR,
-             last_MORTYR - INVYR,
-             INVYR_diff)
-    )) |>
-    mutate(
-      next_DIA = ifelse(is.na(next_DIA), DIA, next_DIA),
-      next_HT = ifelse(is.na(next_HT), HT, next_HT),
-      next_ACTUALHT = ifelse(is.na(next_ACTUALHT), ACTUALHT, next_ACTUALHT)
+      STATUSCD
     ) |> 
-    mutate(
-      DIA_slope = ifelse(any(is.na(next_DIA),
-                             is.na(DIA)),
-                         NA,
-                         (next_DIA - DIA) / INVYR_diff),
-      HT_slope = ifelse(any(is.na(next_HT),
-                            is.na(HT)),
-                        NA,
-                        (next_HT - HT) / INVYR_diff),
-      ACTUALHT_slope = ifelse(any(is.na(next_ACTUALHT),
-                                  is.na(ACTUALHT)),
-                              NA,
-                              (next_ACTUALHT - ACTUALHT) / INVYR_diff),
-      DIA_slope_mort = ifelse(any(is.na(next_DIA),
-                                  is.na(DIA)),
-                              NA,
-                              (next_DIA - DIA) / MORTYR_diff),
-      HT_slope_mort = ifelse(any(is.na(next_HT),
-                                 is.na(HT)),
-                             NA,
-                             (next_HT - HT) / MORTYR_diff),
-      ACTUALHT_slope_mort = ifelse(any(is.na(next_ACTUALHT),
-                                       is.na(ACTUALHT)),
-                                   NA,
-                                   (next_ACTUALHT - ACTUALHT) / MORTYR_diff)
-    ) 
+    group_by(TREE_COMPOSITE_ID) |>
+    mutate(prev_invyr = lag(INVYR, default = NA, order_by = INVYR),
+           next_invyr = lead(INVYR, default = NA, order_by = INVYR),
+           next_height = lead(HT, default = NA, order_by = INVYR),
+           next_dia = lead(DIA, default = NA, order_by = INVYR),
+           next_aheight = lead(ACTUALHT, default = NA, order_by = INVYR),
+           ever_dead = any(STATUSCD == 2),
+           live_year = ifelse(STATUSCD == 1,
+                              INVYR,
+                              NA),
+           dead_year = ifelse(STATUSCD == 2,
+                              INVYR,
+                              NA)) |>
+    mutate(last_live_year = max(live_year, na.rm = TRUE),
+           first_dead_year = min(dead_year, na.rm = TRUE),
+           next_height = ifelse(is.na(next_height),
+                                HT,
+                                next_height),
+           next_dia = ifelse(is.na(next_dia),
+                             DIA,
+                             next_dia),
+           next_aheight = ifelse(is.na(next_aheight),
+                                 ACTUALHT,
+                                 next_aheight)) |>
+    mutate(midpoint_dead_year = ifelse(ever_dead,
+                                       ceiling((first_dead_year + last_live_year) / 2),
+                                       NA),
+           first_dead_height = ifelse(INVYR == first_dead_year,
+                                      HT,
+                                      NA),
+           first_dead_dia = ifelse(INVYR == first_dead_year,
+                                   DIA,
+                                   NA),
+           first_dead_aheight = ifelse(INVYR == first_dead_year,
+                                       ACTUALHT,
+                                       NA),
+           first_dead_cn = ifelse(INVYR == first_dead_year,
+                                  TREE_CN,
+                                  NA)) |>
+    mutate(first_dead_height = max(first_dead_height,
+                                   na.rm = T),
+           first_dead_dia = max(first_dead_dia,
+                                na.rm = T),
+           first_dead_aheight = max(first_dead_aheight,
+                                    na.rm = T),
+           first_dead_cn = max(first_dead_cn, na.rm =T),
+           dead_mortyr = ifelse(ever_dead,
+                                max(MORTYR, na.rm = T),
+                                NA)) |>
+    ungroup() |>
+    mutate(period_start = ifelse(STATUSCD == 2,
+                                 ifelse(INVYR == first_dead_year,
+                                        midpoint_dead_year,
+                                        INVYR),
+                                 INVYR),
+           period_stop = ifelse(is.na(next_invyr),
+                                INVYR,
+                                ifelse(INVYR == last_live_year,
+                                       midpoint_dead_year - 1,
+                                       next_invyr - 1)),
+           period_length = ifelse(
+             period_stop == period_start,
+             NA,
+             period_stop - period_start + 1)) |>
+    mutate(mortyr_dead_year = ifelse(is.na(dead_mortyr),
+                                     midpoint_dead_year,
+                                     dead_mortyr)) |>
+    mutate(period_start_mortyr = ifelse(STATUSCD == 2,
+                                        ifelse(INVYR == first_dead_year,
+                                               mortyr_dead_year,
+                                               INVYR),
+                                        INVYR),
+           period_stop_mortyr = ifelse(is.na(next_invyr),
+                                       INVYR,
+                                       ifelse(INVYR == last_live_year,
+                                              mortyr_dead_year - 1,
+                                              next_invyr - 1)),
+           period_length_mortyr = ifelse(
+             period_stop_mortyr == period_start_mortyr,
+             NA,
+             period_stop_mortyr - period_start_mortyr + 1)) |>
+    mutate(ht_slope_mortyr = ifelse(period_stop_mortyr == period_start_mortyr,
+                                    0,
+                                    (next_height - HT) / period_length_mortyr),
+           dia_slope_mortyr = ifelse(period_stop_mortyr == period_start_mortyr,
+                                     0,
+                                     (next_dia - DIA)/ period_length_mortyr),
+           aheight_slope_mortyr = ifelse(period_stop_mortyr == period_start_mortyr,
+                                         0,
+                                         (next_aheight - ACTUALHT) / period_length_mortyr),
+           ht_slope = ifelse(period_stop == period_start,
+                             0,
+                             (next_height - HT) / period_length),
+           dia_slope = ifelse(period_stop == period_start,
+                              0,
+                              (next_dia - DIA)/ period_length),
+           aheight_slope = ifelse(period_stop == period_start,
+                                  0,
+                                  (next_aheight - ACTUALHT) / period_length))
   
   all_years <- tbl(con, "tree") |>
     select(TREE_COMPOSITE_ID) |>
     distinct() |>
     cross_join(tbl(con, "all_invyrs")) |>
-    arrange(TREE_COMPOSITE_ID, INVYR) |>
-    rename(YEAR = INVYR) 
+    rename(YEAR = INVYR)
   
   by <-
     join_by(TREE_COMPOSITE_ID,
-            between(YEAR, INVYR, next_INVYR, bounds = "[]"))
+            between(YEAR, period_start, period_stop, bounds = "[]"))
   
   trees_annual_measures <- all_years |>
     inner_join(trees, by) |>
     mutate(
-      time_run = YEAR - INVYR,
-      DIA_start = DIA,
-      HT_start = HT,
-      ACTUALHT_start = ACTUALHT
-    ) |>
+      is_dead = ifelse(
+        ever_dead,
+        YEAR >= midpoint_dead_year,
+        FALSE),
+      time_run_midpoint = ifelse(
+        is_dead | YEAR == INVYR,
+        0,
+        YEAR - INVYR),
+      HT_est_midpoint = ifelse(
+        is_dead,
+        first_dead_height,
+        HT + (time_run_midpoint * ht_slope)),
+      DIA_est_midpoint = ifelse(
+        is_dead,
+        first_dead_dia,
+        DIA + (time_run_midpoint * dia_slope)),
+      AHEIGHT_est_midpoint = ifelse(
+        is_dead,
+        first_dead_aheight,
+        ACTUALHT + (time_run_midpoint * aheight_slope)),
+      TREE_CN_midpoint = ifelse(ever_dead && YEAR >= midpoint_dead_year,
+                                first_dead_cn,
+                                TREE_CN)) |>
+    select(TREE_COMPOSITE_ID,
+           TREE_CN_midpoint,
+           YEAR,
+           midpoint_dead_year,
+           HT_est_midpoint,
+           DIA_est_midpoint,
+           AHEIGHT_est_midpoint) 
+  
+  by_mortyr <-
+    join_by(TREE_COMPOSITE_ID,
+            between(YEAR, period_start_mortyr, period_stop_mortyr, bounds = "[]"))
+  
+  trees_annual_measures_mortyr <- all_years |>
+    inner_join(trees, by_mortyr) |>
     mutate(
-      DIA_est = DIA_start + (DIA_slope * time_run),
-      HT_est = HT_start + (HT_slope * time_run),
-      ACTUALHT_est = ACTUALHT_start + (ACTUALHT_slope * time_run),
-      DIA_est_mort = ifelse(
-        !is.na(last_MORTYR) && YEAR > last_MORTYR,
-        next_DIA,
-        DIA_start + (DIA_slope_mort * time_run)
-      ),
-      HT_est_mort = ifelse(
-        !is.na(last_MORTYR) && YEAR > last_MORTYR,
-        next_HT,
-        HT_start + (HT_slope_mort * time_run)
-      ),
-      ACTUALHT_est_mort = ifelse(
-        !is.na(last_MORTYR) && YEAR > last_MORTYR,
-        next_ACTUALHT,
-        ACTUALHT_start + (ACTUALHT_slope_mort * time_run)
-      )
-    ) |>
-    arrange(TREE_COMPOSITE_ID, YEAR) |>
-    select(
-      TREE_COMPOSITE_ID,
-      TREE_CN,
-      PLT_CN,
-      CONDID,
-      YEAR,
-      DIA_est,
-      HT_est,
-      ACTUALHT_est,
-      DIA_est_mort,
-      HT_est_mort,
-      ACTUALHT_est_mort,
-      last_MORTYR,
-      STATUSCD,
-      DEATH,
-      DAMAGE,
-      DISTURBANCE
-    ) |>
+      is_dead_mortyr = ifelse(
+        ever_dead,
+        YEAR >= mortyr_dead_year,
+        FALSE),
+      time_run_mortyr = ifelse(
+        is_dead_mortyr | YEAR == INVYR,
+        0,
+        YEAR - INVYR),
+      HT_est_mortyr = ifelse(
+        is_dead_mortyr,
+        first_dead_height,
+        HT + (time_run_mortyr * ht_slope_mortyr)),
+      DIA_est_mortyr = ifelse(
+        is_dead_mortyr,
+        first_dead_dia,
+        DIA + (time_run_mortyr * dia_slope_mortyr)),
+      AHEIGHT_est_mortyr = ifelse(
+        is_dead_mortyr,
+        first_dead_aheight,
+        ACTUALHT + (time_run_mortyr * aheight_slope_mortyr))) |>
+    mutate(TREE_CN_mortyr = ifelse(ever_dead && YEAR >= mortyr_dead_year,
+                                   first_dead_cn,
+                                   TREE_CN)) |>
+    select(TREE_COMPOSITE_ID,
+           TREE_CN_mortyr,
+           YEAR,
+           mortyr_dead_year,
+           HT_est_mortyr,
+           DIA_est_mortyr,
+           AHEIGHT_est_mortyr)
+  
+  all_annual_measures <- trees_annual_measures |>
+    left_join(trees_annual_measures_mortyr) |>
     collect()
+  
   
   arrow::to_duckdb(trees_annual_measures,
                    table_name = "tree_annualized",
