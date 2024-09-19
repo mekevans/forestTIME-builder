@@ -246,7 +246,7 @@ add_annual_estimates_to_db <- function(con) {
     collect()
   
   
-  arrow::to_duckdb(trees_annual_measures,
+  arrow::to_duckdb(all_annual_measures,
                    table_name = "tree_annualized",
                    con = con)
   dbExecute(con,
