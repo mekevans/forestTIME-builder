@@ -1,6 +1,6 @@
 on:
   push:
-    branches: update-interpolation
+    branches: main
 
 jobs:
   AK:
