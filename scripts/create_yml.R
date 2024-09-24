@@ -2,7 +2,7 @@ library(dplyr)
 all_states <- read.csv(here::here("data", "fips.csv")) |>
   filter(STATE != "DC", 
          STATEFP < 60) |>
-  filter(STATE %in% c("AK", "MN"))
+  filter(STATE %in% c("AK", "CO", "MN"))
 
 states_to_write <- all_states$STATE
 
@@ -10,7 +10,7 @@ states_to_write <- all_states$STATE
 
 header <- "on:
   push:
-    branches: interpolate-dead-trees
+    branches: main
 
 jobs:
 "
