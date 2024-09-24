@@ -306,7 +306,7 @@ add_annual_estimates_to_db <- function(con) {
   print(head(all_annual_measures))
   
   # Add all of these tables to the (intermediary state-level) database.
-  arrow::to_duckdb(all_annual_measures, table_name = "tree_annualized", con = con)
+ # arrow::to_duckdb(all_annual_measures, table_name = "tree_annualized", con = con)
   
   arrow::to_duckdb(trees_annual_measures_midpoint_nsvb,
                    table_name = "trees_annual_measures_midpoint_nsvb",
@@ -316,8 +316,8 @@ add_annual_estimates_to_db <- function(con) {
                    table_name = "trees_annual_measures_mortyr_nsvb",
                    con = con)
   
-  dbExecute(con,
-            "CREATE TABLE tree_annualized AS SELECT * FROM tree_annualized")
+  # dbExecute(con,
+  #           "CREATE TABLE tree_annualized AS SELECT * FROM tree_annualized")
   dbExecute(
     con,
     "CREATE TABLE trees_annual_measures_midpoint_nsvb AS SELECT * FROM trees_annual_measures_midpoint_nsvb"
