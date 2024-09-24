@@ -227,39 +227,13 @@ add_annual_estimates_to_db <- function(con) {
   # use the by above to get only the invyrs between the period stop and start years
   trees_annual_measures <- all_years |>
     inner_join(trees, by) |>
-    
     # For each year...
     mutate(
       # Note if the tree is dead in this year
       is_dead = ifelse(ever_dead, YEAR >= midpoint_dead_year, FALSE),
       # Calculate how many years have passed in this mortyr
-      time_run_midpoint = ifelse(# If the tree is dead, calculate the slope as 0 - this will need to change
-        # The slope is also 0 if this year is the first year of the period
-        # I think, here, I will want to change INVYR to period_start
-        # This will account for instances where period_start < INVYR
-        # which will happen for standing dead trees that died in the
-        # immediately preceding survey.
-        YEAR == period_start, 0, YEAR - period_start),
+      time_run_midpoint = ifelse(YEAR == period_start, 0, YEAR - period_start),
       # Calculate estimates
-      # For trees that are dead, freeze them at the height they were when they first died. (Change this).
-      # Otherwise, HT_est is starting HT plus (slope * time since start of period).
-      # Ditto other measurements.
-      # HT_est_midpoint = ifelse(
-      #   is_dead,
-      #   first_dead_height,
-      #   HT + (time_run_midpoint * ht_slope)),
-      # DIA_est_midpoint = ifelse(
-      #   is_dead,
-      #   first_dead_dia,
-      #   DIA + (time_run_midpoint * dia_slope)),
-      # AHEIGHT_est_midpoint = ifelse(
-      #   is_dead,
-      #   first_dead_aheight,
-      #   ACTUALHT + (time_run_midpoint * aheight_slope)),
-      # # Update the TREE_CN to be the first dead CN if the tree is dead. (Change this).
-      # TREE_CN_midpoint = ifelse(ever_dead && YEAR >= midpoint_dead_year,
-      #                           first_dead_cn,
-      #                           TREE_CN)) |>
       HT_est_midpoint = HT + (time_run_midpoint * ht_slope),
       DIA_est_midpoint = DIA + (time_run_midpoint * dia_slope),
       AHEIGHT_est_midpoint = ACTUALHT + (time_run_midpoint * aheight_slope),
@@ -285,13 +259,10 @@ add_annual_estimates_to_db <- function(con) {
     inner_join(trees, by_mortyr) |>
     mutate(
       is_dead_mortyr = ifelse(ever_dead, YEAR >= mortyr_dead_year, FALSE),
-      time_run_mortyr = ifelse(
-                                 YEAR == period_start_mortyr, 0, YEAR - period_start_mortyr),
-      HT_est_mortyr = 
-        HT + (time_run_mortyr * ht_slope_mortyr),
+      time_run_mortyr = ifelse(YEAR == period_start_mortyr, 0, YEAR - period_start_mortyr),
+      HT_est_mortyr = HT + (time_run_mortyr * ht_slope_mortyr),
       DIA_est_mortyr =  DIA + (time_run_mortyr * dia_slope_mortyr),
-      AHEIGHT_est_mortyr =
-        ACTUALHT + (time_run_mortyr * aheight_slope_mortyr),
+      AHEIGHT_est_mortyr = ACTUALHT + (time_run_mortyr * aheight_slope_mortyr),
       TREE_CN_mortyr = TREE_CN) |>
     select(
       TREE_COMPOSITE_ID,
@@ -305,7 +276,6 @@ add_annual_estimates_to_db <- function(con) {
   
   # Extract the NSVB variables for the mortyr data
   trees_annual_measures_mortyr_nsvb <- trees_annual_measures_mortyr |>
-      filter(grepl("27_2_61_20675", TREE_COMPOSITE_ID)) |>
     rename(
       TRE_CN = TREE_CN_mortyr,
       HT = HT_est_mortyr,
@@ -318,7 +288,6 @@ add_annual_estimates_to_db <- function(con) {
   
   # Extract the NSVB variables for the midpoint data
   trees_annual_measures_midpoint_nsvb <- trees_annual_measures |>
-    #filter(grepl("27_2_61_20675", TREE_COMPOSITE_ID)) |>
     rename(
       TRE_CN = TREE_CN_midpoint,
       HT = HT_est_midpoint,
@@ -344,6 +313,7 @@ add_annual_estimates_to_db <- function(con) {
   arrow::to_duckdb(trees_annual_measures_mortyr_nsvb,
                    table_name = "trees_annual_measures_mortyr_nsvb",
                    con = con)
+  
   dbExecute(con,
             "CREATE TABLE tree_annualized AS SELECT * FROM tree_annualized")
   dbExecute(
