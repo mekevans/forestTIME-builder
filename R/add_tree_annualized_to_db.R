@@ -303,6 +303,8 @@ add_annual_estimates_to_db <- function(con) {
     left_join(trees_annual_measures_mortyr) |>
     collect()
   
+  print(head(all_annual_measures))
+  
   # Add all of these tables to the (intermediary state-level) database.
   arrow::to_duckdb(all_annual_measures, table_name = "tree_annualized", con = con)
   
