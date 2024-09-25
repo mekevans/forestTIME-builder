@@ -47,5 +47,7 @@ create_all_tables <- function(con, rawdat_dir, delete_downloads = F, state = "al
   add_annual_estimates_to_db(con)
   add_saplings_to_db(con)
   source(here::here("R", "add_carbon_variables.R"))
+  source(here::here("R", "add_carbon_variables_mortyr.R"))
+  source(here::here("R", "add_carbon_variables_midpoint.R"))
   
 }
