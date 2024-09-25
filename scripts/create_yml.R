@@ -10,7 +10,7 @@ states_to_write <- all_states$STATE
 
 header <- "on:
   push:
-    branches: add_nsvb_test
+    branches: add-annual-carbon
 
 jobs:
 "
