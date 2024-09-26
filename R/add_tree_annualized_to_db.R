@@ -40,12 +40,13 @@ add_annual_estimates_to_db <- function(con) {
       INVYR = as.numeric(INVYR)
     ) |>
     mutate(ACTUALHT = ifelse(is.na(ACTUALHT), HT, ACTUALHT)) |>
+    filter(!is.na(DIA),
+           !is.na(HT),
+           !is.na(ACTUALHT))
     group_by(TREE_COMPOSITE_ID) |>
     filter(all(STATUSCD == 1) |
-             ((any(STATUSCD == 1) && any(STATUSCD == 2))),
-           all(!is.na(DIA)),
-           all(!is.na(HT)),
-           all(!is.na(ACTUALHT))) |>
+             ((any(STATUSCD == 1) && any(STATUSCD == 2))) |
+             all(STATUSCD == 2)) |>
     ungroup() |>
     select(
       STATECD,
