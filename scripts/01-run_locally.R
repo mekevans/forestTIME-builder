@@ -11,7 +11,8 @@ source(here::here("R", "download_csv_wrapper.R"))
 all_states <- read.csv(here::here("data", "fips.csv")) |>
   filter(STATEFP < 60) |>
   select(STATE) |>
-  filter(STATE != "DC")
+  filter(STATE != "DC") |>
+  filter(STATE %in% c("CO", "MN", "NH"))
 
 download_csv_from_datamart(all_states$STATE, here::here("data", "rawdat", "state"), overwrite = F)
 
@@ -23,7 +24,7 @@ state_scripts <- list.files(here::here("scripts",
                             full.names = T) 
 
 
-purrr::map(state_scripts[c(1, 23, 6)], source, .progress = T)
+purrr::map(state_scripts[c(30)], source, .progress = T)
 
 # Combine state files into a single database
 

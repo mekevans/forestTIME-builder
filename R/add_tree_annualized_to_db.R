@@ -48,6 +48,7 @@ add_annual_estimates_to_db <- function(con) {
            all(!is.na(ACTUALHT))) |>
     ungroup() |>
     select(
+      STATECD,
       TREE_COMPOSITE_ID,
       INVYR,
       DIA,
@@ -195,7 +196,8 @@ add_annual_estimates_to_db <- function(con) {
       TREE_CN_midpoint = ifelse(ever_dead && YEAR >= midpoint_dead_year,
                                 first_dead_cn,
                                 TREE_CN)) |>
-    select(TREE_COMPOSITE_ID,
+    select(STATECD,
+           TREE_COMPOSITE_ID,
            TREE_CN_midpoint,
            YEAR,
            midpoint_dead_year,
@@ -233,7 +235,8 @@ add_annual_estimates_to_db <- function(con) {
     mutate(TREE_CN_mortyr = ifelse(ever_dead && YEAR >= mortyr_dead_year,
                                    first_dead_cn,
                                    TREE_CN)) |>
-    select(TREE_COMPOSITE_ID,
+    select(STATECD, 
+           TREE_COMPOSITE_ID,
            TREE_CN_mortyr,
            YEAR,
            mortyr_dead_year,
@@ -271,7 +274,7 @@ add_annual_estimates_to_db <- function(con) {
   
   
   arrow::to_duckdb(all_annual_measures,
-                   table_name = "tree_annualized",
+                   table_name = "tree_annualized2",
                    con = con)
   
   arrow::to_duckdb(trees_annual_measures_midpoint_nsvb,
@@ -282,7 +285,7 @@ add_annual_estimates_to_db <- function(con) {
                    table_name = "trees_annual_measures_mortyr_nsvb",
                    con = con)
   dbExecute(con,
-            "CREATE TABLE tree_annualized AS SELECT * FROM tree_annualized")
+            "CREATE TABLE tree_annualized AS SELECT * FROM tree_annualized2")
   dbExecute(con,
             "CREATE TABLE trees_annual_measures_midpoint_nsvb AS SELECT * FROM trees_annual_measures_midpoint_nsvb")
   dbExecute(con,
