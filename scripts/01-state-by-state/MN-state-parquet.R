@@ -40,6 +40,7 @@ con <- dbConnect(duckdb(dbdir = database_path))
 create_all_tables(con, rawdat_dir = csv_dir, delete_downloads = !exists("delete_files"), state = state_to_use)
 
 
+
 # Store parquets #### 
 
 tree_parquet_query <- paste0("COPY tree TO 'data/parquet/tree_table_", state_to_use, ".parquet' (FORMAT PARQUET, PARTITION_BY (CYCLE), OVERWRITE_OR_IGNORE)")
@@ -48,14 +49,14 @@ cond_parquet_query <- gsub("plot", "cond", plot_parquet_query)
 qa_flags_parquet_query <- gsub("plot", "qa_flags", plot_parquet_query)
 tree_info_composite_id_parquet_query <- gsub("plot", "tree_info_composite_id", plot_parquet_query)
 sapling_transitions_parquet_query <- gsub("plot", "sapling_transitions", plot_parquet_query)
-tree_annualized_parquet_query <- gsub("plot", "tree_annualized", plot_parquet_query)
+#tree_annualized_parquet_query <- gsub("plot", "tree_annualized", plot_parquet_query)
 tree_cns_parquet_query <- gsub("plot", "tree_cns", plot_parquet_query)
 all_invyrs_parquet_query <- gsub("plot", "all_invyrs", plot_parquet_query)
 ref_species_parquet_query <- gsub("plot", "ref_species", plot_parquet_query)
 ref_tree_decay_prop_parquet_query <- gsub("plot", "ref_tree_decay_prop", plot_parquet_query)
 ref_tree_carbon_ratio_dead_parquet_query <- gsub("plot", "ref_tree_carbon_ratio_dead", plot_parquet_query)
 nsvb_vars_query <- gsub("plot", "nsvb_vars", plot_parquet_query)
-tree_carbon_query <- gsub("plot", "tree_carbon", plot_parquet_query)
+#tree_carbon_query <- gsub("plot", "tree_carbon", plot_parquet_query)
 tree_carbon_annualized_midpoint_query <- gsub("plot", "tree_carbon_annualized_midpoint", plot_parquet_query)
 tree_carbon_annualized_mortyr_query <- gsub("plot", "tree_carbon_annualized_mortyr", plot_parquet_query)
 
@@ -72,8 +73,8 @@ dbExecute(con,
           tree_info_composite_id_parquet_query)
 dbExecute(con,
           sapling_transitions_parquet_query)
-dbExecute(con,
-          tree_annualized_parquet_query)
+# dbExecute(con,
+#           tree_annualized_parquet_query)
 dbExecute(con,
           tree_cns_parquet_query)
 dbExecute(con,
@@ -86,8 +87,8 @@ dbExecute(con,
           ref_tree_carbon_ratio_dead_parquet_query)
 dbExecute(con,
           nsvb_vars_query)
-dbExecute(con,
-          tree_carbon_query)
+# dbExecute(con,
+#           tree_carbon_query)
 dbExecute(con,
           tree_carbon_annualized_mortyr_query)
 dbExecute(con,
@@ -95,6 +96,5 @@ dbExecute(con,
 
 
 dbDisconnect(con, shutdown = TRUE)
-
 
 

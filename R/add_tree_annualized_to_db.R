@@ -274,11 +274,11 @@ add_annual_estimates_to_db <- function(con) {
     collect()
   
   
-  arrow::to_duckdb(all_annual_measures,
-                   table_name = "tree_annualized",
-                   con = con)
-  dbExecute(con,
-            "CREATE TABLE tree_annualized AS SELECT * FROM tree_annualized")
+  # arrow::to_duckdb(all_annual_measures,
+  #                  table_name = "tree_annualized",
+  #                  con = con)
+  # dbExecute(con,
+  #           "CREATE TABLE tree_annualized AS SELECT * FROM tree_annualized")
   arrow::to_duckdb(trees_annual_measures_midpoint_nsvb,
                    table_name = "trees_annual_measures_midpoint_nsvb",
                    con = con)
