@@ -244,6 +244,8 @@ add_annual_estimates_to_db <- function(con) {
            DIA_est_mortyr,
            AHEIGHT_est_mortyr)
   
+  
+  
   trees_annual_measures_mortyr_nsvb <- trees_annual_measures_mortyr |>   
   #  filter(grepl("27_2_61_20675", TREE_COMPOSITE_ID)) |>
     rename(TRE_CN = TREE_CN_mortyr,
@@ -268,6 +270,11 @@ add_annual_estimates_to_db <- function(con) {
                        -ACTUALHT)) |>
     collect()
   
+  my_not_midpoint <- trees_annual_measures_mortyr_nsvb |>
+    left_join(trees_annual_measures_midpoint_nsvb |> mutate(mp = 1)) |>
+    filter(is.na(mp)) |>
+    select(-mp)
+  
   all_annual_measures <- trees_annual_measures |>
     left_join(trees_annual_measures_mortyr) |>
     collect()
@@ -284,12 +291,21 @@ add_annual_estimates_to_db <- function(con) {
   
   dbExecute(con,
             "CREATE TABLE trees_annual_measures_midpoint_nsvb AS SELECT * FROM trees_annual_measures_midpoint_nsvb")
+  
   arrow::to_duckdb(trees_annual_measures_mortyr_nsvb,
                    table_name = "trees_annual_measures_mortyr_nsvb",
                    con = con)
   
   dbExecute(con,
             "CREATE TABLE trees_annual_measures_mortyr_nsvb AS SELECT * FROM trees_annual_measures_mortyr_nsvb")
+  
+  arrow::to_duckdb(my_not_midpoint,
+                   table_name = "trees_annual_measures_mortyr_only_nsvb",
+                   con = con)
+  
+  dbExecute(con,
+            "CREATE TABLE trees_annual_measures_mortyr_only_nsvb AS SELECT * FROM trees_annual_measures_mortyr_only_nsvb")
+  
   
   return()
   

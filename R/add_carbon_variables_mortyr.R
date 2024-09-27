@@ -6,7 +6,7 @@
 # prep work--------------------------------------------------------------------
 # test data built from the 'query.sql' script
 # trees from one plot
-fiadb <- tbl(con, "trees_annual_measures_mortyr_nsvb") |>
+fiadb <- tbl(con, "trees_annual_measures_mortyr_only_nsvb") |>
   filter(JENKINS_SPGRPCD < 10, !is.na(HT)) |>
   mutate(CR = as.numeric(CR),
          HT = as.numeric(HT),
@@ -98,5 +98,5 @@ fiadb2 <- predictCRM2(
 )
 
 
-arrow::to_duckdb(fiadb2, table_name = "tree_carbon_annualized_mortyr", con = con)
-dbExecute(con, "CREATE TABLE tree_carbon_annualized_mortyr AS SELECT * FROM tree_carbon_annualized_mortyr")
+arrow::to_duckdb(fiadb2, table_name = "tree_carbon_annualized_mortyr_only", con = con)
+dbExecute(con, "CREATE TABLE tree_carbon_annualized_mortyr_only AS SELECT * FROM tree_carbon_annualized_mortyr_only")

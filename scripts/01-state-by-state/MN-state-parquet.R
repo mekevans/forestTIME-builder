@@ -57,8 +57,9 @@ ref_tree_decay_prop_parquet_query <- gsub("plot", "ref_tree_decay_prop", plot_pa
 ref_tree_carbon_ratio_dead_parquet_query <- gsub("plot", "ref_tree_carbon_ratio_dead", plot_parquet_query)
 nsvb_vars_query <- gsub("plot", "nsvb_vars", plot_parquet_query)
 #tree_carbon_query <- gsub("plot", "tree_carbon", plot_parquet_query)
+trees_annual_measures_mortyr_nsvb_query <- gsub("plot", "trees_annual_measures_mortyr_nsvb", plot_parquet_query)
 tree_carbon_annualized_midpoint_query <- gsub("plot", "tree_carbon_annualized_midpoint", plot_parquet_query)
-tree_carbon_annualized_mortyr_query <- gsub("plot", "tree_carbon_annualized_mortyr", plot_parquet_query)
+tree_carbon_annualized_mortyr_query <- gsub("plot", "tree_carbon_annualized_mortyr_only", plot_parquet_query)
 
 
 dbExecute(con,
@@ -93,7 +94,8 @@ dbExecute(con,
           tree_carbon_annualized_mortyr_query)
 dbExecute(con,
           tree_carbon_annualized_midpoint_query)
-
+dbExecute(con,
+          trees_annual_measures_mortyr_nsvb_query)
 
 dbDisconnect(con, shutdown = TRUE)
 

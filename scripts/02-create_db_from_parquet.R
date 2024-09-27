@@ -52,7 +52,8 @@ tree_cns_query <- gsub("plot", "tree_cns", plot_query)
 nsvb_vars_query <- gsub("plot", "nsvb_vars", plot_query)
 tree_carbon_query <- gsub("plot", "tree_carbon", plot_query)
 tree_carbon_annualized_midpoint_query <- gsub("plot", "tree_carbon_annualized_midpoint", plot_query)
-tree_carbon_annualized_mortyr_query <- gsub("plot", "tree_carbon_annualized_mortyr", plot_query)
+trees_annual_measures_mortyr_query <- gsub("plot", "trees_annual_measures_mortyr_nsvb", plot_query)
+tree_carbon_annualized_mortyr_only_query <- gsub("plot", "tree_carbon_annualized_mortyr_only", plot_query)
 
 
 all_invyrs_query <- paste0("CREATE TABLE all_invyrs AS SELECT * FROM read_parquet(['",
