@@ -24,7 +24,7 @@ state_scripts <- list.files(here::here("scripts",
                             full.names = T) 
 
 
-purrr::map(state_scripts[c(30)], source, .progress = T)
+purrr::map(state_scripts[c(6, 23, 30)], source, .progress = T)
 
 # Combine state files into a single database
 
