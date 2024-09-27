@@ -14,6 +14,8 @@ fiadb <- tbl(con, "trees_annual_measures_mortyr_only_nsvb") |>
          ACTUALHT = as.numeric(ACTUALHT)) |>
   collect()
 
+if(nrow(fiadb) > 0) {
+
 # these are actually mean
 # this table is in fiadb as fs_fia_reference.ref_tree_stnd_dead_cr_prop
 # but you have to merge on a derived column 'ecoprov/province'
@@ -96,6 +98,9 @@ fiadb2 <- predictCRM2(
   gross.volume = FALSE,
   all.vars = TRUE
 )
+} else {
+  fiadb2 <- fiadb
+}
 
 
 arrow::to_duckdb(fiadb2, table_name = "tree_carbon_annualized_mortyr_only", con = con)
