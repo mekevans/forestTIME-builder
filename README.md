@@ -2,11 +2,7 @@
 
 This branch is a WIP containing Renata's work through October 2024 on (1) interpolating measurements of HT/DIA across remeasurement periods using different algorithms and (2) using David Walker's code to estimate carbon variables on these interpolated values. These objectives were identified as additional aims for forestTIME in September 2024. 
 
-## Aims of this additional work
-
-- 
-
-## Status of this branch
+To use this version of the database, see the "carbon" document here. 
 
 # forestTIME-builder
 Scripts to generate a forestTIME database. Ancestral code is in forestTIME and automatic-trees, which has a bloated git history. 
