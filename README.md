@@ -5,6 +5,11 @@ The code in this repo will download raw FIA data from DataMart, process it to cr
 
 I anticipate that *most* users of forestTIME will not run this code. Instead it will run automatically via github actions and push the finished database someplace accessible to users, who will then download it and query it. Functions to query an already-generated database can be found in https://github.com/mekevans/forestTIME/. However, anyone who wants to can download this repo and run the scripts to create a database locally. 
 
+## The `pre_carbon` branch
+
+This branch, the default branch, contains the stable version of forestTIME prior to the addition of NSVB carbon estimation. 
+For the (WIP) branch with Renata's work towards annualized carbon estimates, see the `add-annual-carbon-good` branch [here](https://github.com/diazrenata/forestTIME-builder/tree/add-annual-carbon-good).
+
 ## Organization
 
 - `R` contains functions to download data, create tables, and add them to the database. These functions hardly ever change.
