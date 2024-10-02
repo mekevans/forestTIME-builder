@@ -63,7 +63,7 @@ jobs:
         with:
           name: NH
           path: data/parquet/*
-  WI:
+  ND:
     runs-on: ubuntu-latest
     steps:
       - name: Set up R
@@ -85,17 +85,17 @@ jobs:
       - name: Dependencies
         uses: r-lib/actions/setup-renv@v2
       - name: Set state
-        run: Rscript -e 'state_to_use <- "WI"'
+        run: Rscript -e 'state_to_use <- "ND"'
       - name: Generate state database
-        run: Rscript -e 'source("scripts/01-state-by-state/WI-state-parquet.R")'
+        run: Rscript -e 'source("scripts/01-state-by-state/ND-state-parquet.R")'
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: WI
+          name: ND
           path: data/parquet/*
   stack:
     runs-on: ubuntu-latest
-    needs: [CO, NH, WI]
+    needs: [CO, NH, ND]
     env:
       ZENODO_TOKEN: ${{ secrets.ZENODO_TOKEN }}
     steps:

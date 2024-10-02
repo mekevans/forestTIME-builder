@@ -2,7 +2,7 @@ library(dplyr)
 all_states <- read.csv(here::here("data", "fips.csv")) |>
   filter(STATE != "DC", 
          STATEFP < 60) |>
-  filter(STATE %in% c("CO", "NH", "WI"))
+  filter(STATE %in% c("CO", "NH", "ND"))
 
 states_to_write <- all_states$STATE
 
