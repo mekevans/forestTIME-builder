@@ -10,7 +10,7 @@ states_to_write <- all_states$STATE
 
 header <- "on:
   push:
-    branches: add-annual-carbon-good
+    branches: pre-carbon
 
 jobs:
 "

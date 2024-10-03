@@ -1,6 +1,6 @@
 on:
   push:
-    branches: add-annual-carbon-good
+    branches: pre-carbon
 
 jobs:
   CO:
