@@ -4,6 +4,18 @@ This branch is a WIP containing Renata's work through October 2024 on (1) interp
 
 To use this version of the database, see the ["carbon" document here](https://github.com/diazrenata/forestTIME-builder/blob/add-annual-carbon-good/carbon.md). 
 
+## Status of this branch
+
+- This version implements two interpolation methods that are different from the one used in the `pre_carbon` branch. On the `pre_carbon` branch, trees that die are assumed to have died in the survey year in which they are first recorded as dead. This branch uses a "midpoint" and a "mortyr" method. In the "midpoint" method, dead trees are assumed to have died at the midpoint of the remeasurement year in which they died (e.g. a tree recorded as alive in 2010 and dead in 2020 is assumed to have died in 2015). The "mortyr" method is the same as the midpoint, **except** that if a tree has a `MORTYR` recorded, the tree is assumed to have died in `MORTYR`. 
+- There have been additional interpolation methods discussed, e.g. taking into account disturbance years and types. This branch does not do any of that.
+- Interpolation continues for as long as a tree remains in the database. It stops in the last survey year in which the tree is recorded. _TODO that has been discussed, but not implemented: Extend the interpolation period to the midpoint of the remeasurement period immediately after the last record of a tree._
+- Annualized measurements are generated only for trees that meet these criteria: Either alive in all survey periods, or alive in some surveys and dead in others; **and** have no NA measurements for HT or DIA. This excludes a lot (30-40%) of trees. Many trees can be re-added by adding trees that are always recorded as dead and/or have some NA measurements. NA measurements are likely to break the current code, so one solution is to filter the *measurements* to remove individual surveys with NA measurements but keep other records for that tree. I (Renata) began investigating this in the `allow_more` branch, but it may be equally efficient to start this work fresh. 
+- Some trees have NA measurements sandwiched between non-NA measurements. We could get additional information by interpolating the NA measurements from the adjoining non-NA measurements. This branch does not attempt any of this.
+- This branch does not filter at all based on DIA. Trees with DIA < 5 are saplings measured on the subplot. Carbon estimated from these trees should be (somehow) scaled up to proportionally account for the area of the full plot. Or, these trees could be filtered out until they reach DIA >= 5. This branch does neither of these things.
+- This branch generates NSVB carbon variable estimates based on interpolated annual measurements of HT and DIA using the two interpolation methods. It does so using David Walker's code copied essentially verbatim from the `nsvb_test.zip` file he sent the group in September 2024. 
+- The carbon estimation procedure runs locally. It runs for some states in GH actions but fails for others with a timeout. I (Renata) believe this is because it takes a lot of time/memory to run the carbon estimation on states with a lot of trees (e.g. Minnesota, Wisconsin). Currently, I just don't run this on those states in GH actions. To get it running, you'd need to either speed up the carbon estimation code or break the states into smaller units (e.g. counties).
+
+
 # forestTIME-builder
 Scripts to generate a forestTIME database. Ancestral code is in forestTIME and automatic-trees, which has a bloated git history. 
 
