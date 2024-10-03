@@ -14,6 +14,7 @@ To use this version of the database, see the ["carbon" document here](https://gi
 - This branch does not filter at all based on DIA. Trees with DIA < 5 are saplings measured on the subplot. Carbon estimated from these trees should be (somehow) scaled up to proportionally account for the area of the full plot. Or, these trees could be filtered out until they reach DIA >= 5. This branch does neither of these things.
 - This branch generates NSVB carbon variable estimates based on interpolated annual measurements of HT and DIA using the two interpolation methods. It does so using David Walker's code copied essentially verbatim from the `nsvb_test.zip` file he sent the group in September 2024. 
 - The carbon estimation procedure runs locally. It runs for some states in GH actions but fails for others with a timeout. I (Renata) believe this is because it takes a lot of time/memory to run the carbon estimation on states with a lot of trees (e.g. Minnesota, Wisconsin). Currently, I just don't run this on those states in GH actions. To get it running, you'd need to either speed up the carbon estimation code or break the states into smaller units (e.g. counties).
+- Edge effects - the carbon estimates appear to decline after around 2010. This is not a real effect but reflects that fewer and fewer trees have been resampled since their last survey visit. It should be corrected for, either by scaling estimates to the number of plots resampled or by extrapolating measurements for upcoming surveys.
 
 
 # forestTIME-builder

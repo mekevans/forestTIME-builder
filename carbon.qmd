@@ -22,6 +22,7 @@ You can connect to the database like this:
 library(dplyr)
 library(duckdb)
 library(DBI)
+library(ggplot2)
 
 con <- dbConnect(duckdb(dbdir = here::here("data",
                                                   "db",
@@ -62,6 +63,33 @@ co_annual_carbon_midpoint <- tbl(con, "tree_carbon_annualized_midpoint") |>
 knitr::kable(co_annual_carbon_midpoint)
 
 ```
+
+Plot carbon estimates for different interpolation methods:
+
+```{r}
+
+mortyr_carbon <- tbl(con, "tree_carbon_annualized_mortyr") |>
+  collect()
+
+midpoint_carbon <- tbl(con, "tree_carbon_annualized_midpoint") |>
+  collect()
+
+mortyr_carbon_total <- mortyr_carbon |> group_by(YEAR, STATECD, STATUSCD) |> summarize(C = sum(CARBON, na.rm = T)) |> ungroup()  |> 
+  mutate(method = "mortyr")
+
+midpoint_carbon_total <- midpoint_carbon |> group_by(YEAR, STATECD, STATUSCD) |> summarize(C = sum(CARBON, na.rm = T)) |> ungroup() |> 
+  mutate(method = "midpoint")
+
+both_carbon_totals <- bind_rows(mortyr_carbon_total,
+                                midpoint_carbon_total)
+
+ggplot(both_carbon_totals |> filter(STATUSCD == 1), aes(YEAR, C, color = method)) + geom_line() + facet_wrap(vars(STATECD), ncol = 1) + theme_bw() + ggtitle("Live C")
+
+
+ggplot(both_carbon_totals |> filter(STATUSCD == 2), aes(YEAR, C, color = method)) + geom_line() + facet_wrap(vars(STATECD), ncol = 1) + theme_bw() + ggtitle("Dead C")
+
+```
+
 
 When you're done, disconnect from the database.
 
