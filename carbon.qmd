@@ -54,13 +54,13 @@ knitr::kable(some_trees)
 
 # Pull some data from the carbon estimates table
 
-co_annual_carbon_midpoint <- tbl(con, "tree_carbon_annualized_midpoint") |>
-  filter(STATECD == 8) |>
+mn_annual_carbon_midpoint <- tbl(con, "tree_carbon_annualized_midpoint") |>
+  filter(STATECD == 27) |>
   arrange(TREE_COMPOSITE_ID, YEAR) |>
   head() |>
   collect()
 
-knitr::kable(co_annual_carbon_midpoint)
+knitr::kable(mn_annual_carbon_midpoint)
 
 ```
 
