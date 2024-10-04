@@ -8,7 +8,7 @@ editor: source
 
 ## Download
 
-You can download a copy of the *work in progress* database from this [Google Drive link](https://drive.google.com/file/d/1Ndn63S4ZWDvttZMcXUj8Wx8ziqCCClIf/view?usp=sharing). The rest of this document will assume you downloaded it and put it in `data/db`. This database has data for CO, ND, and NH.
+You can download a copy of the *work in progress* database from this [Google Drive link](https://drive.google.com/file/d/1Ndn63S4ZWDvttZMcXUj8Wx8ziqCCClIf/view?usp=sharing). The rest of this document will assume you downloaded it and put it in `data/db`. This database has data for CO, MN, and NH.
 
 ## Generating it yourself
 
