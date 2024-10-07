@@ -11,11 +11,15 @@ jobs:
         state: [AZ, AK]
     runs-on: ubuntu-latest
     steps:
-      - name: Set up R
-        uses: r-lib/actions/setup-r@v2
       - name: Check out repository
         uses: actions/checkout@v4
-      - name: Dependencies
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+      - name: Install system dependencies
+        uses: awalsh128/cache-apt-pkgs-action@v1
+        with:
+          packages: libcurl4-openssl-dev librdf0-dev libsodium-dev
+      - name: Install R packages
         uses: r-lib/actions/setup-renv@v2
       - name: Set state
         run: Rscript -e 'state_to_use <- "${{ matrix.state }}"'
