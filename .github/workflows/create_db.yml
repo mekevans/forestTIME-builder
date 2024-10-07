@@ -29,6 +29,8 @@ jobs:
           sudo apt-get install libsodium-dev
       - name: Install R packages
         uses: r-lib/actions/setup-renv@v2
+        env:
+          RENV_CONFIG_PAK_ENABLED: true
       - name: Set state
         run: Rscript -e 'state_to_use <- "${{ matrix.state }}"'
       - name: Generate state database
