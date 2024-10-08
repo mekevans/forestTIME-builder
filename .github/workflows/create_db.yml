@@ -17,18 +17,18 @@ jobs:
         uses: r-lib/actions/setup-r@v2
         
       # pak should take care of any system deps
-      # - name: Run apt-get
-      #   run: |
-      #     sudo apt-get update
-      # - name: Install libcurl
-      #   run: |
-      #     sudo apt-get install libcurl4-openssl-dev
-      # - name: Install redland dep
-      #   run: |
-      #     sudo apt-get install librdf0-dev
-      # - name: Install sodium dep
-      #   run: |
-      #     sudo apt-get install libsodium-dev
+      - name: Run apt-get
+        run: |
+          sudo apt-get update
+      - name: Install libcurl
+        run: |
+          sudo apt-get install libcurl4-openssl-dev
+      - name: Install redland dep
+        run: |
+          sudo apt-get install librdf0-dev
+      - name: Install sodium dep
+        run: |
+          sudo apt-get install libsodium-dev
       
       - name: Install R packages
         uses: r-lib/actions/setup-renv@v2
