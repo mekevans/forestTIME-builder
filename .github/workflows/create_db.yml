@@ -33,10 +33,9 @@ jobs:
       
       - name: Install R packages
         uses: r-lib/actions/setup-renv@v2
-        # env:
-          # RENV_CONFIG_PAK_ENABLED: true 
-      # - name: Set state
-      #   run: Rscript -e 'state_to_use <- "${{ matrix.state }}"'
+        env:
+          RENV_CONFIG_PAK_ENABLED: true
+          PKG_SYSREQS: false #turns off pak's automatic detection and installation of system dependencies. Temporary untill pak issue #591 is resolved
       - name: Generate state database
         run: Rscript -e 'source("scripts/01-state-by-state/state-parquet.R")'
         env:
