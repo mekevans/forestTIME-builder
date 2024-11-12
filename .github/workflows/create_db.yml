@@ -35,7 +35,7 @@ jobs:
           RENV_CONFIG_PAK_ENABLED: true
           PKG_SYSREQS: false #turns off pak's automatic detection and installation of system dependencies. Temporary untill pak issue #591 is resolved
       - name: Generate state database
-        run: Rscript -e 'source("scripts/01-state-by-state/state-parquet.R")'
+        run: Rscript -e 'source("scripts/state-parquet.R")'
         env:
           STATE: ${{ matrix.state }}
       - name: Upload artifacts
