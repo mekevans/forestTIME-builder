@@ -2,7 +2,7 @@
 #' 
 #' The zip files are smaller than just the *_TREE.csv, so this just downloads the whole zip and extracts the required CSV files (TREE)
 #' uses curl::multi_download which resumes and skips partial and incomplete downloads, respectively, when run subsequent times
-#' @param states vector of state abbreviations
+#' @param states vector of state abbreviations—for all states use `state.abb`
 #' @param rawdat_dir where to save the zip files
 #' @param extract logical; extract the TREE and PLOT csv files?
 #' @param keep_zip logical; keep the .zip file after CSVs are extracted?
@@ -36,7 +36,8 @@ download_zip_from_datamart <- function(states,
     lapply(zips, \(zip) {
       csvs <- c(
         gsub("CSV.zip", "TREE.csv", fs::path_file(zip)),
-        gsub("CSV.zip", "PLOT.csv", fs::path_file(zip))
+        gsub("CSV.zip", "PLOT.csv", fs::path_file(zip)),
+        gsub("CSV.zip", "COND.csv", fs::path_file(zip))
       )
       unzip(zip, files = csvs, exdir = rawdat_dir)
       if (isFALSE(keep_zip)) {
