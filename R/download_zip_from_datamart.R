@@ -16,6 +16,19 @@ download_zip_from_datamart <- function(states,
   out_paths <- fs::path(rawdat_dir, files)
   urls <- URLencode(paste0(base_url, files))
   
+  #check if .csvs are there from a previous run with keep_zip = FALSE
+  csv_check <- 
+    purrr::map(states, \(state) {
+      fs::path(rawdat_dir, paste0(state, c("_TREE.csv", "_PLOT.csv", "_COND.csv")))
+    }) |> 
+    purrr::map_lgl(\(x) all(fs::file_exists(x)))
+  states <- states[!csv_check]
+  
+  if(length(states) == 0) {
+    cli::cli_warn("All CSVs already downloaded!")
+    return(NULL)
+  }
+  
   #download file(s)
   resp <- curl::multi_download(
     urls = urls,
