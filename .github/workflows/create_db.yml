@@ -1,7 +1,7 @@
 on:
   push:
     branches: pre_carbon
-  pull-request: #temporary!
+  pull_request: #temporary!
     branches: pre_carbon
 
 jobs:
