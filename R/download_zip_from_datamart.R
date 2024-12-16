@@ -1,9 +1,11 @@
 #' Download zip files from FIA datamart
-#' 
-#' The zip files are smaller than just the *_TREE.csv, so this just downloads the whole zip and extracts the required CSV files (TREE)
-#' uses curl::multi_download which resumes and skips partial and incomplete downloads, respectively, when run subsequent times
-#' @param states vector of state abbreviations—for all states use `state.abb`
-#' @param rawdat_dir where to save the zip files
+#'
+#' The zip files are smaller than just the *_TREE.csv, so this just downloads
+#' the whole zip and extracts the required CSV files (TREE, PLOT, and COND). Uses
+#' `curl::multi_download()` which resumes and skips partial and incomplete
+#' downloads, respectively, when run subsequent times.
+#' @param states vector of state abbreviations; for all states use `state.abb`.
+#' @param rawdat_dir where to save the zip files.
 #' @param extract logical; extract the TREE and PLOT csv files?
 #' @param keep_zip logical; keep the .zip file after CSVs are extracted?
 download_zip_from_datamart <- function(states,
