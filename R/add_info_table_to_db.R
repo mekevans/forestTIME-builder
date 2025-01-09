@@ -63,6 +63,7 @@ add_info_table_to_db <- function(con) {
     left_join(tbl(con, "cond")) |>
     select(TREE_COMPOSITE_ID, INVYR, CONDID, STATUSCD, DSTRBCD1,
            DSTRBCD2, DSTRBCD3, DAMSEV1, DAMSEV2) |>
+    mutate(across(starts_with("DSTRBCD"), as.numeric)) |> # if all NAs, these columns can be read in as character and downstream operations will fail
     mutate(DISTURBED = (DSTRBCD1 + DSTRBCD2 + DSTRBCD3) > 0,
            DAMAGED = !is.na(DAMSEV1) | !is.na(DAMSEV2)) |>
     mutate(DISTURBED = ifelse(is.na(DISTURBED),
