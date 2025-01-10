@@ -32,7 +32,7 @@ download_zip_from_datamart <- function(states,
   
   #if zip is there, but not CSVs just unzip
   if (any(zip_check & !csv_check) & isTRUE(extract)) {
-    unzip_csvs(names(zip_check)[zip_check & !csv_check], keep_zip = keep_zip)
+    unzip_csvs(names(zip_check)[zip_check & !csv_check], rawdat_dir = rawdat_dir, keep_zip = keep_zip)
     #update CSV check
     csv_check <- 
       purrr::map(states, \(state) {
@@ -64,12 +64,12 @@ download_zip_from_datamart <- function(states,
   if (isFALSE(extract)) {
     return(zips)
   } else {
-    unzip_csvs(zips, keep_zip)
+    unzip_csvs(zips, rawdat_dir = rawdat_dir, keep_zip = keep_zip)
     return(NULL)
   }
 }
 
-unzip_csvs <- function(zips, keep_zip) {
+unzip_csvs <- function(zips, rawdat_dir, keep_zip) {
   cli::cli_alert_info("Extracting CSVs from .zip files")
   #pull out the CSVs of interest for each state
   lapply(zips, \(zip) {

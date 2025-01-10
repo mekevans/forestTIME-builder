@@ -13,20 +13,12 @@ all_states <- read.csv(here::here("data", "fips.csv")) |>
   select(STATE) |>
   filter(STATE != "DC")
 
-download_csv_from_datamart(all_states$STATE, here::here("data", "rawdat", "state"), overwrite = F)
-
-# Create state-by-state databases and parquet files
-
-state_scripts <- list.files(here::here("scripts",
-                                       "01-state-by-state"),
-                            pattern = "-state-parquet.R",
-                            full.names = T) 
-
-
-purrr::map(state_scripts[3:50], source, .progress = T)
+# Download data for each sate and create state-by-state databases and parquet files
+purrr::walk(all_states, \(state) {
+  withr::with_envvar(new = c("STATE" = state), source("scripts/state-parquet.R"))
+}, .progress = TRUE)
 
 # Combine state files into a single database
-
 source(here::here("scripts", "02-create_db_from_parquet.R"))
 
 # Upload database to Zenodo
