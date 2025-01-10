@@ -1,4 +1,5 @@
 state_to_use = Sys.getenv("STATE")
+#TODO set delete downloads arg of create_all_tables based on whether local or on GH Actions
 
 library(duckdb)
 library(DBI)
