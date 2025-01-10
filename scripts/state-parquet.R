@@ -3,7 +3,7 @@ state_to_use = Sys.getenv("STATE")
 library(duckdb)
 library(DBI)
 library(dplyr)
-source(here::here("R", "download_csv_wrapper.R"))
+source(here::here("R", "download_zip_from_datamart.R"))
 source(here::here("R", "create_all_tables.R"))
 
 if(!dir.exists(here::here("data", "db"))) {
@@ -19,9 +19,10 @@ if (!dir.exists(csv_dir)) {
   dir.create(csv_dir, recursive = T)
 }
 
-download_csv_from_datamart(states = state_to_use,
+download_zip_from_datamart(states = state_to_use,
                            rawdat_dir = csv_dir,
-                           overwrite = FALSE)
+                           extract = TRUE,
+                           keep_zip = FALSE)
 
 # Create database  ####
 
@@ -37,6 +38,7 @@ if (file.exists(database_path)) {
 con <- dbConnect(duckdb(dbdir = database_path))
 
 # Create database tables
+#TODO check out and eliminate warnings
 create_all_tables(con, rawdat_dir = csv_dir, delete_downloads = !exists("delete_files"), state = state_to_use)
 
 # Store parquets #### 
