@@ -6,7 +6,6 @@
 #' @export
 #' @importFrom DBI dbListTables dbSendStatement
 #' @importFrom dplyr collect select distinct arrange group_by mutate ungroup left_join summarize n filter cross_join join_by lead inner_join
-#' @importFrom arrow to_duckdb
 add_annual_estimates_to_db <- function(con) {
   existing_tables <- dbListTables(con)
   
@@ -25,7 +24,10 @@ add_annual_estimates_to_db <- function(con) {
   if (!("all_invyrs" %in% existing_tables)) {
     all_invyrs <- data.frame(INVYR = c(2000:2024))
     
-    arrow::to_duckdb(all_invyrs, con, "all_invyrs")
+    # arrow::to_duckdb(all_invyrs, con, "all_invyrs")
+    dplyr::copy_to(dest = con, df = all_invyrs, name = "all_invyrs")
+    
+    #TODO: isn't this redundant?
     dbSendStatement(con, "CREATE TABLE all_invyrs AS SELECT * FROM all_invyrs")
   }
   
@@ -145,12 +147,14 @@ add_annual_estimates_to_db <- function(con) {
       DEATH,
       DAMAGE,
       DISTURBANCE
-    ) |>
-    collect()
+    ) 
   
-  arrow::to_duckdb(trees_annual_measures,
-                   table_name = "tree_annualized",
-                   con = con)
+  dplyr::copy_to(dest = con, df = trees_annual_measures, name = "tree_annualized")
+  # arrow::to_duckdb(trees_annual_measures,
+  #                  table_name = "tree_annualized",
+  #                  con = con)
+  
+  #TODO: isn't this redundant?
   dbExecute(con,
             "CREATE TABLE tree_annualized AS SELECT * FROM tree_annualized")
   

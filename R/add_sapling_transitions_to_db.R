@@ -6,7 +6,6 @@
 #' @export
 #' @importFrom DBI dbListTables dbSendStatement
 #' @importFrom dplyr collect select distinct arrange group_by mutate ungroup left_join summarize n filter cross_join join_by lag across inner_join contains
-#' @importFrom arrow to_duckdb
 add_saplings_to_db <- function(con) {
   
   existing_tables <- dbListTables(con)
@@ -150,7 +149,10 @@ add_saplings_to_db <- function(con) {
     collect()
   
   
-  arrow::to_duckdb(sapling_transitions, table_name = "sapling_transitions", con = con)
+  # arrow::to_duckdb(sapling_transitions, table_name = "sapling_transitions", con = con)
+  dplyr::copy_to(dest = con, df = sapling_transitions, name = "sapling_transitions")
+  
+  #TODO: isn't this redundant?
   dbExecute(con, "CREATE TABLE sapling_transitions AS SELECT * FROM sapling_transitions")
   
   return() 
