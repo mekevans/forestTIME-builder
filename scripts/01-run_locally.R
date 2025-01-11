@@ -5,15 +5,11 @@ library(dplyr)
 delete_files <- FALSE
 
 # Download state level files 
+source("R/download_zip_from_datamart.R")
+all_states <- state.abb
+download_zip_from_datamart(all_states, extract = TRUE, keep_zip = TRUE)
 
-source(here::here("R", "download_csv_wrapper.R"))
-
-all_states <- read.csv(here::here("data", "fips.csv")) |>
-  filter(STATEFP < 60) |>
-  select(STATE) |>
-  filter(STATE != "DC")
-
-# Download data for each sate and create state-by-state databases and parquet files
+# Create state-by-state databases and parquet files
 purrr::walk(all_states, \(state) {
   withr::with_envvar(new = c("STATE" = state), source("scripts/state-parquet.R"))
 }, .progress = TRUE)
