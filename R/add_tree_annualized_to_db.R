@@ -271,18 +271,18 @@ add_annual_estimates_to_db <- function(con) {
   copy_to(dest = con, df = all_annual_measures, name = "tree_annualized", temporary = FALSE)
 
   #TODO: switch to dplyr::copy_to
-  arrow::to_duckdb(trees_annual_measures_midpoint_nsvb,
-                   table_name = "trees_annual_measures_midpoint_nsvb",
-                   con = con)
-  
-  dbExecute(con,
-            "CREATE TABLE trees_annual_measures_midpoint_nsvb AS SELECT * FROM trees_annual_measures_midpoint_nsvb")
-  arrow::to_duckdb(trees_annual_measures_mortyr_nsvb,
-                   table_name = "trees_annual_measures_mortyr_nsvb",
-                   con = con)
-  
-  dbExecute(con,
-            "CREATE TABLE trees_annual_measures_mortyr_nsvb AS SELECT * FROM trees_annual_measures_mortyr_nsvb")
+  copy_to(
+    dest = con,
+    df = trees_annual_measures_midpoint_nsvb,
+    name = "trees_annual_measures_midpoint_nsvb",
+    temporary = FALSE
+  )
+  copy_to(
+    dest = con,
+    df = trees_annual_measures_mortyr_nsvb,
+    name = "trees_annual_measures_mortyr_nsvb",
+    temporary = FALSE
+  )
   
   return()
 }

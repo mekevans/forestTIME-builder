@@ -97,6 +97,9 @@ fiadb2 <- predictCRM2(
   all.vars = TRUE
 )
 
-
-arrow::to_duckdb(fiadb2, table_name = "tree_carbon_annualized_mortyr", con = con)
-dbExecute(con, "CREATE TABLE tree_carbon_annualized_mortyr AS SELECT * FROM tree_carbon_annualized_mortyr")
+copy_to(
+  dest = con,
+  df = fiadb2,
+  name = "tree_carbon_annualized_mortyr",
+  temporary = FALSE
+)

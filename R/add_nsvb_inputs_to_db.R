@@ -6,7 +6,6 @@
 #' @export
 #' @importFrom DBI dbListTables dbSendStatement
 #' @importFrom dplyr collect select distinct arrange group_by mutate ungroup left_join summarize n filter cross_join join_by lead inner_join
-#' @importFrom arrow to_duckdb
 add_nsvb_vars_to_db <- function(con) {
   
   existing_tables <- dbListTables(con)
@@ -123,15 +122,13 @@ add_nsvb_vars_to_db <- function(con) {
            -BARK_LOSS_PROP,
            -BRANCH_LOSS_PROP,
            -DEAD_AND_STANDING,
-           -LIVE) |>
-    collect()
-  
-  arrow::to_duckdb(nsvb_vars,
-                   table_name = "nsvb_vars",
-                   con = con)
-  dbExecute(con,
-            "CREATE TABLE nsvb_vars AS SELECT * FROM nsvb_vars")
+           -LIVE) 
+  copy_to(
+    dest = con,
+    df = nsvb_vars,
+    name = "nsvb_vars",
+    temporary = FALSE
+  )
   
   return()
-  
 }
