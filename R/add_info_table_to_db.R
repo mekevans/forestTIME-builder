@@ -6,7 +6,6 @@
 #' @export
 #' @importFrom DBI dbListTables dbSendStatement
 #' @importFrom dplyr collect select distinct arrange group_by mutate ungroup left_join summarize n
-#' @importFrom arrow to_duckdb
 add_info_table_to_db <- function(con) {
   
   existing_tables <- dbListTables(con)
@@ -95,10 +94,7 @@ add_info_table_to_db <- function(con) {
     left_join(multiple_cns) |>
     left_join(multiple_owners) |>
     left_join(death_damage_disturbance) |>
-    collect()
-  
-  arrow::to_duckdb(tree_info_composite_id, table_name = "tree_info_composite_id", con = con)
-  dbExecute(con, "CREATE TABLE tree_info_composite_id AS SELECT * FROM tree_info_composite_id")
+    copy_to(con, df = _, name = "tree_info_composite_id", temporary = FALSE)
   
   return()
   

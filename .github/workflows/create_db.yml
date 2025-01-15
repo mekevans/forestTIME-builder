@@ -1,7 +1,9 @@
 on:
   push:
     branches: pre_carbon
-  #TODO eventually add schedule?
+  # TODO eventually add schedule?
+  # TODO run on PR only for a test state or two and don't upload results
+  # using github.event_name == "pull_request"
 
 jobs:
   states:

@@ -6,7 +6,6 @@
 #' @export
 #' @importFrom DBI dbListTables dbSendStatement
 #' @importFrom dplyr collect select distinct arrange group_by mutate ungroup left_join summarize n filter cross_join join_by lag across inner_join contains
-#' @importFrom arrow to_duckdb
 add_saplings_to_db <- function(con) {
   
   existing_tables <- dbListTables(con)
@@ -147,12 +146,7 @@ add_saplings_to_db <- function(con) {
            sapling_not_sampled_prop,
            sapling_missing_data_prop,
            sapling_skipped_prop) |>
-    collect()
-  
-  
-  arrow::to_duckdb(sapling_transitions, table_name = "sapling_transitions", con = con)
-  dbExecute(con, "CREATE TABLE sapling_transitions AS SELECT * FROM sapling_transitions")
+    copy_to(dest = con, df = _, name = "sapling_transitions", temporary = FALSE)
   
   return() 
-  
 }
