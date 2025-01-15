@@ -25,8 +25,9 @@ add_annual_estimates_to_db <- function(con) {
   if (!("all_invyrs" %in% existing_tables)) {
     all_invyrs <- data.frame(INVYR = c(2000:2024))
     
-    arrow::to_duckdb(all_invyrs, con, "all_invyrs")
-    dbSendStatement(con, "CREATE TABLE all_invyrs AS SELECT * FROM all_invyrs")
+    copy_to(dest = con, df = all_invyrs, name = "all_invyrs", temporary = FALSE)
+    # arrow::to_duckdb(all_invyrs, con, "all_invyrs")
+    # dbSendStatement(con, "CREATE TABLE all_invyrs AS SELECT * FROM all_invyrs")
   }
   
   trees <- tbl(con, "tree")  |>
@@ -146,13 +147,14 @@ add_annual_estimates_to_db <- function(con) {
       DAMAGE,
       DISTURBANCE
     ) |>
-    collect()
-  
-  arrow::to_duckdb(trees_annual_measures,
-                   table_name = "tree_annualized",
-                   con = con)
-  dbExecute(con,
-            "CREATE TABLE tree_annualized AS SELECT * FROM tree_annualized")
+    copy_to(dest = con, df = _, name = "tree_annualized", temporary = FALSE)
+  #   collect()
+  # 
+  # arrow::to_duckdb(trees_annual_measures,
+  #                  table_name = "tree_annualized",
+  #                  con = con)
+  # dbExecute(con,
+  #           "CREATE TABLE tree_annualized AS SELECT * FROM tree_annualized")
   
   return()
   

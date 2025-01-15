@@ -147,11 +147,12 @@ add_saplings_to_db <- function(con) {
            sapling_not_sampled_prop,
            sapling_missing_data_prop,
            sapling_skipped_prop) |>
-    collect()
-  
-  
-  arrow::to_duckdb(sapling_transitions, table_name = "sapling_transitions", con = con)
-  dbExecute(con, "CREATE TABLE sapling_transitions AS SELECT * FROM sapling_transitions")
+    copy_to(dest = con, df = _, name = "sapling_transitions", temporary = FALSE)
+  #   collect()
+  # 
+  # 
+  # arrow::to_duckdb(sapling_transitions, table_name = "sapling_transitions", con = con)
+  # dbExecute(con, "CREATE TABLE sapling_transitions AS SELECT * FROM sapling_transitions")
   
   return() 
   
