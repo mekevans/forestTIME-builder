@@ -1,9 +1,10 @@
-state_to_use = "IA"
+state_to_use = Sys.getenv("STATE")
+#TODO set delete downloads arg of create_all_tables based on whether local or on GH Actions
 
 library(duckdb)
 library(DBI)
 library(dplyr)
-source(here::here("R", "download_csv_wrapper.R"))
+source(here::here("R", "download_zip_from_datamart.R"))
 source(here::here("R", "create_all_tables.R"))
 
 if(!dir.exists(here::here("data", "db"))) {
@@ -19,9 +20,10 @@ if (!dir.exists(csv_dir)) {
   dir.create(csv_dir, recursive = T)
 }
 
-download_csv_from_datamart(states = state_to_use,
+download_zip_from_datamart(states = state_to_use,
                            rawdat_dir = csv_dir,
-                           overwrite = FALSE)
+                           extract = TRUE,
+                           keep_zip = FALSE)
 
 # Create database  ####
 
@@ -37,6 +39,7 @@ if (file.exists(database_path)) {
 con <- dbConnect(duckdb(dbdir = database_path))
 
 # Create database tables
+#TODO check out and eliminate warnings
 create_all_tables(con, rawdat_dir = csv_dir, delete_downloads = !exists("delete_files"), state = state_to_use)
 
 # Store parquets #### 
@@ -50,14 +53,6 @@ sapling_transitions_parquet_query <- gsub("plot", "sapling_transitions", plot_pa
 tree_annualized_parquet_query <- gsub("plot", "tree_annualized", plot_parquet_query)
 tree_cns_parquet_query <- gsub("plot", "tree_cns", plot_parquet_query)
 all_invyrs_parquet_query <- gsub("plot", "all_invyrs", plot_parquet_query)
-ref_species_parquet_query <- gsub("plot", "ref_species", plot_parquet_query)
-ref_tree_decay_prop_parquet_query <- gsub("plot", "ref_tree_decay_prop", plot_parquet_query)
-ref_tree_carbon_ratio_dead_parquet_query <- gsub("plot", "ref_tree_carbon_ratio_dead", plot_parquet_query)
-nsvb_vars_query <- gsub("plot", "nsvb_vars", plot_parquet_query)
-tree_carbon_query <- gsub("plot", "tree_carbon", plot_parquet_query)
-tree_carbon_annualized_midpoint_query <- gsub("plot", "tree_carbon_annualized_midpoint", plot_parquet_query)
-tree_carbon_annualized_mortyr_query <- gsub("plot", "tree_carbon_annualized_mortyr", plot_parquet_query)
-
 
 dbExecute(con,
           tree_parquet_query)
@@ -77,20 +72,6 @@ dbExecute(con,
           tree_cns_parquet_query)
 dbExecute(con,
           all_invyrs_parquet_query)
-dbExecute(con,
-          ref_species_parquet_query)
-dbExecute(con,
-          ref_tree_decay_prop_parquet_query)
-dbExecute(con,
-          ref_tree_carbon_ratio_dead_parquet_query)
-dbExecute(con,
-          nsvb_vars_query)
-dbExecute(con,
-          tree_carbon_query)
-dbExecute(con,
-          tree_carbon_annualized_mortyr_query)
-dbExecute(con,
-          tree_carbon_annualized_midpoint_query)
-
 
 dbDisconnect(con, shutdown = TRUE)
+
