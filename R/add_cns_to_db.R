@@ -6,7 +6,6 @@
 #' @return nothing
 #' @importFrom dplyr collect tbl
 #' @importFrom DBI dbListTables dbSendQuery
-#' @importFrom arrow to_duckdb
 add_cns_to_db <- function(con) {
   
   existing_tables <- dbListTables(con)
@@ -25,14 +24,6 @@ add_cns_to_db <- function(con) {
   
   #Copy to db
   copy_to(con, tree_cns, "tree_cns", temporary = FALSE)
-  
-  # Old way:
-  # tree_cns |>
-  #   collect() |>
-  #   arrow::to_duckdb(table_name = "tree_cns", con = con)
-  #   
-  # 
-  # dbExecute(con, "CREATE TABLE tree_cns AS SELECT * FROM tree_cns")
   
   return()
 }

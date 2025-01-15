@@ -95,28 +95,6 @@
       ],
       "Hash": "bc2a8a1139d8d4bd9c46086708945124"
     },
-    "arrow": {
-      "Package": "arrow",
-      "Version": "18.1.0",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Requirements": [
-        "R",
-        "R6",
-        "assertthat",
-        "bit64",
-        "cpp11",
-        "glue",
-        "methods",
-        "purrr",
-        "rlang",
-        "stats",
-        "tidyselect",
-        "utils",
-        "vctrs"
-      ],
-      "Hash": "d83c5ed8c1a89c5fd5788a8da714364e"
-    },
     "askpass": {
       "Package": "askpass",
       "Version": "1.2.1",
