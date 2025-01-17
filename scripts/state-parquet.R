@@ -1,4 +1,4 @@
-state_to_use = Sys.getenv("STATE")
+state_to_use = Sys.getenv("STATE", unset = "RI") #use RI for testing because it is small
 #TODO set delete downloads arg of create_all_tables based on whether local or on GH Actions
 
 library(duckdb)
@@ -23,7 +23,7 @@ if (!dir.exists(csv_dir)) {
 download_zip_from_datamart(states = state_to_use,
                            rawdat_dir = csv_dir,
                            extract = TRUE,
-                           keep_zip = FALSE)
+                           keep_zip = TRUE)
 
 # Create database  ####
 
@@ -40,7 +40,7 @@ con <- dbConnect(duckdb(dbdir = database_path))
 
 # Create database tables
 #TODO check out and eliminate warnings
-create_all_tables(con, rawdat_dir = csv_dir, delete_downloads = !exists("delete_files"), state = state_to_use)
+create_all_tables(con, rawdat_dir = csv_dir, delete_downloads = FALSE, state = state_to_use)
 
 # Store parquets #### 
 
