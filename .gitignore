@@ -49,7 +49,11 @@ po/*~
 rsconnect/
 
 data/rawdat/*
+!data/rawdat/*.rds
 
 .secrets/
 
 data/db/*
+
+*.duckdb
+

@@ -14,7 +14,7 @@ download_state_data <- function(state = "CT", rawdat_dir = "data/csv", max_time 
     dir.create(here::here(rawdat_dir), recursive = T)
     
   }
-  
+  #TODO can do these downloads concurrently with curl::multi_download() https://jeroen.r-universe.dev/curl/doc/manual.html#multi_download
   download_from_datamart(state, table = "TREE", file_dir = here::here(rawdat_dir), max_time = max_time) #this is very fast
   download_from_datamart(state, table = "PLOT", file_dir = here::here(rawdat_dir), max_time = max_time) #this is very fast
   download_from_datamart(state, table = "COND", file_dir = here::here(rawdat_dir), max_time = max_time) #this is very fast

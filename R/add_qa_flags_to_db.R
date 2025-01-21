@@ -6,7 +6,6 @@
 #' @export
 #' @importFrom DBI dbListTables dbSendStatement
 #' @importFrom dplyr collect select distinct arrange group_by mutate ungroup
-#' @importFrom arrow to_duckdb
 add_qa_flags_to_db <- function(con) {
   
   existing_tables <- dbListTables(con)
@@ -78,12 +77,8 @@ add_qa_flags_to_db <- function(con) {
   
   left_join(trees_last_dead, tree_latest_species) |>
     left_join(tree_cycles) |>
-    collect() |>
-    arrow::to_duckdb(table_name = "qa_flags", con = con)
-  
-  dbExecute(con, "CREATE TABLE qa_flags AS SELECT * FROM qa_flags")
+    copy_to(dest = con, df = _, name = "qa_flags", temporary = FALSE)
   
   return()
-  
 }
 

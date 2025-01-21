@@ -6,7 +6,6 @@
 #' @export
 #' @importFrom DBI dbListTables dbSendStatement
 #' @importFrom dplyr collect select distinct  group_by mutate ungroup left_join summarize n filter cross_join join_by lead inner_join
-#' @importFrom arrow to_duckdb
 add_annual_estimates_to_db <- function(con) {
   existing_tables <- dbListTables(con)
   
@@ -24,9 +23,7 @@ add_annual_estimates_to_db <- function(con) {
   
   if (!("all_invyrs" %in% existing_tables)) {
     all_invyrs <- data.frame(INVYR = c(2000:2024))
-    
-    arrow::to_duckdb(all_invyrs, con, "all_invyrs")
-    dbSendStatement(con, "CREATE TABLE all_invyrs AS SELECT * FROM all_invyrs")
+    copy_to(dest = con, df = all_invyrs, name = "all_invyrs", temporary = FALSE)
   }
   
   
@@ -269,28 +266,23 @@ add_annual_estimates_to_db <- function(con) {
     collect()
   
   all_annual_measures <- trees_annual_measures |>
-    left_join(trees_annual_measures_mortyr) |>
-    collect()
+    left_join(trees_annual_measures_mortyr) 
   
+  copy_to(dest = con, df = all_annual_measures, name = "tree_annualized", temporary = FALSE)
 
-  arrow::to_duckdb(all_annual_measures,
-                   table_name = "tree_annualized",
-                   con = con)
-  dbExecute(con,
-            "CREATE TABLE tree_annualized AS SELECT * FROM tree_annualized")
-  arrow::to_duckdb(trees_annual_measures_midpoint_nsvb,
-                   table_name = "trees_annual_measures_midpoint_nsvb",
-                   con = con)
-  
-  dbExecute(con,
-            "CREATE TABLE trees_annual_measures_midpoint_nsvb AS SELECT * FROM trees_annual_measures_midpoint_nsvb")
-  arrow::to_duckdb(trees_annual_measures_mortyr_nsvb,
-                   table_name = "trees_annual_measures_mortyr_nsvb",
-                   con = con)
-  
-  dbExecute(con,
-            "CREATE TABLE trees_annual_measures_mortyr_nsvb AS SELECT * FROM trees_annual_measures_mortyr_nsvb")
+  #TODO: switch to dplyr::copy_to
+  copy_to(
+    dest = con,
+    df = trees_annual_measures_midpoint_nsvb,
+    name = "trees_annual_measures_midpoint_nsvb",
+    temporary = FALSE
+  )
+  copy_to(
+    dest = con,
+    df = trees_annual_measures_mortyr_nsvb,
+    name = "trees_annual_measures_mortyr_nsvb",
+    temporary = FALSE
+  )
   
   return()
-  
 }
