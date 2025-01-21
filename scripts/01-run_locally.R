@@ -26,7 +26,7 @@ purrr::walk(all_states, \(state) {
 source(here::here("scripts", "02-create_db_from_parquet.R"))
 
 # Upload database to Zenodo
-source(here::here("scripts", "03-upload_parquet_db_zenodo.R"))
+# source(here::here("scripts", "03-upload_parquet_db_zenodo.R"))
 
 # Run checks on the database
 source(here::here("scripts", "04-check_db.R"))
