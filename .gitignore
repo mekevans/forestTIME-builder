@@ -50,6 +50,7 @@ rsconnect/
 
 data/rawdat/*
 !data/rawdat/*.rds
+!data/rawdat/REF_*.csv
 
 .secrets/
 

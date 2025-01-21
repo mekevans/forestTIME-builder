@@ -1,5 +1,5 @@
 state_to_use = Sys.getenv("STATE", unset = "RI") #use RI for testing because it is small
-#TODO set delete downloads arg of create_all_tables based on whether local or on GH Actions
+#TODO set delete downloads arg of create_all_tables based on whether local or on GH Actions?
 
 library(duckdb)
 library(DBI)
@@ -53,6 +53,10 @@ sapling_transitions_parquet_query <- gsub("plot", "sapling_transitions", plot_pa
 tree_annualized_parquet_query <- gsub("plot", "tree_annualized", plot_parquet_query)
 tree_cns_parquet_query <- gsub("plot", "tree_cns", plot_parquet_query)
 all_invyrs_parquet_query <- gsub("plot", "all_invyrs", plot_parquet_query)
+nsvb_vars_query <- gsub("plot", "nsvb_vars", plot_parquet_query)
+tree_carbon_query <- gsub("plot", "tree_carbon", plot_parquet_query)
+tree_carbon_annualized_midpoint_query <- gsub("plot", "tree_carbon_annualized_midpoint", plot_parquet_query)
+tree_carbon_annualized_mortyr_query <- gsub("plot", "tree_carbon_annualized_mortyr", plot_parquet_query)
 
 dbExecute(con,
           tree_parquet_query)
@@ -72,6 +76,15 @@ dbExecute(con,
           tree_cns_parquet_query)
 dbExecute(con,
           all_invyrs_parquet_query)
+dbExecute(con,
+          nsvb_vars_query)
+dbExecute(con,
+          tree_carbon_query)
+dbExecute(con,
+          tree_carbon_annualized_mortyr_query)
+dbExecute(con,
+          tree_carbon_annualized_midpoint_query)
+
 
 dbDisconnect(con, shutdown = TRUE)
 
