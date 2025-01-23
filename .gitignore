@@ -39,3 +39,4 @@ data/db/*
 
 *.duckdb
 
+docs/*.pdf
