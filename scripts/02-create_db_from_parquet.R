@@ -96,14 +96,14 @@ dbExecute(con, tree_info_composite_id_query)
 dbExecute(con, sapling_transitions_query)
 dbExecute(con, tree_annualized_query)
 dbExecute(con, tree_cns_query)
-dbExecute(con, all_invyrs_query)
+dbExecute(con, all_invyrs_query) #~5GB at this point
 dbExecute(con, ref_species_query)
 dbExecute(con, ref_tree_decay_prop_query)
 dbExecute(con, ref_tree_carbon_ratio_dead_query)
 dbExecute(con, nsvb_vars_query)
 dbExecute(con, tree_carbon_query)
 dbExecute(con, tree_carbon_annualized_mortyr_query)
-dbExecute(con, tree_carbon_annualized_midpoint_query)
+dbExecute(con, tree_carbon_annualized_midpoint_query) #>65GB at this point!
 
 # Clean up
 dbDisconnect(con, shutdown = TRUE)

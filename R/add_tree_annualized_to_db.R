@@ -270,7 +270,6 @@ add_annual_estimates_to_db <- function(con) {
   
   copy_to(dest = con, df = all_annual_measures, name = "tree_annualized", temporary = FALSE)
 
-  #TODO: switch to dplyr::copy_to
   copy_to(
     dest = con,
     df = trees_annual_measures_midpoint_nsvb,
