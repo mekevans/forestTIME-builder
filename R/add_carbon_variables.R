@@ -12,7 +12,7 @@ fiadb <- tbl(con, "nsvb_vars") |>
          HT = as.numeric(HT),
          DIA = as.numeric(DIA),
          ACTUALHT = as.numeric(ACTUALHT)) |>
-  collect()
+  collect() #necessary because these functions can't work on a DB
 
 # these are actually mean
 # this table is in fiadb as fs_fia_reference.ref_tree_stnd_dead_cr_prop
@@ -96,5 +96,6 @@ fiadb2 <- predictCRM2(
   gross.volume = FALSE,
   all.vars = TRUE
 )
-
+# TODO figure out which columns actually need to be kept here and which are just intermediate calculations
+# colnames(fiadb2)
 copy_to(dest = con, df = fiadb2, name = "tree_carbon", temporary = FALSE)
