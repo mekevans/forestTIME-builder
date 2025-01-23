@@ -21,7 +21,7 @@ add_info_table_to_db <- function(con) {
   }
   
   cns_multiple_locations <- tbl(con, "tree") |>
-    left_join(tbl(con, "tree_cns")) |>
+    left_join(tbl(con, "tree_cns"), by = join_by(TREE_CN)) |>
     select(TREE_COMPOSITE_ID, TREE_FIRST_CN) |>
     distinct() |>
     group_by(TREE_FIRST_CN) |>
@@ -32,7 +32,7 @@ add_info_table_to_db <- function(con) {
     distinct()
   
   multiple_cns <- tbl(con, "tree") |>
-    left_join(tbl(con, "tree_cns")) |> 
+    left_join(tbl(con, "tree_cns"), by = join_by(TREE_CN)) |> 
     select(TREE_COMPOSITE_ID, TREE_FIRST_CN) |>
     distinct() |>
     group_by(TREE_COMPOSITE_ID) |>
@@ -42,7 +42,7 @@ add_info_table_to_db <- function(con) {
     select(TREE_COMPOSITE_ID, MULTIPLE_CNS_FLAG)
   
   multiple_owners <- tbl(con, "tree") |>
-    left_join(tbl(con, "cond")) |>
+    left_join(tbl(con, "cond"), by = join_by(PLT_CN, INVYR, STATECD, UNITCD, COUNTYCD, PLOT, CONDID, CREATED_DATE, MODIFIED_DATE, CYCLE, SUBCYCLE, PLOT_COMPOSITE_ID)) |>
     select(TREE_COMPOSITE_ID, OWNCD, ADFORCD) |>
     distinct() |>
     group_by(TREE_COMPOSITE_ID, OWNCD) |>
@@ -59,7 +59,7 @@ add_info_table_to_db <- function(con) {
            MULTI_ADFORCD_FLAG)
   
   death_damage_disturbance <- tbl(con, "tree") |>
-    left_join(tbl(con, "cond")) |>
+    left_join(tbl(con, "cond"), by = join_by(PLT_CN, INVYR, STATECD, UNITCD, COUNTYCD, PLOT, CONDID, CREATED_DATE, MODIFIED_DATE, CYCLE, SUBCYCLE, PLOT_COMPOSITE_ID)) |>
     select(TREE_COMPOSITE_ID, INVYR, CONDID, STATUSCD, DSTRBCD1,
            DSTRBCD2, DSTRBCD3, DAMSEV1, DAMSEV2) |>
     mutate(across(starts_with("DSTRBCD"), as.numeric)) |> # if all NAs, these columns can be read in as character and downstream operations will fail
@@ -75,7 +75,7 @@ add_info_table_to_db <- function(con) {
       DAMAGE = any(DAMAGED)) 
   
   tree_info_composite_id <- tbl(con, "tree") |>
-    left_join(tbl(con, "qa_flags")) |>
+    left_join(tbl(con, "qa_flags"), by = join_by(TREE_CN, INVYR, STATUSCD, SPCD, CYCLE, TREE_COMPOSITE_ID)) |>
     group_by(TREE_COMPOSITE_ID,
              PLOT_COMPOSITE_ID,
              PLOT,
@@ -89,11 +89,11 @@ add_info_table_to_db <- function(con) {
               ANY_SPCD_FLAG = any(SPCD_FLAG),
               ANY_STATUSCD_FLAG = any(STATUSCD_FLAG),
               ANY_CYCLE_VISITS_FLAG = any(CYCLE_MULTIPLE_VISITS)) |>
-    ungroup() |>
-    left_join(cns_multiple_locations) |>
-    left_join(multiple_cns) |>
-    left_join(multiple_owners) |>
-    left_join(death_damage_disturbance) |>
+    ungroup() |> 
+    left_join(cns_multiple_locations, by = join_by(TREE_COMPOSITE_ID)) |>
+    left_join(multiple_cns, by = join_by(TREE_COMPOSITE_ID)) |>
+    left_join(multiple_owners, by = join_by(TREE_COMPOSITE_ID)) |>
+    left_join(death_damage_disturbance, by = join_by(TREE_COMPOSITE_ID)) |>
     copy_to(con, df = _, name = "tree_info_composite_id", temporary = FALSE)
   
   return()

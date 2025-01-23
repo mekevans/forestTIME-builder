@@ -17,7 +17,7 @@ source(here::here("R", "add_nsvb_inputs_to_db.R"))
 #' @return nothing
 #' @export
 #'
-create_all_tables <- function(con, rawdat_dir, delete_downloads = F, state = "all") {
+create_all_tables <- function(con, rawdat_dir, delete_downloads = FALSE, state = "all") {
   
   import_tables_from_csvs(con = con,
                           csv_dir = rawdat_dir, 

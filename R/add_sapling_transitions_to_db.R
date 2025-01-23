@@ -24,7 +24,7 @@ add_saplings_to_db <- function(con) {
     filter(DIA < 5, STATUSCD == 1) |>
     select(TREE_COMPOSITE_ID) |>
     distinct() |>
-    left_join(tbl(con, "tree")) |>
+    left_join(tbl(con, "tree"), by = join_by(TREE_COMPOSITE_ID)) |>
     select(TREE_COMPOSITE_ID,
            PLOT_COMPOSITE_ID,
            PLT_CN,
@@ -37,22 +37,23 @@ add_saplings_to_db <- function(con) {
            CYCLE, 
            CONDID) |>
     left_join(tbl(con, "cond") |>
-                select(PLT_CN, CONDID, COND_STATUS_CD))
+                select(PLT_CN, CONDID, COND_STATUS_CD),
+              by = join_by(PLT_CN, CONDID))
   
   
   plot_census_years <- saplings_ever |>
     select(PLOT_COMPOSITE_ID, INVYR) |>
     distinct() |>
-    arrange(PLOT_COMPOSITE_ID, INVYR) |>
     group_by(PLOT_COMPOSITE_ID) |>
-    mutate(EXPECTED_NEXT_INVYR = lead(INVYR, default = -1989),
-           EXPECTED_LAST_INVYR = lag(INVYR, default = -1989)) |>
+    mutate(EXPECTED_NEXT_INVYR = lead(INVYR, default = -1989, order_by = INVYR),
+           EXPECTED_LAST_INVYR = lag(INVYR, default = -1989, order_by = INVYR)) |>
+    # arrange(PLOT_COMPOSITE_ID, INVYR) |>
     ungroup()
   
   
   sapling_changes <- saplings_ever |>
-    left_join(plot_census_years) |>
-    arrange(TREE_COMPOSITE_ID, INVYR) |>
+    left_join(plot_census_years, by = join_by(PLOT_COMPOSITE_ID, INVYR)) |>
+    # arrange(TREE_COMPOSITE_ID, INVYR) |>
     group_by(TREE_COMPOSITE_ID) |>
     mutate(
       PREV_INVYR = lag(INVYR, 1, default = -1989, order_by = INVYR),
@@ -63,7 +64,8 @@ add_saplings_to_db <- function(con) {
       FIRST_INVYR = min(INVYR, na.rm = T),
       LAST_INVYR = max(INVYR, na.rm = T)
     ) |>
-    group_by_all() |>
+    # group_by_all() |> #superseded
+    group_by(pick(everything())) |> 
     mutate(
       live_sapling = DIA < 5 && STATUSCD == 1,
       new_sapling = PREV_INVYR == -1989 &&
@@ -100,7 +102,7 @@ add_saplings_to_db <- function(con) {
       x, na.rm = T
     )))) |>
     ungroup() |>
-    arrange(PLOT_COMPOSITE_ID, INVYR) |>
+    # arrange(PLOT_COMPOSITE_ID, INVYR) |>
     group_by(PLOT_COMPOSITE_ID) |>
     mutate(
       PREV_live_sapling = lag(live_sapling, default = -1989, order_by = INVYR),

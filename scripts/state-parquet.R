@@ -4,6 +4,7 @@ state_to_use = Sys.getenv("STATE", unset = "RI") #use RI for testing because it 
 library(duckdb)
 library(DBI)
 library(dplyr)
+library(dbplyr)
 source(here::here("R", "download_zip_from_datamart.R"))
 source(here::here("R", "create_all_tables.R"))
 

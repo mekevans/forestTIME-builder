@@ -36,8 +36,10 @@ add_annual_estimates_to_db <- function(con) {
       MORTYR = as.numeric(MORTYR),
       INVYR = as.numeric(INVYR)
     ) |>
+    #fill ACTUALHT with HT if NA.
     mutate(ACTUALHT = ifelse(is.na(ACTUALHT), HT, ACTUALHT)) |>
-    group_by(TREE_COMPOSITE_ID) |>
+    group_by(TREE_COMPOSITE_ID) |> #for every tree...
+    #TODO: this is where I suspect trees with NAs for some surveys get dropped
     filter(all(STATUSCD == 1) |
              ((any(STATUSCD == 1) && any(STATUSCD == 2))),
            all(!is.na(DIA)),
@@ -58,6 +60,8 @@ add_annual_estimates_to_db <- function(con) {
       STATUSCD
     ) |> 
     group_by(TREE_COMPOSITE_ID) |>
+    # TODO: to deal with NAs, lag and lead would have to be replaced by functions
+    # that look for the prev/next *non-NA* value or something
     mutate(prev_invyr = lag(INVYR, default = NA, order_by = INVYR),
            next_invyr = lead(INVYR, default = NA, order_by = INVYR),
            next_height = lead(HT, default = NA, order_by = INVYR),
@@ -97,14 +101,14 @@ add_annual_estimates_to_db <- function(con) {
                                   TREE_CN,
                                   NA)) |>
     mutate(first_dead_height = max(first_dead_height,
-                                   na.rm = T),
+                                   na.rm = TRUE),
            first_dead_dia = max(first_dead_dia,
-                                na.rm = T),
+                                na.rm = TRUE),
            first_dead_aheight = max(first_dead_aheight,
-                                    na.rm = T),
-           first_dead_cn = max(first_dead_cn, na.rm =T),
+                                    na.rm = TRUE),
+           first_dead_cn = max(first_dead_cn, na.rm =TRUE),
            dead_mortyr = ifelse(ever_dead,
-                                max(MORTYR, na.rm = T),
+                                max(MORTYR, na.rm = TRUE),
                                 NA)) |>
     ungroup() |>
     mutate(period_start = ifelse(STATUSCD == 2,
@@ -138,6 +142,7 @@ add_annual_estimates_to_db <- function(con) {
              period_stop_mortyr == period_start_mortyr,
              NA,
              period_stop_mortyr - period_start_mortyr + 1)) |>
+    # Linear interpolation
     mutate(ht_slope_mortyr = ifelse(period_stop_mortyr == period_start_mortyr,
                                     0,
                                     (next_height - HT) / period_length_mortyr),
@@ -247,11 +252,8 @@ add_annual_estimates_to_db <- function(con) {
            HT = HT_est_mortyr,
            DIA = DIA_est_mortyr,
            ACTUALHT = AHEIGHT_est_mortyr) |>
-    left_join(tbl(con, "nsvb_vars") |>
-                select(-HT,
-                       -DIA,
-                       -ACTUALHT)) |>
-    collect()
+    left_join(tbl(con, "nsvb_vars") |> select(-HT, -DIA, -ACTUALHT),
+              by = join_by(TRE_CN))
   
   trees_annual_measures_midpoint_nsvb <- trees_annual_measures |>   
     #filter(grepl("27_2_61_20675", TREE_COMPOSITE_ID)) |>
@@ -259,14 +261,11 @@ add_annual_estimates_to_db <- function(con) {
            HT = HT_est_midpoint,
            DIA = DIA_est_midpoint,
            ACTUALHT = AHEIGHT_est_midpoint) |>
-    left_join(tbl(con, "nsvb_vars") |>
-                select(-HT,
-                       -DIA,
-                       -ACTUALHT)) |>
-    collect()
+    left_join(tbl(con, "nsvb_vars") |> select(-HT, -DIA, -ACTUALHT),
+              by = join_by(TRE_CN))
   
   all_annual_measures <- trees_annual_measures |>
-    left_join(trees_annual_measures_mortyr) 
+    left_join(trees_annual_measures_mortyr, by = join_by(STATECD, TREE_COMPOSITE_ID, YEAR)) 
   
   copy_to(dest = con, df = all_annual_measures, name = "tree_annualized", temporary = FALSE)
 

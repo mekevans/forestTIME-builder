@@ -50,9 +50,11 @@ add_nsvb_vars_to_db <- function(con) {
                              as.numeric(ACTUALHT)),
            CULL = ifelse(is.na(CULL), 0, CULL)) |>
     left_join(tbl(con, "plot") |>
-                select(PLT_CN, ECOSUBCD)) |>
+                select(PLT_CN, ECOSUBCD),
+              by = join_by(PLT_CN)) |>
     left_join(tbl(con, "cond") |>
-                select(PLT_CN, CONDID, STDORGCD, COND_STATUS_CD)) |>
+                select(PLT_CN, CONDID, STDORGCD, COND_STATUS_CD),
+              by = join_by(PLT_CN, CONDID)) |>
     left_join(
       tbl(con, "ref_species") |>
         select(
@@ -62,7 +64,8 @@ add_nsvb_vars_to_db <- function(con) {
           WOOD_SPGR_GREENVOL_DRYWT,
           CARBON_RATIO_LIVE
         ) |>
-        rename(WDSG = WOOD_SPGR_GREENVOL_DRYWT)
+        rename(WDSG = WOOD_SPGR_GREENVOL_DRYWT),
+      by = join_by(SPCD)
     ) |>
     left_join(
       tbl(con, "ref_tree_decay_prop") |>
@@ -71,7 +74,8 @@ add_nsvb_vars_to_db <- function(con) {
         select(
           SFTWD_HRDWD,
           CULL_DECAY_RATIO
-        ) 
+        ),
+      by = join_by(SFTWD_HRDWD) 
     ) |>
     left_join(
       tbl(con, "ref_tree_decay_prop") |>
@@ -79,11 +83,13 @@ add_nsvb_vars_to_db <- function(con) {
                DECAYCD,
                DENSITY_PROP,
                BARK_LOSS_PROP,
-               BRANCH_LOSS_PROP)
+               BRANCH_LOSS_PROP),
+      by = join_by(DECAYCD, SFTWD_HRDWD)
     ) |>
     left_join(
       tbl(con, "ref_tree_carbon_ratio_dead") |>
-        select(SFTWD_HRDWD, DECAYCD, CARBON_RATIO)
+        select(SFTWD_HRDWD, DECAYCD, CARBON_RATIO),
+      by = join_by(DECAYCD, SFTWD_HRDWD)
     ) |> 
     mutate(CULL_DECAY_RATIO = ifelse(STATUSCD == 1,
                                      CULL_DECAY_RATIO,
