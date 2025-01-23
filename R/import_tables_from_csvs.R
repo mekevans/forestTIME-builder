@@ -39,7 +39,8 @@ import_tables_from_csvs <- function(con, csv_dir, state = "all", column_types = 
     rename(TREE_CN = CN) |> 
     mutate(
       PLOT_COMPOSITE_ID = paste(STATECD, UNITCD, COUNTYCD, PLOT, sep = "_"),
-      TREE_COMPOSITE_ID = paste(STATECD, UNITCD, COUNTYCD, PLOT, SUBP, TREE, sep = "_")
+      TREE_COMPOSITE_ID = paste(STATECD, UNITCD, COUNTYCD, PLOT, SUBP, TREE, sep = "_"),
+      .before = 1
     )
   copy_to(con, tree, "tree", temporary = FALSE)
   
@@ -62,13 +63,13 @@ import_tables_from_csvs <- function(con, csv_dir, state = "all", column_types = 
   plotgeom_raw <- tbl(con, "plotgeom_raw")
   
   plot <- 
-    #add ECOSUBCD column that was moved to PLOTGEOM in newer FIADB versions
+    # add ECOSUBCD column that was moved to PLOTGEOM in newer FIADB versions
     left_join(plot_raw,
               plotgeom_raw |> select(CN, INVYR, ECOSUBCD),
               by = join_by(CN, INVYR)) |> 
     filter(INVYR >= 2000.0) |> 
     rename(PLT_CN = CN) |> 
-    mutate(PLOT_COMPOSITE_ID = paste(STATECD, UNITCD, COUNTYCD, PLOT, sep = "_"))
+    mutate(PLOT_COMPOSITE_ID = paste(STATECD, UNITCD, COUNTYCD, PLOT, sep = "_"), .before = 1)
   copy_to(con, plot, name = "plot", temporary = FALSE)
   
   
@@ -86,7 +87,7 @@ import_tables_from_csvs <- function(con, csv_dir, state = "all", column_types = 
     cond_raw |> 
     filter(INVYR >= 2000.0) |> 
     rename(COND_CN = CN) |> 
-    mutate(PLOT_COMPOSITE_ID = paste(STATECD, UNITCD, COUNTYCD, PLOT, sep = "_"))
+    mutate(PLOT_COMPOSITE_ID = paste(STATECD, UNITCD, COUNTYCD, PLOT, sep = "_"), .before = 1)
   copy_to(con, cond, "cond", temporary = FALSE)
   
   
