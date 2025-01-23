@@ -1,18 +1,21 @@
 ---
 title: "Carbon - WIP"
 format: gfm
-editor: source
+editor: visual
 ---
 
 # Obtaining a database
 
 ## Download
 
-You can download a copy of the *work in progress* database from this [Google Drive link](https://drive.google.com/file/d/1Ndn63S4ZWDvttZMcXUj8Wx8ziqCCClIf/view?usp=sharing). The rest of this document will assume you downloaded it and put it in `data/db`. This database has data for CO, MN, and NH.
+You can download a copy of the *work in progress* database from this [Google Drive link](https://drive.google.com/file/d/1Ndn63S4ZWDvttZMcXUj8Wx8ziqCCClIf/view?usp=sharing).
+The rest of this document will assume you downloaded it and put it in `data/db`.
+This database has data for CO, MN, and NH.
 
 ## Generating it yourself
 
-You can run `scripts/01-run_locally.R` to generate your own copy of the database on your own computer. You can get data for different states by changing lines 11-15 and 27 of that script.
+You can run `scripts/01-run_locally.R` to generate your own copy of the database on your own computer.
+You can get data for different states by changing lines 11-15 and 27 of that script.
 
 # Connecting to the database
 
@@ -90,7 +93,6 @@ ggplot(both_carbon_totals |> filter(STATUSCD == 2), aes(YEAR, C, color = method)
 
 ```
 
-
 When you're done, disconnect from the database.
 
 ```{r}
@@ -101,29 +103,34 @@ dbDisconnect(con, shutdown = TRUE)
 
 # Description of database tables
 
-Many of these tables are identical to their counterparts in the `pre-carbon` branch. Detailed descriptions for these tables can be found at https://viz.datascience.arizona.edu/foresttime-tables/.
+Many of these tables are identical to their counterparts in the `pre-carbon` branch.
+Detailed descriptions for these tables can be found at https://viz.datascience.arizona.edu/foresttime-tables/.
 
 -   all_invyrs: See [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#all_invyrs-table).
 -   cond: Nearly-completely raw from FIADB. See [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#cond-table).
 -   nsvb_vars: The `tree` table with variables added to create a dataframe that mirrors the input data for David Walker's NSVB estimation code.
 -   plot: Nearly-raw from FIADB. See [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#plot-table).
 -   qa_flags: Derived as part of forestTIME. See [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#qa_flags-table).
--   ref_species: Nearly-raw from FIADB. Downloaded to support the creation of the nsvb_vars table. 
+-   ref_species: Nearly-raw from FIADB. Downloaded to support the creation of the nsvb_vars table.
 -   ref_tree_carbon_ratio_dead: Nearly-raw from FIADB. Downloaded to support the creation of the nsvb_vars table.
 -   ref_tree_decay_prop: Nearly-raw from FIADB. Downloaded to support the creation of the nsvb_vars table.
 -   sapling_transitions: Derived by forestTIME. See [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#sapling_transitions-table).
 -   tree: Nearly-raw from FIADB. See [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#tree-table).
 -   tree_annualized: Derived as part of forestTIME. Interpolations of annual measurements for DIA, HT, and ACTUALHT for tree surveys in FIADB. Currently restricted to trees that are either alive in all surveys or alive in some surveys and dead in others, and that have no NA measurements for DIA, HT, or ACTUALHT. Very similar to the table described [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#tree_annualized-table), but with the following modifications:
-      - `TREE_CN_midpoint` is the CN for the TREE_CN record for the most _recent_ survey using the midpoint interpolation method. This is used to get the nsvb_vars for these interpolated years.
-      - `midpoint_dead_year` is the year in which the tree is presumed to have died according to the midpoint interpolation method. (If a tree dies, it is assumed to have died in the middle year of the 5 or 10 year remeasurement period).
-      - `HT_est_midpoint`, `DIA_est_midpoint`, `AHEIGHT_est_midpoint`: Measurements interpolated for each year according to the midpoint method.
-      - The corresponding columns ending in `_mortyr` are the same only for the mortyr interpolation method. (If a tree dies and has a MORTYR listed, it is assumed to have died in MORTYR; otherwise, it is assumed to have died in the midpoint year of the remeasurement period).
--   tree_carbon: NSVB carbon estimates for the *tree surveys* (i.e. every 5-10 years). The direct output of David Walker's code run on `nsvb_vars`. 
--   tree_carbon_annualized_midpoint: NSVB carbon estimates for *interpolated annual data* interpolated using the midpoint method. 
+    -   `TREE_CN_midpoint` is the CN for the TREE_CN record for the most *recent* survey using the midpoint interpolation method. This is used to get the nsvb_vars for these interpolated years.
+    -   `midpoint_dead_year` is the year in which the tree is presumed to have died according to the midpoint interpolation method. (If a tree dies, it is assumed to have died in the middle year of the 5 or 10 year remeasurement period).
+    -   `HT_est_midpoint`, `DIA_est_midpoint`, `AHEIGHT_est_midpoint`: Measurements interpolated for each year according to the midpoint method.
+    -   The corresponding columns ending in `_mortyr` are the same only for the mortyr interpolation method. (If a tree dies and has a MORTYR listed, it is assumed to have died in MORTYR; otherwise, it is assumed to have died in the midpoint year of the remeasurement period).
+-   tree_carbon: NSVB carbon estimates for the *tree surveys* (i.e. every 5-10 years). The direct output of David Walker's code run on `nsvb_vars`.
+-   tree_carbon_annualized_midpoint: NSVB carbon estimates for *interpolated annual data* interpolated using the midpoint method.
 -   tree_carbon_annualized_mortyr: NSVB carbon estimates for interpolated annual data interpolated using the *mortyr* method.
 -   tree_cns: Derived in forestTIME. See [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#tree_cns-table).
 -   tree_info_composite_id: Derived in forestTIME. See [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#tree_info_composite_id-table).
 
 # FIADB citation
 
-Forest Inventory and Analysis Database, June 28, 2024. U.S. Department of Agriculture, Forest Service, Northern Research Station. St. Paul, MN. [Available only on internet: https://apps.fs.usda.gov/fia/datamart/datamart.html]
+Forest Inventory and Analysis Database, June 28, 2024.
+U.S.
+Department of Agriculture, Forest Service, Northern Research Station.
+St. Paul, MN.
+\[Available only on internet: https://apps.fs.usda.gov/fia/datamart/datamart.html\]
