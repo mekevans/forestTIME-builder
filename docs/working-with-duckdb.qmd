@@ -1,0 +1,112 @@
+---
+title: "Working with forestTIME-builder data"
+author: Eric Scott
+format: html
+---
+
+## Setup
+
+Packages you'll need:
+
+```{r}
+#| message: false
+library(dplyr)
+library(dbplyr) #need to install, but don't actually need to explicitly load
+library(DBI)
+library(duckdb)
+```
+
+If any are missing, install with `install.packages("duckdb")`, for example.
+
+## Step 1: connecting to the database
+
+::: callout-tip
+The path to the duckdb file can be a relative path if you're in an RStudio project.
+If you're working in a Quarto or RMarkdown document, you might need to use `here::here("project/path/to/foresttime-DE.duckdb")` to ensure the same working directory whether you're working interactively or rendering the document.
+:::
+
+```{r}
+#| echo: false
+con <- dbConnect(duckdb(here::here("data/db/foresttime-DE.duckdb")))
+```
+
+```{r}
+#| eval: false
+con <- dbConnect(duckdb("data/db/foresttime-DE.duckdb"))
+```
+
+## Step 2: getting a table
+
+List the tables in the database:
+
+```{r}
+dbListTables(con)
+```
+
+Pull a specific table to work with:
+
+```{r}
+tree_annualized <- tbl(con, "tree_annualized")
+tree_annualized
+```
+
+## Step 3: working with tables
+
+The table above is not in memory.
+You can tell because it lists the dimensions as `[?? x 13]`—it doesn't know how many rows there are because it's only read in enough to figure out what kinds of data (numeric, character, date, etc.) the columns hold.
+However, you can still use *most* tidyverse functions to manipulate it.
+
+```{r}
+tree_annualized |> 
+  filter(DIA_est_midpoint < 5) |> 
+  mutate(is_dead = YEAR >= midpoint_dead_year) |> 
+  select(-STATECD)
+```
+
+This includes joins
+
+```{r}
+tree <- tbl(con, "tree")
+plot <- tbl(con, "plot")
+left_join(
+  tree,
+  plot |> select(PLOT_COMPOSITE_ID, DESIGNCD),
+  by = join_by(PLOT_COMPOSITE_ID)
+)
+```
+
+If you need to bring the dataframe into memory for some reason, you can use `collect()`.
+
+```{r}
+tiny_saplings <- tree |> 
+  filter(DIA < 2) |> 
+  collect()
+tiny_saplings
+```
+
+The resulting dataframe is in memory and has 1226 rows.
+
+::: callout-important
+Be careful using `collect()` on very large tables.
+You might crash your R session!
+If you're just wanting to `View()` a table, you might consider using `head()` or `slice_sample()` on the data frame before using `collect()`
+:::
+
+```{r}
+#| eval: false
+
+tree |> 
+  slice_sample(n = 100) |> #get 100 random rows
+  collect() |> #pull into memory
+  View() #open in data viewer tab in RStudio
+
+```
+
+## Step 4: disconnect
+
+You can disconnect from the database with `dbDisconnect()`.
+It isn't totally necessary and restarting the R session will do the same thing, but it's good practice to include in a script.
+
+```{r}
+dbDisconnect(con)
+```

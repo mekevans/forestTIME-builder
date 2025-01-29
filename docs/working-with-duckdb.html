@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.6.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Eric Scott">
+
+<title>Working with forestTIME-builder data</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="working-with-duckdb_files/libs/clipboard/clipboard.min.js"></script>
+<script src="working-with-duckdb_files/libs/quarto-html/quarto.js"></script>
+<script src="working-with-duckdb_files/libs/quarto-html/popper.min.js"></script>
+<script src="working-with-duckdb_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="working-with-duckdb_files/libs/quarto-html/anchor.min.js"></script>
+<link href="working-with-duckdb_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="working-with-duckdb_files/libs/quarto-html/quarto-syntax-highlighting-29e2c20b02301cfff04dc8050bf30c7e.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="working-with-duckdb_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="working-with-duckdb_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="working-with-duckdb_files/libs/bootstrap/bootstrap-e19dc0c07aeef78048e587c3f1edba7a.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Working with forestTIME-builder data</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Eric Scott </p>
+          </div>
+  </div>
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="setup" class="level2">
+<h2 class="anchored" data-anchor-id="setup">Setup</h2>
+<p>Packages you’ll need:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dbplyr) <span class="co">#need to install, but don't actually need to explicitly load</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(DBI)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(duckdb)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>If any are missing, install with <code>install.packages("duckdb")</code>, for example.</p>
+</section>
+<section id="step-1-connecting-to-the-database" class="level2">
+<h2 class="anchored" data-anchor-id="step-1-connecting-to-the-database">Step 1: connecting to the database</h2>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The path to the duckdb file can be a relative path if you’re in an RStudio project. If you’re working in a Quarto or RMarkdown document, you might need to use <code>here::here("project/path/to/foresttime-DE.duckdb")</code> to ensure the same working directory whether you’re working interactively or rendering the document.</p>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>con <span class="ot">&lt;-</span> <span class="fu">dbConnect</span>(<span class="fu">duckdb</span>(<span class="st">"data/db/foresttime-DE.duckdb"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="step-2-getting-a-table" class="level2">
+<h2 class="anchored" data-anchor-id="step-2-getting-a-table">Step 2: getting a table</h2>
+<p>List the tables in the database:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dbListTables</span>(con)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] "all_invyrs"                          "cond"                               
+ [3] "nsvb_vars"                           "plot"                               
+ [5] "qa_flags"                            "ref_species"                        
+ [7] "ref_tree_carbon_ratio_dead"          "ref_tree_decay_prop"                
+ [9] "sapling_transitions"                 "tree"                               
+[11] "tree_annualized"                     "tree_carbon"                        
+[13] "tree_carbon_annualized_midpoint"     "tree_carbon_annualized_mortyr"      
+[15] "tree_cns"                            "tree_info_composite_id"             
+[17] "trees_annual_measures_midpoint_nsvb" "trees_annual_measures_mortyr_nsvb"  </code></pre>
+</div>
+</div>
+<p>Pull a specific table to work with:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>tree_annualized <span class="ot">&lt;-</span> <span class="fu">tbl</span>(con, <span class="st">"tree_annualized"</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>tree_annualized</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># Source:   table&lt;tree_annualized&gt; [?? x 13]
+# Database: DuckDB v1.1.3 [root@Darwin 24.2.0:R 4.4.1//Users/ericscott/Documents/GitHub/mekevans/forestTIME-builder/data/db/foresttime-DE.duckdb]
+   STATECD TREE_COMPOSITE_ID TREE_CN_midpoint  YEAR midpoint_dead_year
+     &lt;int&gt; &lt;chr&gt;             &lt;chr&gt;            &lt;int&gt;              &lt;dbl&gt;
+ 1      10 10_1_1_48_1_2     1275355140290487  2021                 NA
+ 2      10 10_1_1_48_3_10    1275355163290487  2021                 NA
+ 3      10 10_1_1_132_3_7    1275355801290487  2021                 NA
+ 4      10 10_1_1_132_4_4    1275355808290487  2021                 NA
+ 5      10 10_1_1_132_4_1    1275355806290487  2021                 NA
+ 6      10 10_1_1_202_1_8    1275365477290487  2021                 NA
+ 7      10 10_1_1_202_1_9    1275365478290487  2021                 NA
+ 8      10 10_1_1_202_2_8    1275365489290487  2021                 NA
+ 9      10 10_1_1_238_1_9    1275355197290487  2021                 NA
+10      10 10_1_1_238_2_12   1275355217290487  2021                 NA
+# ℹ more rows
+# ℹ 8 more variables: HT_est_midpoint &lt;dbl&gt;, DIA_est_midpoint &lt;dbl&gt;,
+#   AHEIGHT_est_midpoint &lt;dbl&gt;, TREE_CN_mortyr &lt;chr&gt;, mortyr_dead_year &lt;dbl&gt;,
+#   HT_est_mortyr &lt;dbl&gt;, DIA_est_mortyr &lt;dbl&gt;, AHEIGHT_est_mortyr &lt;dbl&gt;</code></pre>
+</div>
+</div>
+</section>
+<section id="step-3-working-with-tables" class="level2">
+<h2 class="anchored" data-anchor-id="step-3-working-with-tables">Step 3: working with tables</h2>
+<p>The table above is not in memory. You can tell because it lists the dimensions as <code>[?? x 13]</code>—it doesn’t know how many rows there are because it’s only read in enough to figure out what kinds of data (numeric, character, date, etc.) the columns hold. However, you can still use <em>most</em> tidyverse functions to manipulate it.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>tree_annualized <span class="sc">|&gt;</span> </span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(DIA_est_midpoint <span class="sc">&lt;</span> <span class="dv">5</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">is_dead =</span> YEAR <span class="sc">&gt;=</span> midpoint_dead_year) <span class="sc">|&gt;</span> </span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>STATECD)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># Source:   SQL [?? x 13]
+# Database: DuckDB v1.1.3 [root@Darwin 24.2.0:R 4.4.1//Users/ericscott/Documents/GitHub/mekevans/forestTIME-builder/data/db/foresttime-DE.duckdb]
+   TREE_COMPOSITE_ID TREE_CN_midpoint  YEAR midpoint_dead_year HT_est_midpoint
+   &lt;chr&gt;             &lt;chr&gt;            &lt;int&gt;              &lt;dbl&gt;           &lt;dbl&gt;
+ 1 10_1_1_202_1_9    1275365478290487  2021                 NA              23
+ 2 10_1_1_202_2_8    1275365489290487  2021                 NA              20
+ 3 10_1_5_249_4_3    1275355080290487  2021               2018              20
+ 4 10_1_1_78_3_12    1540953243290487  2022                 NA              19
+ 5 10_1_1_488_3_4    463202152489998   2016                 NA              31
+ 6 10_1_5_226_3_12   463202794489998   2016                 NA              26
+ 7 10_1_5_276_3_3    463203082489998   2016                 NA              16
+ 8 10_1_5_276_3_7    463203086489998   2016                 NA              13
+ 9 10_1_5_276_4_8    463203115489998   2016                 NA              15
+10 10_1_5_395_1_60   463202548489998   2016                 NA              35
+# ℹ more rows
+# ℹ 8 more variables: DIA_est_midpoint &lt;dbl&gt;, AHEIGHT_est_midpoint &lt;dbl&gt;,
+#   TREE_CN_mortyr &lt;chr&gt;, mortyr_dead_year &lt;dbl&gt;, HT_est_mortyr &lt;dbl&gt;,
+#   DIA_est_mortyr &lt;dbl&gt;, AHEIGHT_est_mortyr &lt;dbl&gt;, is_dead &lt;lgl&gt;</code></pre>
+</div>
+</div>
+<p>This includes joins</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>tree <span class="ot">&lt;-</span> <span class="fu">tbl</span>(con, <span class="st">"tree"</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>plot <span class="ot">&lt;-</span> <span class="fu">tbl</span>(con, <span class="st">"plot"</span>)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="fu">left_join</span>(</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  tree,</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  plot <span class="sc">|&gt;</span> <span class="fu">select</span>(PLOT_COMPOSITE_ID, DESIGNCD),</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">by =</span> <span class="fu">join_by</span>(PLOT_COMPOSITE_ID)</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># Source:   SQL [?? x 199]
+# Database: DuckDB v1.1.3 [root@Darwin 24.2.0:R 4.4.1//Users/ericscott/Documents/GitHub/mekevans/forestTIME-builder/data/db/foresttime-DE.duckdb]
+   TREE_CN    PLT_CN PREV_TRE_CN INVYR STATECD UNITCD COUNTYCD  PLOT  SUBP  TREE
+   &lt;chr&gt;      &lt;chr&gt;  &lt;chr&gt;       &lt;int&gt;   &lt;int&gt;  &lt;int&gt;    &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt;
+ 1 654580880… 60134… &lt;NA&gt;         2004      10      1        1   132     2     1
+ 2 654580900… 60134… &lt;NA&gt;         2004      10      1        1   132     2     2
+ 3 654580920… 60134… &lt;NA&gt;         2004      10      1        1   132     3     1
+ 4 654580940… 60134… &lt;NA&gt;         2004      10      1        1   132     3     2
+ 5 654580960… 60134… &lt;NA&gt;         2004      10      1        1   132     3     3
+ 6 654580980… 60134… &lt;NA&gt;         2004      10      1        1   132     3     4
+ 7 654581000… 60134… &lt;NA&gt;         2004      10      1        1   132     3     5
+ 8 654581020… 60134… &lt;NA&gt;         2004      10      1        1   132     3     6
+ 9 654581040… 60134… &lt;NA&gt;         2004      10      1        1   132     3     7
+10 654581060… 60134… &lt;NA&gt;         2004      10      1        1   132     3     8
+# ℹ more rows
+# ℹ 189 more variables: CONDID &lt;int&gt;, PREVCOND &lt;int&gt;, STATUSCD &lt;int&gt;,
+#   SPCD &lt;dbl&gt;, SPGRPCD &lt;int&gt;, DIA &lt;dbl&gt;, DIAHTCD &lt;int&gt;, HT &lt;int&gt;, HTCD &lt;int&gt;,
+#   ACTUALHT &lt;int&gt;, TREECLCD &lt;int&gt;, CR &lt;int&gt;, CCLCD &lt;int&gt;, TREEGRCD &lt;int&gt;,
+#   AGENTCD &lt;int&gt;, CULL &lt;int&gt;, DAMLOC1 &lt;int&gt;, DAMTYP1 &lt;int&gt;, DAMSEV1 &lt;int&gt;,
+#   DAMLOC2 &lt;int&gt;, DAMTYP2 &lt;int&gt;, DAMSEV2 &lt;int&gt;, DECAYCD &lt;int&gt;, STOCKING &lt;dbl&gt;,
+#   WDLDSTEM &lt;int&gt;, VOLCFNET &lt;dbl&gt;, VOLCFGRS &lt;dbl&gt;, VOLCSNET &lt;dbl&gt;, …</code></pre>
+</div>
+</div>
+<p>If you need to bring the dataframe into memory for some reason, you can use <code>collect()</code>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>tiny_saplings <span class="ot">&lt;-</span> tree <span class="sc">|&gt;</span> </span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(DIA <span class="sc">&lt;</span> <span class="dv">2</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">collect</span>()</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>tiny_saplings</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1,226 × 198
+   TREE_CN    PLT_CN PREV_TRE_CN INVYR STATECD UNITCD COUNTYCD  PLOT  SUBP  TREE
+   &lt;chr&gt;      &lt;chr&gt;  &lt;chr&gt;       &lt;int&gt;   &lt;int&gt;  &lt;int&gt;    &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt;
+ 1 654583970… 60135… &lt;NA&gt;         2004      10      1        1    30     3     1
+ 2 654578730… 60134… &lt;NA&gt;         2004      10      1        1    48     2     2
+ 3 654578710… 60134… &lt;NA&gt;         2004      10      1        1    48     2     1
+ 4 654578750… 60134… &lt;NA&gt;         2004      10      1        1    48     2     3
+ 5 654578770… 60134… &lt;NA&gt;         2004      10      1        1    48     2     4
+ 6 654578790… 60134… &lt;NA&gt;         2004      10      1        1    48     2     5
+ 7 654579050… 60134… &lt;NA&gt;         2004      10      1        1    48     3     4
+ 8 654579070… 60134… &lt;NA&gt;         2004      10      1        1    48     3     5
+ 9 654579290… 60134… &lt;NA&gt;         2004      10      1        1    48     4     1
+10 654579310… 60134… &lt;NA&gt;         2004      10      1        1    48     4     2
+# ℹ 1,216 more rows
+# ℹ 188 more variables: CONDID &lt;int&gt;, PREVCOND &lt;int&gt;, STATUSCD &lt;int&gt;,
+#   SPCD &lt;dbl&gt;, SPGRPCD &lt;int&gt;, DIA &lt;dbl&gt;, DIAHTCD &lt;int&gt;, HT &lt;int&gt;, HTCD &lt;int&gt;,
+#   ACTUALHT &lt;int&gt;, TREECLCD &lt;int&gt;, CR &lt;int&gt;, CCLCD &lt;int&gt;, TREEGRCD &lt;int&gt;,
+#   AGENTCD &lt;int&gt;, CULL &lt;int&gt;, DAMLOC1 &lt;int&gt;, DAMTYP1 &lt;int&gt;, DAMSEV1 &lt;int&gt;,
+#   DAMLOC2 &lt;int&gt;, DAMTYP2 &lt;int&gt;, DAMSEV2 &lt;int&gt;, DECAYCD &lt;int&gt;, STOCKING &lt;dbl&gt;,
+#   WDLDSTEM &lt;int&gt;, VOLCFNET &lt;dbl&gt;, VOLCFGRS &lt;dbl&gt;, VOLCSNET &lt;dbl&gt;, …</code></pre>
+</div>
+</div>
+<p>The resulting dataframe is in memory and has 1226 rows.</p>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Important
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Be careful using <code>collect()</code> on very large tables. You might crash your R session! If you’re just wanting to <code>View()</code> a table, you might consider using <code>head()</code> or <code>slice_sample()</code> on the data frame before using <code>collect()</code></p>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>tree <span class="sc">|&gt;</span> </span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_sample</span>(<span class="at">n =</span> <span class="dv">100</span>) <span class="sc">|&gt;</span> <span class="co">#get 100 random rows</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">collect</span>() <span class="sc">|&gt;</span> <span class="co">#pull into memory</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">View</span>() <span class="co">#open in data viewer tab in RStudio</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="step-4-disconnect" class="level2">
+<h2 class="anchored" data-anchor-id="step-4-disconnect">Step 4: disconnect</h2>
+<p>You can disconnect from the database with <code>dbDisconnect()</code>. It isn’t totally necessary and restarting the R session will do the same thing, but it’s good practice to include in a script.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dbDisconnect</span>(con)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
