@@ -1,13 +1,24 @@
 on:
   push:
-    branches: main
+    branches: pre_carbon
+  # TODO eventually add schedule?
+  # TODO run on PR only for a test state or two and don't upload results
+  # using github.event_name == "pull_request"
 
 jobs:
-  AK:
+  states:
+    strategy:
+      matrix:
+        state: [AL, AK, AZ, AR, CA, CO, CT, DE, FL, GA, HI, ID, IL, IN, IA, KS, KY, LA, ME, MD, MA, MI, MN, MS, MO, MT, NE, NV, NH, NJ, NM, NY, NC, ND, OH, OK, OR, PA, RI, SC, SD, TN, TX, UT, VT, VA, WA, WV, WI, WY]
     runs-on: ubuntu-latest
     steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
       - name: Set up R
         uses: r-lib/actions/setup-r@v2
+        
+      # renv with pak should take care of any system deps without having to install manually like this
+      # However, pak currently has issues with libcurl deps on GH actions due to https://github.com/r-lib/pak/issues/591
       - name: Run apt-get
         run: |
           sudo apt-get update
@@ -20,82 +31,25 @@ jobs:
       - name: Install sodium dep
         run: |
           sudo apt-get install libsodium-dev
-      - name: Check out repository
-        uses: actions/checkout@v4
-      - name: Dependencies
+      
+      - name: Install R packages
         uses: r-lib/actions/setup-renv@v2
-      - name: Set state
-        run: Rscript -e 'state_to_use <- "AK"'
+        env:
+          RENV_CONFIG_PAK_ENABLED: true
+          PKG_SYSREQS: false #turns off pak's automatic detection and installation of system dependencies. Temporary untill pak issue #591 is resolved
       - name: Generate state database
-        run: Rscript -e 'source("scripts/01-state-by-state/AK-state-parquet.R")'
+        run: Rscript -e 'source("scripts/state-parquet.R")'
+        env:
+          STATE: ${{ matrix.state }}
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: AK
+          name: ${{ matrix.state }}
           path: data/parquet/*
-  CO:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set up R
-        uses: r-lib/actions/setup-r@v2
-      - name: Run apt-get
-        run: |
-          sudo apt-get update
-      - name: Install libcurl
-        run: |
-          sudo apt-get install libcurl4-openssl-dev
-      - name: Install redland dep
-        run: |
-          sudo apt-get install librdf0-dev
-      - name: Install sodium dep
-        run: |
-          sudo apt-get install libsodium-dev
-      - name: Check out repository
-        uses: actions/checkout@v4
-      - name: Dependencies
-        uses: r-lib/actions/setup-renv@v2
-      - name: Set state
-        run: Rscript -e 'state_to_use <- "CO"'
-      - name: Generate state database
-        run: Rscript -e 'source("scripts/01-state-by-state/CO-state-parquet.R")'
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: CO
-          path: data/parquet/*
-  MN:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set up R
-        uses: r-lib/actions/setup-r@v2
-      - name: Run apt-get
-        run: |
-          sudo apt-get update
-      - name: Install libcurl
-        run: |
-          sudo apt-get install libcurl4-openssl-dev
-      - name: Install redland dep
-        run: |
-          sudo apt-get install librdf0-dev
-      - name: Install sodium dep
-        run: |
-          sudo apt-get install libsodium-dev
-      - name: Check out repository
-        uses: actions/checkout@v4
-      - name: Dependencies
-        uses: r-lib/actions/setup-renv@v2
-      - name: Set state
-        run: Rscript -e 'state_to_use <- "MN"'
-      - name: Generate state database
-        run: Rscript -e 'source("scripts/01-state-by-state/MN-state-parquet.R")'
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: MN
-          path: data/parquet/*
+  
   stack:
     runs-on: ubuntu-latest
-    needs: [AK, CO, MN]
+    needs: states
     env:
       ZENODO_TOKEN: ${{ secrets.ZENODO_TOKEN }}
     steps:
@@ -124,11 +78,16 @@ jobs:
           merge-multiple: true
       - name: Stack files
         run: Rscript -e 'source("scripts/02-create_db_from_parquet.R")'
-      - name: Push to Zenodo
-        run: Rscript -e 'source("scripts/03-upload_parquet_db_zenodo.R")'
+      # - name: Push to Zenodo
+      #   run: Rscript -e 'source("scripts/03-upload_parquet_db_zenodo.R")'
       - name: Check db
         run: Rscript -e 'source("scripts/04-check_db.R")'
       - name: Check saplings
         run: Rscript -e 'source("scripts/05-check_saplings.R")'
       - name: Check annualized
         run: Rscript -e 'source("scripts/06-check-annualized.R")'
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: foresttime-from-state-parquet.duckdb
+          path: data/parquet/foresttime-from-state-parquet.duckdb

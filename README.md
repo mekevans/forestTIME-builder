@@ -3,7 +3,12 @@ Scripts to generate a forestTIME database. Ancestral code is in forestTIME and a
 
 The code in this repo will download raw FIA data from DataMart, process it to create forestTIME tables, and store these tables as (currently) .parquet files. This section of the workflow can be run in parallel broken out by state. These tables are then stacked to create one database with forestTIME tables for the whole country. This database can then be uploaded and shared, e.g. via Zenodo or Box. 
 
-I anticipate that *most* users of forestTIME will not run this code. Instead it will run automatically via github actions and push the finished database someplace accessible to users, who will then download it and query it. However, anyone who wants to can download this repo and run the scripts to create a database locally. 
+I anticipate that *most* users of forestTIME will not run this code. Instead it will run automatically via github actions and push the finished database someplace accessible to users, who will then download it and query it. Functions to query an already-generated database can be found in https://github.com/mekevans/forestTIME/. However, anyone who wants to can download this repo and run the scripts to create a database locally. 
+
+## The `pre_carbon` branch
+
+This branch, the default branch, contains the stable version of forestTIME prior to the addition of NSVB carbon estimation. 
+For the (WIP) branch with Renata's work towards annualized carbon estimates, see the `add-annual-carbon-good` branch [here](https://github.com/diazrenata/forestTIME-builder/tree/add-annual-carbon-good).
 
 ## Organization
 
