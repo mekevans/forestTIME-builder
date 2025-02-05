@@ -1,0 +1,93 @@
+---
+title: "Adding interpolated TPA_UNADJ"
+format: html
+---
+
+```{r}
+library(DBI)
+library(duckdb)
+library(dplyr)
+library(tidyr)
+library(readr)
+library(here)
+```
+
+Setup connection and tables
+
+```{r}
+con <- dbConnect(duckdb(here("data/db/foresttime-from-state-parquet.duckdb")))
+```
+
+```{r}
+(tables <- dbListTables(con))
+tree <- tbl(con, "tree")
+plot <- tbl(con, "plot")
+tree_carbon <- tbl(con, "tree_carbon_annualized_midpoint")
+```
+
+What design codes actually have trees in them?
+
+```{r}
+left_join(tree, plot |> select(PLOT_COMPOSITE_ID, DESIGNCD)) |> 
+  count(DESIGNCD)
+```
+
+
+Get TPA for design codes 558 and 559 which don't use the same TPA rules based on DIA, but are invariant through time.
+
+```{r}
+tree_designcd_tpa <- left_join(
+  tree,
+  plot |> select(PLOT_COMPOSITE_ID, DESIGNCD),
+  by = join_by("PLOT_COMPOSITE_ID")
+) |> select(TREE_COMPOSITE_ID, DESIGNCD, TPA_UNADJ) |> 
+  #just keep one row per tree, ideally with a non-NA TPA_UNADJ
+  group_by(TREE_COMPOSITE_ID, DESIGNCD) |> 
+  summarize(TPA_UNADJ = max(TPA_UNADJ, na.rm = TRUE), .groups = "drop")
+
+TPA_558_559 <- tree_designcd_tpa |> 
+  filter(DESIGNCD %in% c(558, 559)) |> 
+  select(TREE_COMPOSITE_ID, TPA_UNADJ)
+```
+
+Fill in TPA_UNDJ for design codes 558 and 559
+
+```{r}
+tree_carbon_tpa1 <- left_join(tree_carbon, TPA_558_559)
+
+#checking that it worked
+tree_carbon_tpa1 |> 
+  filter(TREE_COMPOSITE_ID == "53_5_29_11_2_4871760") |> 
+  select(TPA_UNADJ,)
+```
+
+Try out rules
+
+```{r}
+rules <- read_csv(here("data/DESIGNCD_TPA.csv")) |> 
+  select(-...1)
+#the rules table needs to be added to the database in order for joins to work. This can just be temporary though
+copy_to(con, rules, "rules", temporary = TRUE, overwrite = TRUE)
+
+tree_designcd <- tree_designcd_tpa |> select(-TPA_UNADJ)
+
+#add the design code column
+tree_carbon_tpa <- left_join(
+  tree_carbon_tpa1,
+  tree_designcd,
+  by = join_by(TREE_COMPOSITE_ID)
+) |> 
+  #rolling join to add the rules
+  left_join(tbl(con, "rules"), by = join_by(DESIGNCD, between(DIA, min_DIA, max_DIA))) |> 
+  #fill in the TPA_UNADJ column if there isn't anything there
+  mutate(TPA_UNADJ = if_else(is.na(TPA_UNADJ), TPA_2, TPA_UNADJ)) |> 
+  select(-TPA_2)
+  
+#check that it worked (this took a lot of RAM because of the arrange())
+tree_carbon_tpa |> 
+  select(TREE_COMPOSITE_ID, YEAR, TPA_UNADJ, everything()) #|> 
+  # arrange(TREE_COMPOSITE_ID, YEAR)
+
+```
+
+It would probably be good to test this with a smaller dataset with known outcome.
