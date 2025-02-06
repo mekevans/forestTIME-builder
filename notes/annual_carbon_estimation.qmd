@@ -1,0 +1,220 @@
+---
+title: "Calculating Annualized Carbon Estimates"
+author: "Eric R. Scott"
+format: html
+toc: true
+---
+
+```{r}
+#| label: setup
+#| message: false
+
+library(readr)
+library(dplyr)
+library(tidyr)
+library(here)
+
+```
+
+I'm going to try to work through a small sample of data to figure out how the code in forestTIME-builder works
+
+# Read in data
+
+I'll use RI as an example.
+
+```{r}
+
+tree_raw <- read_csv(
+  here("data/rawdat/state/RI_TREE.csv"),
+  col_types = cols(
+    CN = col_character(),
+    PREV_TRE_CN = col_character(),
+    DAMTYP1 = col_integer(),
+    DAMSEV1 = col_integer(),
+    DAMTYP2 = col_integer(),
+    DAMSEV2 = col_integer(),
+    ACTUALHT = col_double(),
+    HT = col_double(),
+    DIA = col_double(),
+    MORTYR = col_double(),
+    INVYR = col_double()
+  )
+)
+
+plot_raw <- read_csv(
+  here("data/rawdat/state/RI_PLOT.csv"),
+  col_types = cols(
+    CN = col_character()
+  )
+)
+
+plotgeom_raw <- read_csv(
+  here("data/rawdat/state/RI_PLOTGEOM.csv"),
+  col_types = cols(
+    CN = col_character()
+  )
+)
+
+#do I need this one?
+cond_raw <- read_csv(
+  here("data/rawdat/state/RI_COND.csv"),
+  col_types = cols(
+    CN = col_character(),
+    NBR_LIVE_STEMS = col_integer(),
+    LAND_COVER_CLASS_CD_RET = col_integer(),
+    TRTYR2 = col_integer(),
+    DSTRBYR2 = col_integer()
+  )
+)
+```
+
+# Initial Wrangling
+
+## Tree table
+
+Tree table gets filtered to only year 2000 and onward, the `CN` column is renamed to be more specific, and composite IDs are created that should be universally unique (not just unique within the plot or state)
+
+```{r}
+tree <- tree_raw |> 
+  filter(INVYR >= 2000.0) |> 
+  rename(TREE_CN = CN) |> 
+  mutate(
+    PLOT_COMPOSITE_ID = paste(STATECD, UNITCD, COUNTYCD, PLOT, sep = "_"),
+    TREE_COMPOSITE_ID = paste(STATECD, UNITCD, COUNTYCD, PLOT, SUBP, TREE, sep = "_"),
+    .before = 1
+  )
+
+```
+
+It is my understanding that the `TREE_COMPOSITE_ID` is now consistent through time as well since the combination of state, unit, county, plot, sub-plot, and tree number are unique for each tree and the same every inventory.
+But if that's try, what does the `chain_by_joins()` function do??
+
+### Chain by joins
+
+It looks like `chain_by_joins()` adds a `TREE_FIRST_CN` column that connects every observation to the first `CN` a tree was given.
+I don't think that is actually necessary.
+
+## Plot table
+
+I need to join one column from the PLOTGEOM table (`ECOSUBCD`) that is needed for the carbon estimation code (it used to be in the PLOT table in older versions of FIADB)
+
+We also do similar filtering and renaming as in the tree table
+
+```{r}
+#only care about keys and the ECOSUBCD column
+plotgeom <- plotgeom_raw |> select(CN, INVYR, ECOSUBCD)
+plot <- left_join(plot_raw,
+                  plotgeom,
+                  by = join_by(CN, INVYR)) |>
+  filter(INVYR >= 2000.0) |>
+  rename(PLT_CN = CN) |>
+  mutate(
+    PLOT_COMPOSITE_ID = paste(STATECD, UNITCD, COUNTYCD, PLOT, sep = "_"),
+    .before = 1
+  )
+```
+
+## Cond table
+
+I'm not sure if I need this one, but it also gets filtered and has columns renamed similarly to above
+
+```{r}
+cond <-
+  cond_raw |>
+  filter(INVYR >= 2000.0) |>
+  rename(COND_CN = CN) |>
+  mutate(
+    PLOT_COMPOSITE_ID = paste(STATECD, UNITCD, COUNTYCD, PLOT, sep = "_"),
+    .before = 1
+  )
+```
+
+# Anualizing
+
+I'm skipping some steps in `create_all_tables.R`, but I don't think they're all necessary.
+This bit is recreating what goes on in `add_tree_annualized_to_db.R`
+
+First, `ACTUALHT` and `HT` get coalesced.
+If I remember correctly, `ACTUALHT` only applies when a tree is broken, and we want to use that value for carbon estimation if it exists.
+
+```{r}
+tree <- 
+  tree |> 
+  mutate(ACTUALHT = coalesce(ACTUALHT, HT)) |> 
+  select(ACTUALHT, HT, everything())
+```
+
+Maybe I'm not understanding something that the code needs to do, but I think we can just use the built-in R function for linear interpolation, `approx()`.
+
+Let's try an example
+
+```{r}
+df <- tibble::tribble(
+  ~TREE_COMPOSITE_ID, ~YEAR, ~HT, ~STATUSCD,
+  1, 0, 20, 1,
+  1, 5, 30, 1,
+  1, 10, 37, 1,
+  1, 15, 45, 2,
+  2, 0, 5, 1,
+  2, 5, NA, NA,
+  2, 10, NA, NA,
+  2, 15, 20, 1,
+  2, 20, 32, 1
+)
+
+```
+
+There are two trees each measured every 5 years. Tree 1 was measured in 4 surveys, the last of which it was dead. Tree 2 was missing for two surveys, and then found again still alive.
+
+First we need to expand it to include all years between surveys.
+
+```{r}
+all_yrs <-
+  df |>
+  group_by(TREE_COMPOSITE_ID) |>
+  expand(YEAR = full_seq(YEAR, 1))
+
+df_all_yrs <- right_join(df, all_yrs) |> arrange(TREE_COMPOSITE_ID, YEAR)
+df_all_yrs
+```
+
+Then, I think we just need to use `approx()` in a `mutate` call
+
+```{r}
+df_interpolated <- df_all_yrs |> 
+  group_by(TREE_COMPOSITE_ID) |> 
+  mutate(HT_interpolated = approx(x = YEAR, y = HT, xout = YEAR)$y)
+df_interpolated
+```
+
+Yeah, that seems to have done it  Then we can just cut off any dead trees at the mortality year.
+
+```{r}
+df_interpolated <- 
+  df_interpolated |> 
+  group_by(TREE_COMPOSITE_ID) |> #for each tree...
+  #figure out when it was last recorded alive and first recorded dead
+  mutate(
+    last_live = YEAR[max(which(STATUSCD == 1))],
+    first_dead = YEAR[min(which(STATUSCD == 2))]
+  ) |> 
+  #estimate the mortality year as the midpoint between surveys
+  mutate(
+    dead_yr = ceiling(mean(c(last_live, first_dead))),
+    last_yr = if_else(!is.na(dead_yr), dead_yr, max(YEAR))
+  ) |> 
+  #remove estimates after death
+  filter(YEAR <= last_yr) |> 
+  select(-last_live, -first_dead, -dead_yr, -last_yr)
+```
+
+
+```{r}
+library(ggplot2)
+ggplot(df_interpolated, aes(x = YEAR)) +
+  geom_point(aes(y = HT)) +
+  geom_line(aes(y = HT_interpolated)) +
+  facet_wrap(vars(TREE_COMPOSITE_ID))
+```
+
+
