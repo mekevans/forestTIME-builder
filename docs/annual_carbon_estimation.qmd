@@ -1,6 +1,6 @@
 ---
 title: "Calculating Annualized Carbon Estimates"
-author: "Eric R. Scott"
+author: "Eric Scott"
 format: html
 toc: true
 ---
@@ -20,7 +20,9 @@ I'm going to try to work through a small sample of data to figure out how the co
 
 # Read in data
 
-I'll use RI as an example.  Some of the columns get auto-detected as the wrong type (e.g. CN should be character, not numeric, even though it looks like a number).  I got these column types from the Green Book and recorded them in a list in `scripts/create_column_types.R`.
+I'll use RI as an example.
+Some of the columns get auto-detected as the wrong type (e.g. CN should be character, not numeric, even though it looks like a number).
+I got these column types from the Green Book and recorded them in a list in `scripts/create_column_types.R`.
 
 ```{r}
 tree_raw <- read_csv(
@@ -167,7 +169,10 @@ df <- tibble::tribble(
 
 ```
 
-There are two trees each measured every 5 years. Tree 1 was measured in 4 surveys, the last of which it was dead. Tree 2 was missing for two surveys, and then found again still alive.  Tree 3 was only recorded once and it was already dead in the first survey.
+There are two trees each measured every 5 years.
+Tree 1 was measured in 4 surveys, the last of which it was dead.
+Tree 2 was missing for two surveys, and then found again still alive.
+Tree 3 was only recorded once and it was already dead in the first survey.
 
 First we need to expand it to include all years between surveys.
 
@@ -195,7 +200,6 @@ interpolate <- function(x, y) {
 }
 ```
 
-
 ```{r}
 #| label: toy-interpolate
 df_interpolated <- df_all_yrs |> 
@@ -204,7 +208,8 @@ df_interpolated <- df_all_yrs |>
 df_interpolated
 ```
 
-Yeah, that seems to have done it! Then we can just cut off any dead trees at the estimated mortality year.
+Yeah, that seems to have done it!
+Then we can just cut off any dead trees at the estimated mortality year.
 
 ```{r}
 #| label: toy-mortyr
@@ -226,7 +231,6 @@ df_interpolated <-
   select(-last_live, -first_dead, -dead_yr, -last_yr)
 ```
 
-
 ```{r}
 #| label: toy-plot
 library(ggplot2)
@@ -238,7 +242,9 @@ ggplot(df_interpolated, aes(x = YEAR)) +
 
 ### Actual data
 
-It *might* be trickier to do with the real data?  There are some trees in the `tree` table that were dead on their first survey and don't have any height or diameter measurements.  We should get rid of these.
+It *might* be trickier to do with the real data?
+There are some trees in the `tree` table that were dead on their first survey and don't have any height or diameter measurements.
+We should get rid of these.
 
 ```{r}
 #| label: tree-filter-always-dead
@@ -250,8 +256,9 @@ tree <- tree |>
              all(STATUSCD != 1)))
 ```
 
-
-I *think* only `ACTUALHT` and `DIA` need interpolation?  We should be able to get rid of most everything in the `tree` table when creating annualized measures.  If users need the per-tree data, they can join back with the `tree` table by TREE_COMPOSITE_ID.
+I *think* only `ACTUALHT` and `DIA` need interpolation?
+We should be able to get rid of most everything in the `tree` table when creating annualized measures.
+If users need the per-tree data, they can join back with the `tree` table by TREE_COMPOSITE_ID.
 
 First, expand to include all years
 
@@ -289,7 +296,6 @@ tree_interpolated
 
 Then we need to determine the year trees died.
 
-
 ```{r}
 #| label: tree-mortyr
 
@@ -323,10 +329,11 @@ tree_annualized <-
 
 ```
 
-There are some trees where interpolation fails.  For example:
+There are some trees where interpolation fails.
+For example:
 
-- 44_1_1_228_4_7 was only measured once before being recorded as dead. Nothing we can do here!
-- 44_1_1_91_3_4 was alive for two surveys and then recorded as dead with no height or diameter in a third survey. So, we estimate a mortality year, but can't interpolate.
+-   44_1_1_228_4_7 was only measured once before being recorded as dead. Nothing we can do here!
+-   44_1_1_91_3_4 was alive for two surveys and then recorded as dead with no height or diameter in a third survey. So, we estimate a mortality year, but can't interpolate.
 
 ```{r}
 failed_to_interpolate <- 
@@ -346,7 +353,6 @@ tree |>
 tree_annualized
 ```
 
-
 ### Visualize results
 
 Let's take a sample of trees and visualize them.
@@ -358,6 +364,7 @@ tree_annualized |> filter(TREE_COMPOSITE_ID %in% tree_sample) |>
   ggplot(aes(x = YEAR, y = DIA, color = TREE_COMPOSITE_ID)) +
   geom_line(show.legend = FALSE)
 ```
+
 ```{r}
 tree_annualized |> filter(TREE_COMPOSITE_ID %in% tree_sample) |> 
   ggplot(aes(x = YEAR, y = HT, color = TREE_COMPOSITE_ID)) +
@@ -370,4 +377,6 @@ tree_annualized |> filter(TREE_COMPOSITE_ID %in% tree_sample) |>
   geom_line(show.legend = FALSE)
 ```
 
-Cool! But this makes me wonder if we should really interpolate ACTUALHT linearly.  Trees don't break a little bit at a time!
+Cool!
+But this makes me wonder if we should really interpolate ACTUALHT linearly.
+Trees don't break a little bit at a time!

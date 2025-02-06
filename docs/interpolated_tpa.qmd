@@ -1,7 +1,10 @@
 ---
 title: "Adding interpolated TPA_UNADJ"
+author: Eric Scott
 format: html
 ---
+
+Experimenting with how we will add a `TPA_UNADJ` column to the annualized tree table.
 
 ```{r}
 library(DBI)
@@ -32,7 +35,6 @@ left_join(tree, plot |> select(PLOT_COMPOSITE_ID, DESIGNCD)) |>
   count(DESIGNCD)
 ```
 
-
 Get TPA for design codes 558 and 559 which don't use the same TPA rules based on DIA, but are invariant through time.
 
 ```{r}
@@ -61,7 +63,8 @@ tree_carbon_tpa1 |>
   select(TPA_UNADJ,)
 ```
 
-Try out rules
+Try out rules translated from Green Book by Dani in DESIGNCD_TPA.csv.
+This uses a [rolling join](https://www.tidyverse.org/blog/2023/01/dplyr-1-1-0-joins/#rolling-joins).
 
 ```{r}
 rules <- read_csv(here("data/DESIGNCD_TPA.csv")) |> 
@@ -83,7 +86,7 @@ tree_carbon_tpa <- left_join(
   mutate(TPA_UNADJ = if_else(is.na(TPA_UNADJ), TPA_2, TPA_UNADJ)) |> 
   select(-TPA_2)
   
-#check that it worked (this took a lot of RAM because of the arrange())
+#check that it worked (this took a lot of RAM with the arrange())
 tree_carbon_tpa |> 
   select(TREE_COMPOSITE_ID, YEAR, TPA_UNADJ, everything()) #|> 
   # arrange(TREE_COMPOSITE_ID, YEAR)
