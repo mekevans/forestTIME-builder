@@ -38,6 +38,3 @@ data/rawdat/*
 data/db/*
 
 *.duckdb
-
-docs/*.pdf
-docs/*.webloc
