@@ -20,10 +20,9 @@ I'm going to try to work through a small sample of data to figure out how the co
 
 # Read in data
 
-I'll use RI as an example.
+I'll use RI as an example.  Some of the columns get auto-detected as the wrong type (e.g. CN should be character, not numeric, even though it looks like a number).  I got these column types from the Green Book and recorded them in a list in `scripts/create_column_types.R`.
 
 ```{r}
-
 tree_raw <- read_csv(
   here("data/rawdat/state/RI_TREE.csv"),
   col_types = cols(
@@ -132,7 +131,7 @@ cond <-
 # Anualizing
 
 I'm skipping some steps in `create_all_tables.R`, but I don't think they're all necessary.
-This bit is recreating what goes on in `add_tree_annualized_to_db.R`
+This section would replace what goes on in `add_tree_annualized_to_db.R`, which I think is probably overly complicated and has the issue of not working when a tree goes "missing" for a survey.
 
 First, `ACTUALHT` and `HT` get coalesced.
 If I remember correctly, `ACTUALHT` only applies when a tree is broken, and we want to use that value for carbon estimation if it exists.
@@ -148,27 +147,32 @@ Maybe I'm not understanding something that the code needs to do, but I think we 
 
 Let's try an example
 
+### Toy Example
+
 ```{r}
+#| label: toy-data
 df <- tibble::tribble(
   ~TREE_COMPOSITE_ID, ~YEAR, ~HT, ~STATUSCD,
-  1, 0, 20, 1,
-  1, 5, 30, 1,
-  1, 10, 37, 1,
-  1, 15, 45, 2,
-  2, 0, 5, 1,
-  2, 5, NA, NA,
-  2, 10, NA, NA,
-  2, 15, 20, 1,
-  2, 20, 32, 1
+  1, 2000, 20, 1,
+  1, 2005, 30, 1,
+  1, 2010, 37, 1,
+  1, 2015, 45, 2,
+  2, 2000, 5, 1,
+  2, 2005, NA, NA,
+  2, 2010, NA, NA,
+  2, 2015, 20, 1,
+  2, 2020, 32, 1,
+  3, 2000, NA, 2
 )
 
 ```
 
-There are two trees each measured every 5 years. Tree 1 was measured in 4 surveys, the last of which it was dead. Tree 2 was missing for two surveys, and then found again still alive.
+There are two trees each measured every 5 years. Tree 1 was measured in 4 surveys, the last of which it was dead. Tree 2 was missing for two surveys, and then found again still alive.  Tree 3 was only recorded once and it was already dead in the first survey.
 
 First we need to expand it to include all years between surveys.
 
 ```{r}
+#| label: toy-expand
 all_yrs <-
   df |>
   group_by(TREE_COMPOSITE_ID) |>
@@ -178,18 +182,32 @@ df_all_yrs <- right_join(df, all_yrs) |> arrange(TREE_COMPOSITE_ID, YEAR)
 df_all_yrs
 ```
 
-Then, I think we just need to use `approx()` in a `mutate` call
+Then, I think we just need to use `approx()` in a `mutate()` call, but let's make a "friendlier" version that returns a vector and does nothing when it can't interpolate (i.e. it needs at least 2 non-`NA` values to interpolate).
 
 ```{r}
+#| label: interpolate-function
+interpolate <- function(x, y) {
+  if (sum(!is.na(y)) < 2){
+    return(y)
+  } else {
+    approx(x, y, xout = x)$y
+  }
+}
+```
+
+
+```{r}
+#| label: toy-interpolate
 df_interpolated <- df_all_yrs |> 
   group_by(TREE_COMPOSITE_ID) |> 
-  mutate(HT_interpolated = approx(x = YEAR, y = HT, xout = YEAR)$y)
+  mutate(HT_interpolated = interpolate(x = YEAR, y = HT))
 df_interpolated
 ```
 
-Yeah, that seems to have done it  Then we can just cut off any dead trees at the mortality year.
+Yeah, that seems to have done it! Then we can just cut off any dead trees at the estimated mortality year.
 
 ```{r}
+#| label: toy-mortyr
 df_interpolated <- 
   df_interpolated |> 
   group_by(TREE_COMPOSITE_ID) |> #for each tree...
@@ -210,6 +228,7 @@ df_interpolated <-
 
 
 ```{r}
+#| label: toy-plot
 library(ggplot2)
 ggplot(df_interpolated, aes(x = YEAR)) +
   geom_point(aes(y = HT)) +
@@ -217,4 +236,138 @@ ggplot(df_interpolated, aes(x = YEAR)) +
   facet_wrap(vars(TREE_COMPOSITE_ID))
 ```
 
+### Actual data
 
+It *might* be trickier to do with the real data?  There are some trees in the `tree` table that were dead on their first survey and don't have any height or diameter measurements.  We should get rid of these.
+
+```{r}
+#| label: tree-filter-always-dead
+tree <- tree |> 
+  group_by(TREE_COMPOSITE_ID) |> 
+  filter(!(all(is.na(DIA)) |
+             all(is.na(ACTUALHT)) |
+             all(is.na(HT)) |
+             all(STATUSCD != 1)))
+```
+
+
+I *think* only `ACTUALHT` and `DIA` need interpolation?  We should be able to get rid of most everything in the `tree` table when creating annualized measures.  If users need the per-tree data, they can join back with the `tree` table by TREE_COMPOSITE_ID.
+
+First, expand to include all years
+
+```{r}
+#| label: tree-expand
+all_yrs <- tree |> 
+  group_by(TREE_COMPOSITE_ID) |>
+  expand(YEAR = full_seq(INVYR, 1))
+
+tree_annual <- 
+  right_join(
+    tree |> select(TREE_COMPOSITE_ID, INVYR, ACTUALHT, HT, DIA, STATUSCD, MORTYR),
+    all_yrs,
+    by = join_by(TREE_COMPOSITE_ID, INVYR == YEAR)
+  ) |>
+  arrange(TREE_COMPOSITE_ID, INVYR) |> 
+  rename(YEAR = INVYR)
+tree_annual
+```
+
+Then interpolate with our custom `approx()` wrapper function, `interpolate()`
+
+```{r}
+#| label: tree-interpolate
+tree_interpolated <- 
+  tree_annual |> 
+  group_by(TREE_COMPOSITE_ID) |> 
+  mutate(
+    ACTUALHT = interpolate(x = YEAR, y = ACTUALHT),
+    DIA = interpolate(x = YEAR, y = DIA),
+    HT = interpolate(x = YEAR, y = HT)
+  )
+tree_interpolated
+```
+
+Then we need to determine the year trees died.
+
+
+```{r}
+#| label: tree-mortyr
+
+#NOTE: some of these `if_else()` could be replaced with `coalesce()`, but `if_else()` might be more explicit and readable
+
+tree_annualized <- 
+  tree_interpolated |> 
+  group_by(TREE_COMPOSITE_ID) |> #for each tree...
+  #figure out when it was last recorded alive and first recorded dead
+  mutate(
+    last_live = YEAR[max(which(STATUSCD == 1))],
+    first_dead = YEAR[min(which(STATUSCD == 2))]
+  ) |> 
+  #estimate the mortality year as the midpoint between surveys
+  mutate(
+    dead_yr = ceiling(mean(c(last_live, first_dead))),
+    #if dead_yr is NA still (because it was never alive and mean(c(NA, first_dead)) is NA), then just use the first_dead year
+    dead_yr = if_else(is.na(dead_yr), first_dead, dead_yr),
+    last_yr = if_else(!is.na(dead_yr), dead_yr, max(YEAR))
+  ) |> 
+  #use MORTYR data if it exists
+  mutate(
+    last_yr = if_else(!is.na(MORTYR), MORTYR, last_yr)
+  ) |> 
+  #remove any rows after estimated death year
+  filter(YEAR <= last_yr) |> 
+  #clean up temporary columns
+  select(-last_live, -first_dead, -dead_yr, -last_yr) |> 
+  #I think we also don't need MORTYR and STATUSCD.  If users want those, they could join to the tree table, but they don't make sense in this annualized table
+  select(-MORTYR, -STATUSCD)
+
+```
+
+There are some trees where interpolation fails.  For example:
+
+- 44_1_1_228_4_7 was only measured once before being recorded as dead. Nothing we can do here!
+- 44_1_1_91_3_4 was alive for two surveys and then recorded as dead with no height or diameter in a third survey. So, we estimate a mortality year, but can't interpolate.
+
+```{r}
+failed_to_interpolate <- 
+  tree_annualized |> 
+  filter(any(is.na(DIA))) |>
+  pull(TREE_COMPOSITE_ID) |>
+  unique()
+tree |> 
+  group_by(TREE_COMPOSITE_ID) |> 
+  filter(!all(STATUSCD != 1)) |> 
+  filter(TREE_COMPOSITE_ID %in% failed_to_interpolate) |>
+  arrange(TREE_COMPOSITE_ID, INVYR) |> 
+  select(TREE_COMPOSITE_ID, INVYR, STATUSCD, DIA, ACTUALHT, everything())
+```
+
+```{r}
+tree_annualized
+```
+
+
+### Visualize results
+
+Let's take a sample of trees and visualize them.
+
+```{r}
+set.seed(123)
+tree_sample <- tree |> pull(TREE_COMPOSITE_ID) |> unique() |> sample(50)
+tree_annualized |> filter(TREE_COMPOSITE_ID %in% tree_sample) |> 
+  ggplot(aes(x = YEAR, y = DIA, color = TREE_COMPOSITE_ID)) +
+  geom_line(show.legend = FALSE)
+```
+```{r}
+tree_annualized |> filter(TREE_COMPOSITE_ID %in% tree_sample) |> 
+  ggplot(aes(x = YEAR, y = HT, color = TREE_COMPOSITE_ID)) +
+  geom_line(show.legend = FALSE)
+```
+
+```{r}
+tree_annualized |> filter(TREE_COMPOSITE_ID %in% tree_sample) |> 
+  ggplot(aes(x = YEAR, y = ACTUALHT, color = TREE_COMPOSITE_ID)) +
+  geom_line(show.legend = FALSE)
+```
+
+Cool! But this makes me wonder if we should really interpolate ACTUALHT linearly.  Trees don't break a little bit at a time!
