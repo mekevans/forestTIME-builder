@@ -15,7 +15,7 @@ However, anyone who wants to can download this repo and run the scripts to creat
 
 ## The `pre_carbon` branch
 
-The `pre_carbon` contains the stable version of forestTIME prior to the addition of NSVB carbon estimation. 
+The `pre_carbon` contains the stable version of forestTIME prior to the addition of NSVB carbon estimation.
 
 ## Organization
 
