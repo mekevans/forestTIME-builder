@@ -1,6 +1,7 @@
 ---
 title: "Carbon - WIP"
-format: gfm
+author: Renata Diaz
+format: html
 editor: visual
 ---
 
@@ -41,24 +42,20 @@ library(duckdb)
 library(DBI)
 library(ggplot2)
 
-con <- dbConnect(duckdb(dbdir = here::here("data",
-                                                  "db",
-                                                  "foresttime-carbon-wip.duckdb")))
-
-
-
+con <- dbConnect(duckdb(
+  dbdir = here::here("data/db/foresttime-from-state-parquet.duckdb")
+))
 ```
 
 Then you can pull data from tables in the database like this:
 
 ```{r}
-
 # List available tables
-
 dbListTables(con)
+```
 
+```{r}
 # Pull data from the tree table
-
 some_trees <- tbl(con, "tree") |>
   # You can put dplyr-style filtering code here
   filter(STATECD == 8,
@@ -68,78 +65,89 @@ some_trees <- tbl(con, "tree") |>
   collect()
 
 knitr::kable(some_trees)
+```
 
+```{r}
 # Pull some data from the carbon estimates table
-
-mn_annual_carbon_midpoint <- tbl(con, "tree_carbon_annualized_midpoint") |>
+mn_annual_carbon_midpoint <- 
+  tbl(con, "tree_carbon_annualized_midpoint") |>
   filter(STATECD == 27) |>
   arrange(TREE_COMPOSITE_ID, YEAR) |>
   head() |>
   collect()
 
 knitr::kable(mn_annual_carbon_midpoint)
-
 ```
 
 Plot carbon estimates for different interpolation methods:
 
 ```{r}
+mortyr_carbon <- tbl(con, "tree_carbon_annualized_mortyr") 
+midpoint_carbon <- tbl(con, "tree_carbon_annualized_midpoint")
 
-mortyr_carbon <- tbl(con, "tree_carbon_annualized_mortyr") |>
-  collect()
-
-midpoint_carbon <- tbl(con, "tree_carbon_annualized_midpoint") |>
-  collect()
-
-mortyr_carbon_total <- mortyr_carbon |> group_by(YEAR, STATECD, STATUSCD) |> summarize(C = sum(CARBON, na.rm = T)) |> ungroup()  |> 
+mortyr_carbon_total <- mortyr_carbon |> 
+  filter(STATECD %in% c(8, 27)) |> 
+  group_by(YEAR, STATECD, STATUSCD) |>
+  summarize(C = sum(CARBON, na.rm = T)) |>
+  ungroup()  |> 
   mutate(method = "mortyr")
 
-midpoint_carbon_total <- midpoint_carbon |> group_by(YEAR, STATECD, STATUSCD) |> summarize(C = sum(CARBON, na.rm = T)) |> ungroup() |> 
+midpoint_carbon_total <- midpoint_carbon |>
+  filter(STATECD %in% c(8, 27)) |> 
+  group_by(YEAR, STATECD, STATUSCD) |> 
+  summarize(C = sum(CARBON, na.rm = T)) |>
+  ungroup() |>
   mutate(method = "midpoint")
 
-both_carbon_totals <- bind_rows(mortyr_carbon_total,
-                                midpoint_carbon_total)
+both_carbon_totals <- bind_rows(collect(mortyr_carbon_total),
+                                collect(midpoint_carbon_total))
 
-ggplot(both_carbon_totals |> filter(STATUSCD == 1), aes(YEAR, C, color = method)) + geom_line() + facet_wrap(vars(STATECD), ncol = 1) + theme_bw() + ggtitle("Live C")
+ggplot(both_carbon_totals |> filter(STATUSCD == 1), aes(YEAR, C, color = method)) +
+  geom_line() +
+  facet_wrap(vars(STATECD), ncol = 1, labeller = label_both) + 
+  theme_bw() +
+  ggtitle("Live C")
 
 
-ggplot(both_carbon_totals |> filter(STATUSCD == 2), aes(YEAR, C, color = method)) + geom_line() + facet_wrap(vars(STATECD), ncol = 1) + theme_bw() + ggtitle("Dead C")
+ggplot(both_carbon_totals |> filter(STATUSCD == 2), aes(YEAR, C, color = method)) +
+  geom_line() + 
+  facet_wrap(vars(STATECD), ncol = 1, labeller = label_both) + 
+  theme_bw() + 
+  ggtitle("Dead C")
 
 ```
 
 When you're done, disconnect from the database.
 
 ```{r}
-
 dbDisconnect(con, shutdown = TRUE)
-
 ```
 
 # Description of database tables
 
 Many of these tables are identical to their counterparts in the `pre-carbon` branch.
-Detailed descriptions for these tables can be found at https://viz.datascience.arizona.edu/foresttime-tables/.
+Detailed descriptions for these tables can be found at <https://viz.datascience.arizona.edu/foresttime-tables/>.
 
--   all_invyrs: See [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#all_invyrs-table).
--   cond: Nearly-completely raw from FIADB. See [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#cond-table).
--   nsvb_vars: The `tree` table with variables added to create a dataframe that mirrors the input data for David Walker's NSVB estimation code.
--   plot: Nearly-raw from FIADB. See [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#plot-table).
--   qa_flags: Derived as part of forestTIME. See [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#qa_flags-table).
--   ref_species: Nearly-raw from FIADB. Downloaded to support the creation of the nsvb_vars table.
--   ref_tree_carbon_ratio_dead: Nearly-raw from FIADB. Downloaded to support the creation of the nsvb_vars table.
--   ref_tree_decay_prop: Nearly-raw from FIADB. Downloaded to support the creation of the nsvb_vars table.
--   sapling_transitions: Derived by forestTIME. See [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#sapling_transitions-table).
--   tree: Nearly-raw from FIADB. See [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#tree-table).
--   tree_annualized: Derived as part of forestTIME. Interpolations of annual measurements for DIA, HT, and ACTUALHT for tree surveys in FIADB. Currently restricted to trees that are either alive in all surveys or alive in some surveys and dead in others, and that have no NA measurements for DIA, HT, or ACTUALHT. Very similar to the table described [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#tree_annualized-table), but with the following modifications:
+-   `all_invyrs`: See [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#all_invyrs-table).
+-   `cond`: Nearly-completely raw from FIADB. See [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#cond-table).
+-   `nsvb_vars`: The `tree` table with variables added to create a dataframe that mirrors the input data for David Walker's NSVB estimation code.
+-   `plot`: Nearly-raw from FIADB. See [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#plot-table).
+-   `qa_flags`: Derived as part of forestTIME. See [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#qa_flags-table).
+-   `ref_species`: Nearly-raw from FIADB. Downloaded to support the creation of the `nsvb_vars` table.
+-   `ref_tree_carbon_ratio_dead`: Nearly-raw from FIADB. Downloaded to support the creation of the `nsvb_vars` table.
+-   `ref_tree_decay_prop`: Nearly-raw from FIADB. Downloaded to support the creation of the `nsvb_vars` table.
+-   `sapling_transitions`: Derived by `forestTIME`. See [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#sapling_transitions-table).
+-   `tree`: Nearly-raw from FIADB. See [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#tree-table).
+-   `tree_annualized`: Derived as part of `forestTIME`. Interpolations of annual measurements for `DIA`, `HT`, and `ACTUALHT` for tree surveys in FIADB. Currently restricted to trees that are either alive in all surveys or alive in some surveys and dead in others, and that have no NA measurements for `DIA`, `HT`, or `ACTUALHT`. Very similar to the table described [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#tree_annualized-table), but with the following modifications:
     -   `TREE_CN_midpoint` is the CN for the TREE_CN record for the most *recent* survey using the midpoint interpolation method. This is used to get the nsvb_vars for these interpolated years.
     -   `midpoint_dead_year` is the year in which the tree is presumed to have died according to the midpoint interpolation method. (If a tree dies, it is assumed to have died in the middle year of the 5 or 10 year remeasurement period).
     -   `HT_est_midpoint`, `DIA_est_midpoint`, `AHEIGHT_est_midpoint`: Measurements interpolated for each year according to the midpoint method.
-    -   The corresponding columns ending in `_mortyr` are the same only for the mortyr interpolation method. (If a tree dies and has a MORTYR listed, it is assumed to have died in MORTYR; otherwise, it is assumed to have died in the midpoint year of the remeasurement period).
--   tree_carbon: NSVB carbon estimates for the *tree surveys* (i.e. every 5-10 years). The direct output of David Walker's code run on `nsvb_vars`.
--   tree_carbon_annualized_midpoint: NSVB carbon estimates for *interpolated annual data* interpolated using the midpoint method.
--   tree_carbon_annualized_mortyr: NSVB carbon estimates for interpolated annual data interpolated using the *mortyr* method.
--   tree_cns: Derived in forestTIME. See [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#tree_cns-table).
--   tree_info_composite_id: Derived in forestTIME. See [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#tree_info_composite_id-table).
+    -   The corresponding columns ending in `_mortyr` are the same only for the mortyr interpolation method. (If a tree dies and has a `MORTYR` listed, it is assumed to have died in `MORTYR`; otherwise, it is assumed to have died in the midpoint year of the remeasurement period).
+-   `tree_carbon`: NSVB carbon estimates for the *tree surveys* (i.e. every 5-10 years). The direct output of David Walker's code run on `nsvb_vars`.
+-   `tree_carbon_annualized_midpoint`: NSVB carbon estimates for *interpolated annual data* interpolated using the midpoint method.
+-   `tree_carbon_annualized_mortyr`: NSVB carbon estimates for interpolated annual data interpolated using the *mortyr* method.
+-   `tree_cns`: Derived in `forestTIME`. See [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#tree_cns-table).
+-   `tree_info_composite_id`: Derived in `forestTIME`. See [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#tree_info_composite_id-table).
 
 # FIADB citation
 

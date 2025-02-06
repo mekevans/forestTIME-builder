@@ -5,13 +5,15 @@ library(duckdb)
 library(DBI)
 library(dplyr)
 library(dbplyr)
-source(here::here("R", "download_zip_from_datamart.R"))
-source(here::here("R", "create_all_tables.R"))
+source("R/download_zip_from_datamart.R")
+source("R/create_all_tables.R")
 
 if(!dir.exists(here::here("data", "db"))) {
   dir.create(here::here("data", "db"), recursive = T)
 }
-
+if(!dir.exists(here::here("data", "parquet"))) {
+  dir.create(here::here("data", "parquet"), recursive = T)
+}
 
 # Download data ####
 
