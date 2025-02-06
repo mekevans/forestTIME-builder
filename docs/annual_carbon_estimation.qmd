@@ -29,6 +29,7 @@ tree_raw <- read_csv(
   here("data/rawdat/state/RI_TREE.csv"),
   col_types = cols(
     CN = col_character(),
+    PLT_CN = col_character(),
     PREV_TRE_CN = col_character(),
     DAMTYP1 = col_integer(),
     DAMSEV1 = col_integer(),
@@ -56,11 +57,12 @@ plotgeom_raw <- read_csv(
   )
 )
 
-#do I need this one?
+#needed later
 cond_raw <- read_csv(
   here("data/rawdat/state/RI_COND.csv"),
   col_types = cols(
     CN = col_character(),
+    PLT_CN = col_character(),
     NBR_LIVE_STEMS = col_integer(),
     LAND_COVER_CLASS_CD_RET = col_integer(),
     TRTYR2 = col_integer(),
@@ -92,8 +94,13 @@ But if that's try, what does the `chain_by_joins()` function do??
 
 ### Chain by joins
 
+::: callout-tip
+## Question
+
 It looks like `chain_by_joins()` adds a `TREE_FIRST_CN` column that connects every observation to the first `CN` a tree was given.
-I don't think that is actually necessary.
+Is this column needed?
+Or is `TREE_COMPOSITE_ID` enough?
+:::
 
 ## Plot table
 
@@ -117,7 +124,7 @@ plot <- left_join(plot_raw,
 
 ## Cond table
 
-I'm not sure if I need this one, but it also gets filtered and has columns renamed similarly to above
+Needed later on for carbon estimation
 
 ```{r}
 cond <-
@@ -130,7 +137,7 @@ cond <-
   )
 ```
 
-# Anualizing
+# Annualizing
 
 I'm skipping some steps in `create_all_tables.R`, but I don't think they're all necessary.
 This section would replace what goes on in `add_tree_annualized_to_db.R`, which I think is probably overly complicated and has the issue of not working when a tree goes "missing" for a survey.
@@ -380,3 +387,148 @@ tree_annualized |> filter(TREE_COMPOSITE_ID %in% tree_sample) |>
 Cool!
 But this makes me wonder if we should really interpolate ACTUALHT linearly.
 Trees don't break a little bit at a time!
+
+# Carbon estimation
+
+Here's where we use the functions in `carbon_code/` to estimate carbon and AGB.
+I think this will involve a lot of joining—first to the `tree` table to get the species code, then to some reference tables to get info about each species (e.g. hardwood vs. softwood), then to some other variables??
+Then all this gets plugged into some functions??
+
+I'll be trying to replicate the code in `R/add_nsvb_inputs_to_db.R` and then `R/add_carbon_variables_mortyr.R`
+
+## NSVB vars table
+
+Each `PLOT_COMPOSITE_ID` corresponds to multiple `PLOT_CN`—each year has a different `PLT_CN`.
+Maybe the plot-level variables change from year to year, so we need to join by `PLT_CN`?
+
+```{r}
+nsvb_vars <- tree |>
+    select(
+      TREE_COMPOSITE_ID,
+      PLOT_COMPOSITE_ID,
+      PLT_CN,
+      STATUSCD,
+      ##Don't we want to use the interpolated version in tree_annualized?
+      # DIA,      
+      # HT,       
+      # ACTUALHT, 
+      ###
+      CONDID,
+      SPCD,
+      TREECLCD,
+      CULL,
+      VOLCFGRS,
+      ## Don't we want to estimate this from the interpolated values?
+      # DRYBIO_AG, 
+      # CARBON_AG, 
+      ###
+      STANDING_DEAD_CD,
+      DECAYCD,
+      CR
+    )
+
+```
+
+::: callout-tip
+## Question
+
+Why does the code fill in `NA`s in the `CULL` column with `0`s?
+:::
+
+```{r}
+nsvb_vars <- nsvb_vars |> 
+  mutate(CULL = ifelse(is.na(CULL), 0, CULL))
+```
+
+Then we join to the plot table to get the ECOSUBCD column
+
+```{r}
+#just confirming that each PLOT_CN only has one ECOSUBCD
+# plot |>
+#   group_by(PLT_CN) |> summarize(n = length(unique(ECOSUBCD))) |> filter(n!=1)
+
+plot_ecosubcds <- plot |> 
+  group_by(PLT_CN) |> 
+  summarize(ECOSUBCD = first(ECOSUBCD))
+
+nsvb_vars <- left_join(nsvb_vars, plot_ecosubcds, by = join_by(PLT_CN))
+```
+
+Then we need the following columns from the `cond` table: `CONDID`, `STDORGCD`, `COND_STATUS_CD.`
+
+```{r}
+nsvb_vars <- left_join(nsvb_vars, 
+          cond |> select(PLT_CN, CONDID, STDORGCD, COND_STATUS_CD),
+          by = join_by(PLT_CN, CONDID))
+```
+
+Now we join in some columns from reference tables.
+
+```{r}
+ref_species <- read_csv(here("data/rawdat/REF_SPECIES.csv"))
+ref_tree_carbon_ratio_dead <- 
+  read_csv(here("data/rawdat/REF_TREE_CARBON_RATIO_DEAD.csv"))
+ref_tree_decay_prop <- read_csv(here("data/rawdat/REF_TREE_DECAY_PROP.csv"))
+```
+
+```{r}
+nsvb_vars <- nsvb_vars |> 
+  left_join(
+    ref_species |>
+      select(
+        SPCD,
+        JENKINS_SPGRPCD,
+        SFTWD_HRDWD,
+        WOOD_SPGR_GREENVOL_DRYWT,
+        CARBON_RATIO_LIVE
+      ) |>
+      rename(WDSG = WOOD_SPGR_GREENVOL_DRYWT), #I assume this is the variable some carbon estimation function is looking for
+    by = join_by(SPCD)
+  )
+```
+
+::: callout-tip
+## Question
+
+I'm not sure what's going on here, but it *looks* like the code creates a new column called `CULL_DECAY_RATIO` using the `DENSITY_PROP` column for `DECAYCD` 3.
+Then later it looks like this is overwritten if the tree is NOT alive (`STATUSCD!=1`) to be 1.
+There are no notes in the code indicating why this is done using `DECAYCD` 3:
+
+> Only limb stubs exist; the top is broken; a variable amount of bark remains; sapwood is sloughing; heartwood has advanced decay in upper bole and is beginning at the base.
+:::
+
+```{r}
+nsvb_vars |> ungroup() |> count(DECAYCD)
+```
+
+```{r}
+nsvb_vars <- 
+  nsvb_vars |> 
+  ungroup() |> 
+  #first joins by SFTWD_HRDWD only the DENSITY_PROP column for DECAYCD 3, but calls it CULL_DECAY_RATIO
+  left_join(
+    ref_tree_decay_prop |>
+      filter(DECAYCD == 3) |>
+      select(
+        SFTWD_HRDWD,
+        CULL_DECAY_RATIO = DENSITY_PROP
+      ),
+    by = join_by(SFTWD_HRDWD) 
+  ) |> 
+  #then joins additional columns (including DENSITY_PROP) based on DECAYCD and SFTWD_HRDWD
+  left_join(
+    ref_tree_decay_prop |>
+      select(SFTWD_HRDWD,
+             DECAYCD,
+             DENSITY_PROP,
+             BARK_LOSS_PROP,
+             BRANCH_LOSS_PROP),
+    by = join_by(DECAYCD, SFTWD_HRDWD)
+  ) |> 
+  #then join to the carbon ratio table to get CARBON_RATIO
+  left_join(
+    ref_tree_carbon_ratio_dead |>
+      select(SFTWD_HRDWD, DECAYCD, CARBON_RATIO),
+    by = join_by(DECAYCD, SFTWD_HRDWD)
+  ) 
+```

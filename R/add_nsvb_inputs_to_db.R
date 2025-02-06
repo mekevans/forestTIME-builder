@@ -1,3 +1,5 @@
+#TODO why is this in the database?  Will users interact with this table or is it just used to calculate carbon estimates?
+
 #' Add nsvb variables table to database
 #'
 #' @param con database connection
@@ -64,9 +66,11 @@ add_nsvb_vars_to_db <- function(con) {
           WOOD_SPGR_GREENVOL_DRYWT,
           CARBON_RATIO_LIVE
         ) |>
+        #TODO why rename?
         rename(WDSG = WOOD_SPGR_GREENVOL_DRYWT),
       by = join_by(SPCD)
     ) |>
+    #TODO why is CULL_DECAY_RATIO the DENSITY_PROP for DECAYCD 3?
     left_join(
       tbl(con, "ref_tree_decay_prop") |>
         filter(DECAYCD == 3) |>
@@ -77,6 +81,7 @@ add_nsvb_vars_to_db <- function(con) {
         ),
       by = join_by(SFTWD_HRDWD) 
     ) |>
+    #TODO what about all the NAs for DECAYCD?
     left_join(
       tbl(con, "ref_tree_decay_prop") |>
         select(SFTWD_HRDWD,
@@ -91,15 +96,18 @@ add_nsvb_vars_to_db <- function(con) {
         select(SFTWD_HRDWD, DECAYCD, CARBON_RATIO),
       by = join_by(DECAYCD, SFTWD_HRDWD)
     ) |> 
+    #TODO Why is CULL_DECAY_RATIO set to 1 when trees are dead?
     mutate(CULL_DECAY_RATIO = ifelse(STATUSCD == 1,
                                      CULL_DECAY_RATIO,
                                      1),
            STANDING_DEAD_CD = ifelse(STATUSCD == 1,
                                      0,
                                      as.numeric(STANDING_DEAD_CD)),
+           # TODO: why is this important?  Why not just use NA?
            DECAYCD = ifelse(STATUSCD == 1,
                             0,
                             as.numeric(DECAYCD)),
+           # TODO: why are these variables created?
            DECAY_WD = ifelse(STATUSCD == 1,
                              1,
                              DENSITY_PROP),
@@ -109,6 +117,7 @@ add_nsvb_vars_to_db <- function(con) {
            DECAY_BR = ifelse(STATUSCD == 1,
                              1,
                              BRANCH_LOSS_PROP),
+           #TODO: why is this called C_FRAC if it is a percentage?
            C_FRAC = ifelse(STATUSCD == 1,
                            CARBON_RATIO_LIVE * 100,
                            CARBON_RATIO * 100)) |>
@@ -119,6 +128,7 @@ add_nsvb_vars_to_db <- function(con) {
            LIVE = STATUSCD == 1) |>
     filter(COND_STATUS_CD == 1,
            DEAD_AND_STANDING | LIVE) |>
+    #TODO: why is this renamed?
     rename(TRE_CN = TREE_CN) |>
     select(-CONDID,
            -COND_STATUS_CD,
