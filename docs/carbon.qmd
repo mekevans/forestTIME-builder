@@ -1,0 +1,150 @@
+---
+title: "Carbon - WIP"
+format: gfm
+editor: visual
+---
+
+# Notes
+
+Notes from the README.md associated with this carbon estimation code:
+
+-   This version implements two interpolation methods that are different from the one used in the `pre_carbon` branch. On the `pre_carbon` branch, trees that die are assumed to have died in the survey year in which they are first recorded as dead. This branch uses a "midpoint" and a "mortyr" method. In the "midpoint" method, dead trees are assumed to have died at the midpoint of the remeasurement year in which they died (e.g. a tree recorded as alive in 2010 and dead in 2020 is assumed to have died in 2015). The "mortyr" method is the same as the midpoint, **except** that if a tree has a `MORTYR` recorded, the tree is assumed to have died in `MORTYR`.
+-   There have been additional interpolation methods discussed, e.g. taking into account disturbance years and types. This branch does not do any of that.
+-   Interpolation continues for as long as a tree remains in the database. It stops in the last survey year in which the tree is recorded. *TODO that has been discussed, but not implemented: Extend the interpolation period to the midpoint of the remeasurement period immediately after the last record of a tree.*
+-   Annualized measurements are generated only for trees that meet these criteria: Either alive in all survey periods, or alive in some surveys and dead in others; **and** have no NA measurements for HT or DIA. This excludes a lot (30-40%) of trees. Many trees can be re-added by adding trees that are always recorded as dead and/or have some NA measurements. NA measurements are likely to break the current code, so one solution is to filter the *measurements* to remove individual surveys with NA measurements but keep other records for that tree. I (Renata) began investigating this in the `allow_more` branch, but it may be equally efficient to start this work fresh.
+-   Some trees have NA measurements sandwiched between non-NA measurements. We could get additional information by interpolating the NA measurements from the adjoining non-NA measurements. This branch does not attempt any of this.
+-   This branch does not filter at all based on DIA. Trees with DIA \< 5 are saplings measured on the subplot. Carbon estimated from these trees should be (somehow) scaled up to proportionally account for the area of the full plot. Or, these trees could be filtered out until they reach DIA \>= 5. This branch does neither of these things.
+-   This branch generates NSVB carbon variable estimates based on interpolated annual measurements of HT and DIA using the two interpolation methods. It does so using David Walker's code copied essentially verbatim from the `nsvb_test.zip` file he sent the group in September 2024.
+-   The carbon estimation procedure runs locally. It runs for some states in GH actions but fails for others with a timeout. I (Renata) believe this is because it takes a lot of time/memory to run the carbon estimation on states with a lot of trees (e.g. Minnesota, Wisconsin). Currently, I just don't run this on those states in GH actions. To get it running, you'd need to either speed up the carbon estimation code or break the states into smaller units (e.g. counties).
+-   Edge effects - the carbon estimates appear to decline after around 2010. This is not a real effect but reflects that fewer and fewer trees have been resampled since their last survey visit. It should be corrected for, either by scaling estimates to the number of plots resampled or by extrapolating measurements for upcoming surveys.
+
+# Obtaining a database
+
+## Download
+
+You can download a copy of the *work in progress* database from this [Google Drive link](https://drive.google.com/file/d/1Ndn63S4ZWDvttZMcXUj8Wx8ziqCCClIf/view?usp=sharing).
+The rest of this document will assume you downloaded it and put it in `data/db`.
+This database has data for CO, MN, and NH.
+
+## Generating it yourself
+
+You can run `scripts/01-run_locally.R` to generate your own copy of the database on your own computer.
+You can get data for different states by changing lines 11-15 and 27 of that script.
+
+# Connecting to the database
+
+You can connect to the database like this:
+
+```{r}
+library(dplyr)
+library(duckdb)
+library(DBI)
+library(ggplot2)
+
+con <- dbConnect(duckdb(dbdir = here::here("data",
+                                                  "db",
+                                                  "foresttime-carbon-wip.duckdb")))
+
+
+
+```
+
+Then you can pull data from tables in the database like this:
+
+```{r}
+
+# List available tables
+
+dbListTables(con)
+
+# Pull data from the tree table
+
+some_trees <- tbl(con, "tree") |>
+  # You can put dplyr-style filtering code here
+  filter(STATECD == 8,
+         INVYR > 2015) |>
+  head() |>
+  # And run collect() to pull data into R's memory
+  collect()
+
+knitr::kable(some_trees)
+
+# Pull some data from the carbon estimates table
+
+mn_annual_carbon_midpoint <- tbl(con, "tree_carbon_annualized_midpoint") |>
+  filter(STATECD == 27) |>
+  arrange(TREE_COMPOSITE_ID, YEAR) |>
+  head() |>
+  collect()
+
+knitr::kable(mn_annual_carbon_midpoint)
+
+```
+
+Plot carbon estimates for different interpolation methods:
+
+```{r}
+
+mortyr_carbon <- tbl(con, "tree_carbon_annualized_mortyr") |>
+  collect()
+
+midpoint_carbon <- tbl(con, "tree_carbon_annualized_midpoint") |>
+  collect()
+
+mortyr_carbon_total <- mortyr_carbon |> group_by(YEAR, STATECD, STATUSCD) |> summarize(C = sum(CARBON, na.rm = T)) |> ungroup()  |> 
+  mutate(method = "mortyr")
+
+midpoint_carbon_total <- midpoint_carbon |> group_by(YEAR, STATECD, STATUSCD) |> summarize(C = sum(CARBON, na.rm = T)) |> ungroup() |> 
+  mutate(method = "midpoint")
+
+both_carbon_totals <- bind_rows(mortyr_carbon_total,
+                                midpoint_carbon_total)
+
+ggplot(both_carbon_totals |> filter(STATUSCD == 1), aes(YEAR, C, color = method)) + geom_line() + facet_wrap(vars(STATECD), ncol = 1) + theme_bw() + ggtitle("Live C")
+
+
+ggplot(both_carbon_totals |> filter(STATUSCD == 2), aes(YEAR, C, color = method)) + geom_line() + facet_wrap(vars(STATECD), ncol = 1) + theme_bw() + ggtitle("Dead C")
+
+```
+
+When you're done, disconnect from the database.
+
+```{r}
+
+dbDisconnect(con, shutdown = TRUE)
+
+```
+
+# Description of database tables
+
+Many of these tables are identical to their counterparts in the `pre-carbon` branch.
+Detailed descriptions for these tables can be found at https://viz.datascience.arizona.edu/foresttime-tables/.
+
+-   all_invyrs: See [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#all_invyrs-table).
+-   cond: Nearly-completely raw from FIADB. See [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#cond-table).
+-   nsvb_vars: The `tree` table with variables added to create a dataframe that mirrors the input data for David Walker's NSVB estimation code.
+-   plot: Nearly-raw from FIADB. See [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#plot-table).
+-   qa_flags: Derived as part of forestTIME. See [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#qa_flags-table).
+-   ref_species: Nearly-raw from FIADB. Downloaded to support the creation of the nsvb_vars table.
+-   ref_tree_carbon_ratio_dead: Nearly-raw from FIADB. Downloaded to support the creation of the nsvb_vars table.
+-   ref_tree_decay_prop: Nearly-raw from FIADB. Downloaded to support the creation of the nsvb_vars table.
+-   sapling_transitions: Derived by forestTIME. See [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#sapling_transitions-table).
+-   tree: Nearly-raw from FIADB. See [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#tree-table).
+-   tree_annualized: Derived as part of forestTIME. Interpolations of annual measurements for DIA, HT, and ACTUALHT for tree surveys in FIADB. Currently restricted to trees that are either alive in all surveys or alive in some surveys and dead in others, and that have no NA measurements for DIA, HT, or ACTUALHT. Very similar to the table described [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#tree_annualized-table), but with the following modifications:
+    -   `TREE_CN_midpoint` is the CN for the TREE_CN record for the most *recent* survey using the midpoint interpolation method. This is used to get the nsvb_vars for these interpolated years.
+    -   `midpoint_dead_year` is the year in which the tree is presumed to have died according to the midpoint interpolation method. (If a tree dies, it is assumed to have died in the middle year of the 5 or 10 year remeasurement period).
+    -   `HT_est_midpoint`, `DIA_est_midpoint`, `AHEIGHT_est_midpoint`: Measurements interpolated for each year according to the midpoint method.
+    -   The corresponding columns ending in `_mortyr` are the same only for the mortyr interpolation method. (If a tree dies and has a MORTYR listed, it is assumed to have died in MORTYR; otherwise, it is assumed to have died in the midpoint year of the remeasurement period).
+-   tree_carbon: NSVB carbon estimates for the *tree surveys* (i.e. every 5-10 years). The direct output of David Walker's code run on `nsvb_vars`.
+-   tree_carbon_annualized_midpoint: NSVB carbon estimates for *interpolated annual data* interpolated using the midpoint method.
+-   tree_carbon_annualized_mortyr: NSVB carbon estimates for interpolated annual data interpolated using the *mortyr* method.
+-   tree_cns: Derived in forestTIME. See [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#tree_cns-table).
+-   tree_info_composite_id: Derived in forestTIME. See [here](https://viz.datascience.arizona.edu/foresttime-tables/table_descriptions.html#tree_info_composite_id-table).
+
+# FIADB citation
+
+Forest Inventory and Analysis Database, June 28, 2024.
+U.S.
+Department of Agriculture, Forest Service, Northern Research Station.
+St. Paul, MN.
+\[Available only on internet: https://apps.fs.usda.gov/fia/datamart/datamart.html\]

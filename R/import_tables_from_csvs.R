@@ -1,87 +1,116 @@
+library(duckdb)
+library(dplyr)
+library(fs)
 #' Import tree, plot, and condition tables from csvs
 #'
 #' @param con database connection
 #' @param csv_dir directory with csv files
-#' @param state which state(s) to pull data from. Defaults to "all" but can be a character vector of state abbreviations.
-#'
+#' @param state which state(s) to pull data from. Defaults to "all" but can be a
+#'   character vector of state abbreviations.
+#' @param column_types path to an .rds file created by
+#'   scripts/create_column_types.R. This contains a list object with named
+#'   character vectors of the data types of each column in the CSV files read
+#'   in.
 #' @return nothing
 #' @export
 #'
-#' @importFrom DBI dbSendQuery dbListTables
-import_tables_from_csvs <- function(con, csv_dir, state = "all") {
-  
-  existing_tables <- dbListTables(con)
-  
-  if(any(c("tree", "plot", "cond") %in% existing_tables)) {
-    message("Tree, plot, and/or cond tables already present in database!")
-    return()
-  }
-  
-  tree_files <- list.files(csv_dir, pattern = "_TREE.csv", full.names = FALSE)
-  
+import_tables_from_csvs <- function(con, csv_dir, state = "all", column_types = "data/rawdat/table_types.rds") {
+  types <- readRDS(column_types)
+  tree_files <- fs::dir_ls(csv_dir, regexp = "_TREE.csv")
   if(state != "all") {
-  #  tree_states <- substr(tree_files, nchar(tree_files) - 10, nchar(tree_files) - 9)
-  #  tree_files <- tree_files[ which(tree_states %in% state)]
-    tree_files <- tree_files[ which(substr(tree_files, 1, 2) %in% state)]
+    tree_files <- tree_files[which(substr(fs::path_file(tree_files), 1, 2) %in% state)]
   } 
-  
-  tree_files <- paste0(csv_dir, "/", tree_files)
-  
-  tree_files <- paste0(
-    "['",
-    paste(tree_files, collapse = "', '"),
-    "']"
-  )
-  
   plot_files <- gsub("TREE", "PLOT", tree_files)
+  plotgeom_files <- gsub("TREE", "PLOTGEOM", tree_files)
   cond_files <- gsub("TREE", "COND", tree_files)
   
-  tree_query <-  paste0(
-    "CREATE TABLE tree AS SELECT * FROM read_csv(",
-    tree_files,
-    ", header = true, ignore_errors=true) WHERE (INVYR >= 2000.0)")
+  ## Tree Table #####
+  duckdb_read_csv(
+    con,
+    files = tree_files,
+    name = "tree_raw",
+    col.types = types$tree_types,
+    temporary = TRUE
+  )
+  tree_raw <- tbl(con, "tree_raw")
+  tree <- 
+    tree_raw |> 
+    filter(INVYR >= 2000.0) |> 
+    rename(TREE_CN = CN) |> 
+    mutate(
+      PLOT_COMPOSITE_ID = paste(STATECD, UNITCD, COUNTYCD, PLOT, sep = "_"),
+      TREE_COMPOSITE_ID = paste(STATECD, UNITCD, COUNTYCD, PLOT, SUBP, TREE, sep = "_"),
+      .before = 1
+    )
+  copy_to(con, tree, "tree", temporary = FALSE)
   
-  tree_name_query <- "ALTER TABLE tree RENAME COLUMN CN TO TREE_CN"
-  tree_concat_query <- "ALTER TABLE tree ADD COLUMN PLOT_COMPOSITE_ID TEXT"
-  tree_update_query <- "UPDATE tree SET PLOT_COMPOSITE_ID = CONCAT_WS('_', STATECD, UNITCD, COUNTYCD, PLOT)"
-  tree_concat_query2 <- "ALTER TABLE tree ADD COLUMN TREE_COMPOSITE_ID TEXT"
-  tree_update_query2 <- "UPDATE tree SET TREE_COMPOSITE_ID = CONCAT_WS('_', STATECD, UNITCD, COUNTYCD, PLOT, SUBP, TREE)"
+  ## Plot Table ####
+  duckdb_read_csv(
+    con,
+    files = plot_files,
+    name = "plot_raw",
+    col.types = types$plot_types,
+    temporary = TRUE
+  )
+  duckdb_read_csv(
+    con,
+    files = plotgeom_files,
+    name = "plotgeom_raw",
+    col.types = types$plotgeom_types,
+    temporary = TRUE
+  )
+  plot_raw <- tbl(con, "plot_raw")
+  plotgeom_raw <- tbl(con, "plotgeom_raw")
   
-  plot_query <-  paste0(
-    "CREATE TABLE plot AS SELECT * FROM read_csv(",
-    plot_files,
-    ", types = {'ECO_UNIT_PNW': 'VARCHAR'}, ignore_errors=true, header = true) WHERE (INVYR >= 2000.0)")
-  
-  plot_name_query <- "ALTER TABLE plot RENAME COLUMN CN TO PLT_CN"
-  plot_concat_query <- "ALTER TABLE plot ADD COLUMN PLOT_COMPOSITE_ID TEXT"
-  plot_update_query <- "UPDATE plot SET PLOT_COMPOSITE_ID = CONCAT_WS('_', STATECD, UNITCD, COUNTYCD, PLOT)"
-  
-  
-  cond_query <- paste0(
-    "CREATE TABLE cond AS SELECT * FROM read_csv(",
-    cond_files,
-    ", header = true, ignore_errors = true, types = {'HABTYPCD1': 'VARCHAR', 'HABTYPCD2': 'VARCHAR'}) WHERE (INVYR >= 2000.0)")
-  
-  cond_name_query <- "ALTER TABLE cond RENAME COLUMN CN TO COND_CN"
-  cond_concat_query <- "ALTER TABLE cond ADD COLUMN PLOT_COMPOSITE_ID TEXT"
-  cond_update_query <- "UPDATE cond SET PLOT_COMPOSITE_ID = CONCAT_WS('_', STATECD, UNITCD, COUNTYCD, PLOT)"
-  
-  dbExecute(con, tree_query)
-  dbExecute(con, tree_name_query)
-  dbExecute(con, tree_concat_query)
-  dbExecute(con, tree_update_query)
-  dbExecute(con, tree_concat_query2)
-  dbExecute(con, tree_update_query2)
-  dbExecute(con, plot_query)
-  dbExecute(con, plot_name_query)
-  dbExecute(con, plot_concat_query)
-  dbExecute(con, plot_update_query)
-  dbExecute(con, cond_query)  
-  dbExecute(con, cond_name_query)
-  dbExecute(con, cond_concat_query)
-  dbExecute(con, cond_update_query)
+  plot <- 
+    # add ECOSUBCD column that was moved to PLOTGEOM in newer FIADB versions
+    left_join(plot_raw,
+              plotgeom_raw |> select(CN, INVYR, ECOSUBCD),
+              by = join_by(CN, INVYR)) |> 
+    filter(INVYR >= 2000.0) |> 
+    rename(PLT_CN = CN) |> 
+    mutate(PLOT_COMPOSITE_ID = paste(STATECD, UNITCD, COUNTYCD, PLOT, sep = "_"), .before = 1)
+  copy_to(con, plot, name = "plot", temporary = FALSE)
   
   
+  ## Cond Table ####
+  duckdb_read_csv(
+    con,
+    files = cond_files,
+    name = "cond_raw",
+    col.types = types$cond_types,
+    temporary = TRUE
+  )
+  cond_raw <- tbl(con, "cond_raw")
+  
+  cond <- 
+    cond_raw |> 
+    filter(INVYR >= 2000.0) |> 
+    rename(COND_CN = CN) |> 
+    mutate(PLOT_COMPOSITE_ID = paste(STATECD, UNITCD, COUNTYCD, PLOT, sep = "_"), .before = 1)
+  copy_to(con, cond, "cond", temporary = FALSE)
+  
+  
+  ## Ref Tables ####
+  duckdb_read_csv(
+    con,
+    files = 'data/rawdat/REF_SPECIES.csv',
+    name = "ref_species",
+    nrow.check = 2000
+  )
+  
+  duckdb_read_csv(
+    con,
+    files = 'data/rawdat/REF_TREE_DECAY_PROP.csv',
+    name = "ref_tree_decay_prop",
+    nrow.check = 2000
+  )
+  
+  duckdb_read_csv(
+    con,
+    files = 'data/rawdat/REF_TREE_CARBON_RATIO_DEAD.csv',
+    name = "ref_tree_carbon_ratio_dead",
+    nrow.check = 2000
+  )
   return()
-  
 }

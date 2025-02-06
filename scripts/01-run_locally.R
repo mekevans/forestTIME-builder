@@ -8,13 +8,14 @@ delete_files <- FALSE
 
 source("R/download_zip_from_datamart.R")
 
-
 all_states <- state.abb
 csv_dir <- "data/rawdat/state/"
 download_zip_from_datamart(states = all_states,
                            rawdat_dir = csv_dir,
                            extract = TRUE,
                            keep_zip = TRUE)
+
+# Create state-by-state databases and parquet files
 
 # Download data for each sate and create state-by-state databases and parquet files
 purrr::walk(all_states, \(state) {
@@ -25,7 +26,7 @@ purrr::walk(all_states, \(state) {
 source(here::here("scripts", "02-create_db_from_parquet.R"))
 
 # Upload database to Zenodo
-source(here::here("scripts", "03-upload_parquet_db_zenodo.R"))
+# source(here::here("scripts", "03-upload_parquet_db_zenodo.R"))
 
 # Run checks on the database
 source(here::here("scripts", "04-check_db.R"))

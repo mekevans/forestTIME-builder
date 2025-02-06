@@ -28,9 +28,9 @@ add_qa_flags_to_db <- function(con) {
     select(TREE_CN, TREE_COMPOSITE_ID, INVYR, SPCD) |>
     distinct() |>
     group_by(TREE_COMPOSITE_ID) |>
-    mutate(last_invyr = max(INVYR)) |>
-    mutate(SPCD_CORR = ifelse(INVYR == last_invyr, SPCD, NA)) |>
-    mutate(SPCD_CORR = max(SPCD_CORR)) |>
+    mutate(last_invyr = max(INVYR)) |> 
+    mutate(SPCD_CORR = ifelse(INVYR == last_invyr, SPCD, NA)) |> 
+    mutate(SPCD_CORR = max(SPCD_CORR)) |> 
     ungroup() |>
     mutate(SPCD_FLAG = SPCD != SPCD_CORR) |>
     select(-last_invyr) 
@@ -41,7 +41,7 @@ add_qa_flags_to_db <- function(con) {
     select(TREE_CN, TREE_COMPOSITE_ID, INVYR, STATUSCD) |>
     mutate(isdead = (STATUSCD %in% c(2, 3)))|> 
     group_by(TREE_COMPOSITE_ID) |>
-    mutate(dead_invyr = ifelse(isdead, (INVYR), NA),
+    mutate(dead_invyr = ifelse(isdead, INVYR, NA),
            live_invyr = ifelse(STATUSCD == 1, INVYR, NA)) |>
     mutate(first_dead_invyr = min(dead_invyr, na.rm = T),
            last_live_invyr = max(live_invyr, na.rm = T)) |>
@@ -75,8 +75,8 @@ add_qa_flags_to_db <- function(con) {
   
   # Combine all and add to db ####
   
-  left_join(trees_last_dead, tree_latest_species) |>
-    left_join(tree_cycles) |>
+  left_join(trees_last_dead, tree_latest_species, by = join_by(TREE_CN, TREE_COMPOSITE_ID, INVYR)) |>
+    left_join(tree_cycles, by = join_by(TREE_COMPOSITE_ID, INVYR)) |>
     copy_to(dest = con, df = _, name = "qa_flags", temporary = FALSE)
   
   return()

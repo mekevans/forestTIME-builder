@@ -26,7 +26,7 @@ download_zip_from_datamart <- function(states,
   #check if .csvs are there from a previous run with keep_zip = FALSE
   csv_check <- 
     purrr::map(states, \(state) {
-      fs::path(rawdat_dir, paste0(state, c("_TREE.csv", "_PLOT.csv", "_COND.csv")))
+      fs::path(rawdat_dir, paste0(state, c("_TREE.csv", "_PLOT.csv", "_COND.csv", "_PLOTGEOM.csv")))
     }) |> 
     purrr::map_lgl(\(x) all(fs::file_exists(x)))
   
@@ -36,7 +36,7 @@ download_zip_from_datamart <- function(states,
     #update CSV check
     csv_check <- 
       purrr::map(states, \(state) {
-        fs::path(rawdat_dir, paste0(state, c("_TREE.csv", "_PLOT.csv", "_COND.csv")))
+        fs::path(rawdat_dir, paste0(state, c("_TREE.csv", "_PLOT.csv", "_COND.csv", "_PLOTGEOM.csv")))
       }) |> 
       purrr::map_lgl(\(x) all(fs::file_exists(x)))
   }
@@ -76,7 +76,8 @@ unzip_csvs <- function(zips, rawdat_dir, keep_zip) {
     csvs <- c(
       gsub("CSV.zip", "TREE.csv", fs::path_file(zip)),
       gsub("CSV.zip", "PLOT.csv", fs::path_file(zip)),
-      gsub("CSV.zip", "COND.csv", fs::path_file(zip))
+      gsub("CSV.zip", "COND.csv", fs::path_file(zip)),
+      gsub("CSV.zip", "PLOTGEOM.csv", fs::path_file(zip))
     )
     unzip(zip, files = csvs, exdir = rawdat_dir)
     if (isFALSE(keep_zip)) {

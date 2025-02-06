@@ -1,9 +1,10 @@
-state_to_use = Sys.getenv("STATE")
-#TODO set delete downloads arg of create_all_tables based on whether local or on GH Actions
+state_to_use = Sys.getenv("STATE", unset = "RI") #use RI for testing because it is small
+#TODO set delete downloads arg of create_all_tables based on whether local or on GH Actions?
 
 library(duckdb)
 library(DBI)
 library(dplyr)
+library(dbplyr)
 source(here::here("R", "download_zip_from_datamart.R"))
 source(here::here("R", "create_all_tables.R"))
 
@@ -23,7 +24,7 @@ if (!dir.exists(csv_dir)) {
 download_zip_from_datamart(states = state_to_use,
                            rawdat_dir = csv_dir,
                            extract = TRUE,
-                           keep_zip = FALSE)
+                           keep_zip = TRUE)
 
 # Create database  ####
 
@@ -40,7 +41,7 @@ con <- dbConnect(duckdb(dbdir = database_path))
 
 # Create database tables
 #TODO check out and eliminate warnings
-create_all_tables(con, rawdat_dir = csv_dir, delete_downloads = !exists("delete_files"), state = state_to_use)
+create_all_tables(con, rawdat_dir = csv_dir, delete_downloads = FALSE, state = state_to_use)
 
 # Store parquets #### 
 
@@ -53,6 +54,10 @@ sapling_transitions_parquet_query <- gsub("plot", "sapling_transitions", plot_pa
 tree_annualized_parquet_query <- gsub("plot", "tree_annualized", plot_parquet_query)
 tree_cns_parquet_query <- gsub("plot", "tree_cns", plot_parquet_query)
 all_invyrs_parquet_query <- gsub("plot", "all_invyrs", plot_parquet_query)
+nsvb_vars_query <- gsub("plot", "nsvb_vars", plot_parquet_query)
+tree_carbon_query <- gsub("plot", "tree_carbon", plot_parquet_query)
+tree_carbon_annualized_midpoint_query <- gsub("plot", "tree_carbon_annualized_midpoint", plot_parquet_query)
+tree_carbon_annualized_mortyr_query <- gsub("plot", "tree_carbon_annualized_mortyr", plot_parquet_query)
 
 dbExecute(con,
           tree_parquet_query)
@@ -72,6 +77,15 @@ dbExecute(con,
           tree_cns_parquet_query)
 dbExecute(con,
           all_invyrs_parquet_query)
+dbExecute(con,
+          nsvb_vars_query)
+dbExecute(con,
+          tree_carbon_query)
+dbExecute(con,
+          tree_carbon_annualized_mortyr_query)
+dbExecute(con,
+          tree_carbon_annualized_midpoint_query)
+
 
 dbDisconnect(con, shutdown = TRUE)
 

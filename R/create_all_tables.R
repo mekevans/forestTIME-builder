@@ -4,6 +4,7 @@ source(here::here("R", "add_qa_flags_to_db.R"))
 source(here::here("R", "add_info_table_to_db.R"))
 source(here::here("R", "add_tree_annualized_to_db.R"))
 source(here::here("R", "add_sapling_transitions_to_db.R"))
+source(here::here("R", "add_nsvb_inputs_to_db.R"))
 
 
 #' Create all tables for foresttime db
@@ -16,7 +17,7 @@ source(here::here("R", "add_sapling_transitions_to_db.R"))
 #' @return nothing
 #' @export
 #'
-create_all_tables <- function(con, rawdat_dir, delete_downloads = F, state = "all") {
+create_all_tables <- function(con, rawdat_dir, delete_downloads = FALSE, state = "all") {
   
   import_tables_from_csvs(con = con,
                           csv_dir = rawdat_dir, 
@@ -42,7 +43,13 @@ create_all_tables <- function(con, rawdat_dir, delete_downloads = F, state = "al
   add_cns_to_db(con)
   add_qa_flags_to_db(con)
   add_info_table_to_db(con)
+  add_nsvb_vars_to_db(con)
   add_annual_estimates_to_db(con)
   add_saplings_to_db(con)
+  # TODO: these are nearly identical.  
+  # Convert into a single function that takes a con and table as input
+  source(here::here("R", "add_carbon_variables.R"))
+  source(here::here("R", "add_carbon_variables_mortyr.R"))
+  source(here::here("R", "add_carbon_variables_midpoint.R"))
   
 }
