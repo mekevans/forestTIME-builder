@@ -15,8 +15,7 @@ However, anyone who wants to can download this repo and run the scripts to creat
 
 ## The `pre_carbon` branch
 
-This branch, the default branch, contains the stable version of forestTIME prior to the addition of NSVB carbon estimation.
-For the (WIP) branch with Renata's work towards annualized carbon estimates, see the `add-annual-carbon-good` branch [here](https://github.com/diazrenata/forestTIME-builder/tree/add-annual-carbon-good).
+The `pre_carbon` contains the stable version of forestTIME prior to the addition of NSVB carbon estimation. 
 
 ## Organization
 
