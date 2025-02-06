@@ -28,7 +28,6 @@ The `pre_carbon` contains the stable version of forestTIME prior to the addition
 -   `R` contains functions to download data, create tables, and add them to the database. These functions hardly ever change.
 -   `scripts` contains a workflow to run the functions in `R` to generate a database and push it to Zenodo. These workflows have undergone a lot of recent change to navigate trade-offs in terms of local vs. automated, all at once vs. state by state, etc. To generate a forestTIME .duckdb, run the scripts in `scripts` in order/following the instructions in the comments.
 
-```{=html}
 <!--
 ## Automation and Zenodo push
 
@@ -36,7 +35,6 @@ The `pre_carbon` contains the stable version of forestTIME prior to the addition
 -   One workflow runs for each state, generating state-level database tables which are stored as .parquet files. The .parquet files are stored as GitHub artifacts. A final workflow runs to stack all of the state-level tables into one database, which is uploaded to a Zenodo archive. This is currently private, located at: <https://zenodo.org/records/13377070>. This can be updated to a public archive when we are ready.
 -   To set up a push to Zenodo from GitHub actions, generate a Zenodo token in your Zenodo account and supply this as an environment variable as an Actions secret in the GitHub repository.
 -->
-```
 
 ------------------------------------------------------------------------
 
