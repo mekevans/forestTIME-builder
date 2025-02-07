@@ -515,7 +515,8 @@ nsvb_vars <- nsvb_vars |>
 
 I'm not sure what's going on here, but it *looks* like the code creates a new column called `CULL_DECAY_RATIO` using the `DENSITY_PROP` column for `DECAYCD` 3.
 Then later it looks like this is overwritten if the tree is NOT alive (`STATUSCD!=1`) to be 1.
-There are no notes in the code indicating why this is done using `DECAYCD` 3:
+There are no notes in the code (either Renata's or David Walker's) indicating why this is done.
+`DECAYCD` 3:
 
 > Only limb stubs exist; the top is broken; a variable amount of bark remains; sapwood is sloughing; heartwood has advanced decay in upper bole and is beginning at the base.
 :::
@@ -553,5 +554,87 @@ nsvb_vars <-
     ref_tree_carbon_ratio_dead |>
       select(SFTWD_HRDWD, DECAYCD, CARBON_RATIO),
     by = join_by(DECAYCD, SFTWD_HRDWD)
+  ) 
+```
+
+What happened with all the rows that had `NA` for `DECAYCD`?
+
+```{r}
+nsvb_vars |> 
+  filter(is.na(DECAYCD)) |> 
+  select(CARBON_RATIO, DENSITY_PROP, BARK_LOSS_PROP, BRANCH_LOSS_PROP, STATUSCD, CULL_DECAY_RATIO, everything())
+```
+
+All those joined variables are also `NA`.
+Seems like maybe it doesn't matter though because they will be filled in later on if `STATUSCD==1` .
+
+::: callout-important
+## Question
+
+Why does `CULL_DECAY_RATIO` get set to 1 for trees that are dead?
+I think maybe the `CULL_DECAY_RATIO` variable is just poorly named.
+It comes from a value for `DENSITY_PROP` which is:
+
+> Density proportion.
+> The proportion of the tree remaining after deductions for decay
+
+So, a dead tree should be 100% decay.
+(But why are live trees not 0% decay or just use their `DECAYCD` appropriate value for `CULL_DECAY_RATIO` ???)
+:::
+
+Create more variables needed for carbon estimation
+
+```{r}
+nsvb_vars <- 
+  nsvb_vars |>
+  mutate(
+    CULL_DECAY_RATIO = if_else(STATUSCD == 1, CULL_DECAY_RATIO, 1),
+    STANDING_DEAD_CD = if_else(STATUSCD == 1, 0, STANDING_DEAD_CD),
+    # TODO: why is this important?  Why not just use NA?
+    DECAYCD = if_else(STATUSCD == 1, 0, DECAYCD),
+    # TODO: why are these variables created?
+    DECAY_WD = if_else(STATUSCD == 1, 1, DENSITY_PROP),
+    DECAY_BK = if_else(STATUSCD == 1, 1, BARK_LOSS_PROP),
+    DECAY_BR = if_else(STATUSCD == 1, 1, BRANCH_LOSS_PROP),
+    #TODO: why is this called C_FRAC if it is a percentage?
+    C_FRAC = if_else(STATUSCD == 1,
+                     CARBON_RATIO_LIVE * 100,
+                     CARBON_RATIO * 100),
+    # the & here is && in renata's code, which shouldn't work but does for reasons I don't understand
+    DEAD_AND_STANDING = STATUSCD == 2 & STANDING_DEAD_CD == 1,
+    LIVE = STATUSCD == 1
+  )
+```
+
+Filtering
+
+::: callout-important
+## Question
+
+Why do we filter to exclude trees that are not alive or dead and standing?
+Why only include `COND_STATUS_CD` 1 (accessible forest land)?
+This removes 1,627 rows for RI
+:::
+
+```{r}
+nsvb_vars <- nsvb_vars |> 
+      filter(COND_STATUS_CD == 1, DEAD_AND_STANDING | LIVE)
+```
+
+Clean up unused columns.
+
+```{r}
+nsvb_vars <- nsvb_vars |> 
+  # rename(TRE_CN = TREE_CN) |> #still not sure we need this or why it is renamed
+  select(
+    -CONDID,
+    -COND_STATUS_CD,
+    -CARBON_RATIO_LIVE,
+    -CARBON_RATIO,
+    -DENSITY_PROP,
+    -BARK_LOSS_PROP,
+    -BRANCH_LOSS_PROP,
+    -DEAD_AND_STANDING,
+    -LIVE
   ) 
 ```
