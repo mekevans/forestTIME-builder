@@ -10,8 +10,8 @@
 #' @param x numeric; an x variable, usually `YEAR` in forestTIME-builder
 #' @param y numeric; the variable to be interpolated/extrapolated
 #' @param extrapolate logical; perform extrapolation if possible?
-#' @author Eric R.
 #' @returns numeric vector
+#' @author Eric R. Scott
 #' @export
 #'
 #' @examples
