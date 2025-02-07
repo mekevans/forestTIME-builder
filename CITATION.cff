@@ -2,7 +2,9 @@
 # Visit https://bit.ly/cffinit to generate yours today!
 
 cff-version: 1.2.0
-title: forestTIME-builder
+title: >-
+  forestTIME-builder: generating annualized carbon and
+  biomass estimates from FIA data
 message: >-
   If you use this software, please cite it as well as Westfall et al. 
   (2024) using the metadata from this file.
@@ -38,13 +40,15 @@ authors:
       University of Arizona, Laboratory of Tree Ring
       Research
 repository-code: 'https://github.com/mekevans/forestTIME-builder'
+url: 'https://github.com/mekevans/forestTIME-builder'
 keywords:
   - FIA
   - forest inventory analysis
   - carbon estimation
   - biomass estimation
 license: GPL-3.0
-version: v0.1.0
+version: v0.1.
+date-released: 2025-02-06
 references:
   - type: report
     title: A national-scale tree volume, biomass, and carbon modeling system for the
