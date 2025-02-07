@@ -45,3 +45,49 @@ keywords:
   - biomass estimation
 license: GPL-3.0
 version: v0.1.0
+references:
+  - type: report
+    title: A national-scale tree volume, biomass, and carbon modeling system for the
+      United States
+    authors:
+    - family-names: Westfall
+      given-names: James A.
+    - family-names: Coulston
+      given-names: John W.
+    - family-names: Gray
+      given-names: Andrew N.
+    - family-names: Shaw
+      given-names: John D.
+    - family-names: Radtke
+      given-names: Philip J.
+    - family-names: Walker
+      given-names: David M.
+    - family-names: Weiskittel
+      given-names: Aaron R.
+    - family-names: MacFarlane
+      given-names: David W.
+    - family-names: Affleck
+      given-names: David L.R.
+    - family-names: Zhao
+      given-names: Dehai
+    - family-names: Temesgen
+      given-names: Hailemariam
+    - family-names: Poudel
+      given-names: Krishna P.
+    - family-names: Frank
+      given-names: Jereme M.
+    - family-names: Prisley
+      given-names: Stephen P.
+    - family-names: Wang
+      given-names: Yingfang
+    - family-names: Sánchez Meador
+      given-names: Andrew J.
+    - family-names: Auty
+      given-names: David
+    - family-names: Domke
+      given-names: Grant M.
+    url: http://dx.doi.org/10.2737/WO-GTR-104
+    doi: 10.2737/wo-gtr-104
+    institution:
+      name: U.S. Department of Agriculture, Forest Service
+    year: '2024'
