@@ -25,8 +25,24 @@ The `pre_carbon` contains the stable version of forestTIME prior to the addition
 
 ## Organization
 
--   `R` contains functions to download data, create tables, and add them to the database. These functions hardly ever change.
--   `scripts` contains a workflow to run the functions in `R` to generate a database and push it to Zenodo. These workflows have undergone a lot of recent change to navigate trade-offs in terms of local vs. automated, all at once vs. state by state, etc. To generate a forestTIME .duckdb, run the scripts in `scripts` in order/following the instructions in the comments.
+-   `R/` contains functions to download data, create tables, and add them to the database. These functions hardly ever change.
+-   `scripts/` contains a workflow to run the functions in `R` to generate a database and push it to Zenodo. These workflows have undergone a lot of recent change to navigate trade-offs in terms of local vs. automated, all at once vs. state by state, etc. To generate a forestTIME .duckdb, run the scripts in `scripts` in order/following the instructions in the comments.
+-   `carbon_code/` contains code and data from David Walker for estimating carbon
+-   `docs/` contains Quarto documents explaining and exploring various aspects of this codebase.
+-   `renv/` is set up by the `renv` package (see [Reproducibility](#reproducibility))
+
+## Reproducibility
+
+This project uses [`renv`](https://rstudio.github.io/renv/articles/renv.html) to manage R package dependencies.
+Run `renv::restore()` to install all the required packages with the correct versions to run the code.
+If you install or update a package, run `renv::snapshot()` to update the `renv.lock` file.
+
+To generate the database, run the code in `scripts/` in order starting with `01-run_locally.R`.
+Currently the `03-upload_parquet_db_zenodo.R` script will not work.
+
+## Automation
+
+The GitHub action to generate the database is currently disabled until we figure out how to shrink the database size significantly.
 
 <!--
 ## Automation and Zenodo push
