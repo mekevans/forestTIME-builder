@@ -130,8 +130,10 @@ add_nsvb_vars_to_db <- function(con) {
     mutate(STATUSCD = as.numeric(STATUSCD),
            STANDING_DEAD_CD = as.numeric(STANDING_DEAD_CD),
            COND_STATUS_CD = as.numeric(COND_STATUS_CD)) |>
+    #TODO why does && work here?  It shouldn't as far as I can tell!
     mutate(DEAD_AND_STANDING = STATUSCD == 2 && STANDING_DEAD_CD == 1,
            LIVE = STATUSCD == 1) |>
+    #TODO why filter by either dead and standing or alive? Something to do with https://github.com/mekevans/forestTIME-builder/issues/15 ?
     filter(COND_STATUS_CD == 1,
            DEAD_AND_STANDING | LIVE) |>
     #TODO: why is this renamed?
