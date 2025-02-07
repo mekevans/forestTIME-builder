@@ -152,53 +152,136 @@ Attaching package: 'dplyr'</code></pre>
 <p>What design codes actually have trees in them?</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">left_join</span>(tree, plot <span class="sc">|&gt;</span> <span class="fu">select</span>(PLOT_COMPOSITE_ID, DESIGNCD)) <span class="sc">|&gt;</span> </span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(DESIGNCD)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(DESIGNCD) <span class="sc">|&gt;</span> <span class="fu">collect</span>() <span class="sc">|&gt;</span> knitr<span class="sc">::</span><span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Joining with `by = join_by(PLOT_COMPOSITE_ID)`</code></pre>
 </div>
-<div class="cell-output cell-output-stdout">
-<pre><code># Source:   SQL [?? x 2]
-# Database: DuckDB v1.1.3 [root@Darwin 24.3.0:R 4.4.1//Users/ericscott/Documents/GitHub/mekevans/forestTIME-builder/data/db/foresttime-from-state-parquet.duckdb]
-   DESIGNCD        n
-      &lt;int&gt;    &lt;dbl&gt;
- 1        1 48480110
- 2      111   138628
- 3      112    95035
- 4      113    25986
- 5      115   388918
- 6      116   165594
- 7      117   500054
- 8      118    76576
- 9      312   990336
-10      314   881121
-# ℹ more rows</code></pre>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: right;">DESIGNCD</th>
+<th style="text-align: right;">n</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">48480110</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">111</td>
+<td style="text-align: right;">138628</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">112</td>
+<td style="text-align: right;">95035</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">113</td>
+<td style="text-align: right;">25986</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">115</td>
+<td style="text-align: right;">388918</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">116</td>
+<td style="text-align: right;">165594</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">117</td>
+<td style="text-align: right;">500054</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">118</td>
+<td style="text-align: right;">76576</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">312</td>
+<td style="text-align: right;">990336</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">314</td>
+<td style="text-align: right;">881121</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">316</td>
+<td style="text-align: right;">113864</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">317</td>
+<td style="text-align: right;">344128</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">319</td>
+<td style="text-align: right;">925761</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">321</td>
+<td style="text-align: right;">163790</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">323</td>
+<td style="text-align: right;">30792</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">501</td>
+<td style="text-align: right;">2045287</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">502</td>
+<td style="text-align: right;">1356005</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">558</td>
+<td style="text-align: right;">9095</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">559</td>
+<td style="text-align: right;">4910</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">601</td>
+<td style="text-align: right;">3853</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">602</td>
+<td style="text-align: right;">34558</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">603</td>
+<td style="text-align: right;">17</td>
+</tr>
+</tbody>
+</table>
 </div>
 </div>
 <p>Get TPA for design codes 558 and 559 which don’t use the same TPA rules based on DIA, but are invariant through time.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>tree_designcd_tpa <span class="ot">&lt;-</span> <span class="fu">left_join</span>(</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  tree,</span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  plot <span class="sc">|&gt;</span> <span class="fu">select</span>(PLOT_COMPOSITE_ID, DESIGNCD),</span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">by =</span> <span class="fu">join_by</span>(<span class="st">"PLOT_COMPOSITE_ID"</span>)</span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span> <span class="fu">select</span>(TREE_COMPOSITE_ID, DESIGNCD, TPA_UNADJ) <span class="sc">|&gt;</span> </span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>  <span class="co">#just keep one row per tree, ideally with a non-NA TPA_UNADJ</span></span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(TREE_COMPOSITE_ID, DESIGNCD) <span class="sc">|&gt;</span> </span>
-<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">TPA_UNADJ =</span> <span class="fu">max</span>(TPA_UNADJ, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="at">.groups =</span> <span class="st">"drop"</span>)</span>
-<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>TPA_558_559 <span class="ot">&lt;-</span> tree_designcd_tpa <span class="sc">|&gt;</span> </span>
-<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(DESIGNCD <span class="sc">%in%</span> <span class="fu">c</span>(<span class="dv">558</span>, <span class="dv">559</span>)) <span class="sc">|&gt;</span> </span>
-<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(TREE_COMPOSITE_ID, TPA_UNADJ)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>tree_designcd_tpa <span class="ot">&lt;-</span> <span class="fu">left_join</span>(</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  tree,</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  plot <span class="sc">|&gt;</span> <span class="fu">select</span>(PLOT_COMPOSITE_ID, DESIGNCD),</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">by =</span> <span class="fu">join_by</span>(<span class="st">"PLOT_COMPOSITE_ID"</span>)</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span> <span class="fu">select</span>(TREE_COMPOSITE_ID, DESIGNCD, TPA_UNADJ) <span class="sc">|&gt;</span> </span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>  <span class="co">#just keep one row per tree, ideally with a non-NA TPA_UNADJ</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(TREE_COMPOSITE_ID, DESIGNCD) <span class="sc">|&gt;</span> </span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">TPA_UNADJ =</span> <span class="fu">max</span>(TPA_UNADJ, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="at">.groups =</span> <span class="st">"drop"</span>)</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>TPA_558_559 <span class="ot">&lt;-</span> tree_designcd_tpa <span class="sc">|&gt;</span> </span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(DESIGNCD <span class="sc">%in%</span> <span class="fu">c</span>(<span class="dv">558</span>, <span class="dv">559</span>)) <span class="sc">|&gt;</span> </span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(TREE_COMPOSITE_ID, TPA_UNADJ)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Fill in TPA_UNDJ for design codes 558 and 559</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>tree_carbon_tpa1 <span class="ot">&lt;-</span> <span class="fu">left_join</span>(tree_carbon, TPA_558_559)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>tree_carbon_tpa1 <span class="ot">&lt;-</span> <span class="fu">left_join</span>(tree_carbon, TPA_558_559)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Joining with `by = join_by(TREE_COMPOSITE_ID)`</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co">#checking that it worked</span></span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>tree_carbon_tpa1 <span class="sc">|&gt;</span> </span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(TREE_COMPOSITE_ID <span class="sc">==</span> <span class="st">"53_5_29_11_2_4871760"</span>) <span class="sc">|&gt;</span> </span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(TPA_UNADJ,)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">#checking that it worked</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>tree_carbon_tpa1 <span class="sc">|&gt;</span> </span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(TREE_COMPOSITE_ID <span class="sc">==</span> <span class="st">"53_5_29_11_2_4871760"</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(TPA_UNADJ,)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># Source:   SQL [?? x 1]
 # Database: DuckDB v1.1.3 [root@Darwin 24.3.0:R 4.4.1//Users/ericscott/Documents/GitHub/mekevans/forestTIME-builder/data/db/foresttime-from-state-parquet.duckdb]
@@ -209,8 +292,8 @@ Attaching package: 'dplyr'</code></pre>
 </div>
 <p>Try out rules translated from Green Book by Dani in DESIGNCD_TPA.csv. This uses a <a href="https://www.tidyverse.org/blog/2023/01/dplyr-1-1-0-joins/#rolling-joins">rolling join</a>.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>rules <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="fu">here</span>(<span class="st">"data/DESIGNCD_TPA.csv"</span>)) <span class="sc">|&gt;</span> </span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>...<span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>rules <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="fu">here</span>(<span class="st">"data/DESIGNCD_TPA.csv"</span>)) <span class="sc">|&gt;</span> </span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>...<span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>New names:
 Rows: 62 Columns: 5
@@ -221,26 +304,26 @@ Rows: 62 Columns: 5
 Specify the column types or set `show_col_types = FALSE` to quiet this message.
 • `` -&gt; `...1`</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co">#the rules table needs to be added to the database in order for joins to work. This can just be temporary though</span></span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="fu">copy_to</span>(con, rules, <span class="st">"rules"</span>, <span class="at">temporary =</span> <span class="cn">TRUE</span>, <span class="at">overwrite =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>tree_designcd <span class="ot">&lt;-</span> tree_designcd_tpa <span class="sc">|&gt;</span> <span class="fu">select</span>(<span class="sc">-</span>TPA_UNADJ)</span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a><span class="co">#add the design code column</span></span>
-<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>tree_carbon_tpa <span class="ot">&lt;-</span> <span class="fu">left_join</span>(</span>
-<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>  tree_carbon_tpa1,</span>
-<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>  tree_designcd,</span>
-<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">by =</span> <span class="fu">join_by</span>(TREE_COMPOSITE_ID)</span>
-<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span> </span>
-<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>  <span class="co">#rolling join to add the rules</span></span>
-<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(<span class="fu">tbl</span>(con, <span class="st">"rules"</span>), <span class="at">by =</span> <span class="fu">join_by</span>(DESIGNCD, <span class="fu">between</span>(DIA, min_DIA, max_DIA))) <span class="sc">|&gt;</span> </span>
-<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>  <span class="co">#fill in the TPA_UNADJ column if there isn't anything there</span></span>
-<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">TPA_UNADJ =</span> <span class="fu">if_else</span>(<span class="fu">is.na</span>(TPA_UNADJ), TPA_2, TPA_UNADJ)) <span class="sc">|&gt;</span> </span>
-<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>TPA_2)</span>
-<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a><span class="co">#check that it worked (this took a lot of RAM with the arrange())</span></span>
-<span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a>tree_carbon_tpa <span class="sc">|&gt;</span> </span>
-<span id="cb21-20"><a href="#cb21-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(TREE_COMPOSITE_ID, YEAR, TPA_UNADJ, <span class="fu">everything</span>()) <span class="co">#|&gt; </span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co">#the rules table needs to be added to the database in order for joins to work. This can just be temporary though</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="fu">copy_to</span>(con, rules, <span class="st">"rules"</span>, <span class="at">temporary =</span> <span class="cn">TRUE</span>, <span class="at">overwrite =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>tree_designcd <span class="ot">&lt;-</span> tree_designcd_tpa <span class="sc">|&gt;</span> <span class="fu">select</span>(<span class="sc">-</span>TPA_UNADJ)</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="co">#add the design code column</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>tree_carbon_tpa <span class="ot">&lt;-</span> <span class="fu">left_join</span>(</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>  tree_carbon_tpa1,</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>  tree_designcd,</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">by =</span> <span class="fu">join_by</span>(TREE_COMPOSITE_ID)</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span> </span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>  <span class="co">#rolling join to add the rules</span></span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(<span class="fu">tbl</span>(con, <span class="st">"rules"</span>), <span class="at">by =</span> <span class="fu">join_by</span>(DESIGNCD, <span class="fu">between</span>(DIA, min_DIA, max_DIA))) <span class="sc">|&gt;</span> </span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>  <span class="co">#fill in the TPA_UNADJ column if there isn't anything there</span></span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">TPA_UNADJ =</span> <span class="fu">if_else</span>(<span class="fu">is.na</span>(TPA_UNADJ), TPA_2, TPA_UNADJ)) <span class="sc">|&gt;</span> </span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>TPA_2)</span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a><span class="co">#check that it worked (this took a lot of RAM with the arrange())</span></span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>tree_carbon_tpa <span class="sc">|&gt;</span> </span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(TREE_COMPOSITE_ID, YEAR, TPA_UNADJ, <span class="fu">everything</span>()) <span class="co">#|&gt; </span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># Source:   SQL [?? x 145]
 # Database: DuckDB v1.1.3 [root@Darwin 24.3.0:R 4.4.1//Users/ericscott/Documents/GitHub/mekevans/forestTIME-builder/data/db/foresttime-from-state-parquet.duckdb]
@@ -264,7 +347,7 @@ Specify the column types or set `show_col_types = FALSE` to quiet this message.
 #   ECOSUBCD &lt;chr&gt;, STDORGCD &lt;int&gt;, JENKINS_SPGRPCD &lt;dbl&gt;, WDSG &lt;dbl&gt;,
 #   CULL_DECAY_RATIO &lt;dbl&gt;, DECAY_WD &lt;dbl&gt;, DECAY_BK &lt;dbl&gt;, DECAY_BR &lt;dbl&gt;, …</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>  <span class="co"># arrange(TREE_COMPOSITE_ID, YEAR)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>  <span class="co"># arrange(TREE_COMPOSITE_ID, YEAR)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>It would probably be good to test this with a smaller dataset with known outcome.</p>
 

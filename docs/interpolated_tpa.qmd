@@ -32,7 +32,7 @@ What design codes actually have trees in them?
 
 ```{r}
 left_join(tree, plot |> select(PLOT_COMPOSITE_ID, DESIGNCD)) |> 
-  count(DESIGNCD)
+  count(DESIGNCD) |> collect() |> knitr::kable()
 ```
 
 Get TPA for design codes 558 and 559 which don't use the same TPA rules based on DIA, but are invariant through time.
