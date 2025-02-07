@@ -246,6 +246,9 @@ add_annual_estimates_to_db <- function(con) {
            DIA_est_mortyr,
            AHEIGHT_est_mortyr)
   
+  #TODO Why not join by TREE_COMPOSITE_ID?  Is it important to use TRE_CN?
+  #Maybe some of the columns are not per-tree but per-tree-inventory?  But how
+  #would you interpolate somethign like DECAYCD?
   trees_annual_measures_mortyr_nsvb <- trees_annual_measures_mortyr |>   
   #  filter(grepl("27_2_61_20675", TREE_COMPOSITE_ID)) |>
     rename(TRE_CN = TREE_CN_mortyr,

@@ -414,6 +414,12 @@ I'll be trying to replicate the code in `R/add_nsvb_inputs_to_db.R` and then `R/
 
 ## NSVB vars table
 
+::: callout-important
+## Question
+
+Why not add these variables directly to the annualized tree table rather than joining later by `TRE_CN`?
+:::
+
 Each `PLOT_COMPOSITE_ID` corresponds to multiple `PLOT_CN`—each year has a different `PLT_CN`.
 Maybe the plot-level variables change from year to year, so we need to join by `PLT_CN`?
 
@@ -638,3 +644,8 @@ nsvb_vars <- nsvb_vars |>
     -LIVE
   ) 
 ```
+
+## Join to annualized data
+
+I think maybe I did need `TRE_CN` or `TREE_CN` because some of these NSVB variables might change year to year such as `DECAYCD`.
+So, the interpolated data and the NSVB vars need to have a `TRE_CN` column to join on.
