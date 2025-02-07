@@ -50,6 +50,8 @@ add_nsvb_vars_to_db <- function(con) {
     mutate(ACTUALHT = ifelse(is.na(ACTUALHT),
                              HT,
                              as.numeric(ACTUALHT)),
+           # CULL is the % rotten wood and should be assumed to be 0 if nothing
+           # was recorded
            CULL = ifelse(is.na(CULL), 0, CULL)) |>
     left_join(tbl(con, "plot") |>
                 select(PLT_CN, ECOSUBCD),
@@ -66,11 +68,15 @@ add_nsvb_vars_to_db <- function(con) {
           WOOD_SPGR_GREENVOL_DRYWT,
           CARBON_RATIO_LIVE
         ) |>
-        #TODO why rename?
+        # Rename wood specific gravity to the variable name the Walker code is
+        # expecting
         rename(WDSG = WOOD_SPGR_GREENVOL_DRYWT),
       by = join_by(SPCD)
     ) |>
     #TODO why is CULL_DECAY_RATIO the DENSITY_PROP for DECAYCD 3?
+    # "add cull density reduction factors" is the comment in the equivalent
+    # section of 06_predictOnFIADB.R of Walker code, but not entirely clear why
+    # the numbers for DECAYCD 3 are used
     left_join(
       tbl(con, "ref_tree_decay_prop") |>
         filter(DECAYCD == 3) |>
@@ -81,7 +87,7 @@ add_nsvb_vars_to_db <- function(con) {
         ),
       by = join_by(SFTWD_HRDWD) 
     ) |>
-    #TODO what about all the NAs for DECAYCD?
+    #TODO what about all the NAs for DECAYCD? Doesn't that mess up joining?
     left_join(
       tbl(con, "ref_tree_decay_prop") |>
         select(SFTWD_HRDWD,
