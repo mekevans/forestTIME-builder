@@ -94,7 +94,7 @@ But if that's try, what does the `chain_by_joins()` function do??
 
 ### Chain by joins
 
-::: callout-tip
+::: callout-important
 ## Question
 
 It looks like `chain_by_joins()` adds a `TREE_FIRST_CN` column that connects every observation to the first `CN` a tree was given.
@@ -152,7 +152,7 @@ tree <-
   select(ACTUALHT, HT, everything())
 ```
 
-Maybe I'm not understanding something that the code needs to do, but I think we can just use the built-in R function for linear interpolation, `approx()`.
+Maybe I'm not understanding something that the code needs to do, but I think we can just \~\~use the built-in R function for linear interpolation, `approx()`.
 
 Let's try an example
 
@@ -171,7 +171,10 @@ df <- tibble::tribble(
   2, 2010, NA, NA,
   2, 2015, 20, 1,
   2, 2020, 32, 1,
-  3, 2000, NA, 2
+  3, 2000, NA, 2,
+  4, 2000, 10, 1,
+  4, 2005, 14, 1,
+  4, 2010, NA, 2
 )
 
 ```
@@ -196,13 +199,29 @@ df_all_yrs
 
 Then, I think we just need to use `approx()` in a `mutate()` call, but let's make a "friendlier" version that returns a vector and does nothing when it can't interpolate (i.e. it needs at least 2 non-`NA` values to interpolate).
 
+We also want linear *extrapolation* of trailing `NA`s in the case that a "mort tree" (tree first recorded dead) has no observations for `DIA` or `HT`.
+That is accomplished with `Hmisc::approxExtrap()`, but needs a continuous set of numbers created by `approx()` to start with.
+
 ```{r}
 #| label: interpolate-function
-interpolate <- function(x, y) {
+inter_extra_polate <- function(x, y) {
   if (sum(!is.na(y)) < 2){
     return(y)
   } else {
-    approx(x, y, xout = x)$y
+    #first interpolate
+    interpolated <- approx(x, y, xout = x)$y
+  }
+  #then extrapolate trailing NAs if needed
+  if (all(!is.na(interpolated))) {
+    return(interpolated)
+  } else {
+    extrapolated <- 
+      Hmisc::approxExtrap(
+        x = x[!is.na(interpolated)],
+        y = interpolated[!is.na(interpolated)],
+        xout = x[is.na(interpolated)]
+      )$y
+    return(c(interpolated[!is.na(interpolated)], extrapolated))
   }
 }
 ```
@@ -211,7 +230,7 @@ interpolate <- function(x, y) {
 #| label: toy-interpolate
 df_interpolated <- df_all_yrs |> 
   group_by(TREE_COMPOSITE_ID) |> 
-  mutate(HT_interpolated = interpolate(x = YEAR, y = HT))
+  mutate(HT_interpolated = inter_extra_polate(x = YEAR, y = HT))
 df_interpolated
 ```
 
@@ -294,9 +313,9 @@ tree_interpolated <-
   tree_annual |> 
   group_by(TREE_COMPOSITE_ID) |> 
   mutate(
-    ACTUALHT = interpolate(x = YEAR, y = ACTUALHT),
-    DIA = interpolate(x = YEAR, y = DIA),
-    HT = interpolate(x = YEAR, y = HT)
+    ACTUALHT = inter_extra_polate(x = YEAR, y = ACTUALHT),
+    DIA = inter_extra_polate(x = YEAR, y = DIA),
+    HT = inter_extra_polate(x = YEAR, y = HT)
   )
 tree_interpolated
 ```
@@ -337,10 +356,7 @@ tree_annualized <-
 ```
 
 There are some trees where interpolation fails.
-For example:
-
--   44_1_1_228_4_7 was only measured once before being recorded as dead. Nothing we can do here!
--   44_1_1_91_3_4 was alive for two surveys and then recorded as dead with no height or diameter in a third survey. So, we estimate a mortality year, but can't interpolate.
+I suspect they are all ones with only one non-NA measurement and there is nothing we can do.
 
 ```{r}
 failed_to_interpolate <- 
@@ -429,7 +445,7 @@ nsvb_vars <- tree |>
 
 ```
 
-::: callout-tip
+::: callout-important
 ## Question
 
 Why does the code fill in `NA`s in the `CULL` column with `0`s?
@@ -471,6 +487,13 @@ ref_tree_carbon_ratio_dead <-
 ref_tree_decay_prop <- read_csv(here("data/rawdat/REF_TREE_DECAY_PROP.csv"))
 ```
 
+::: callout-important
+## Question
+
+Why is `WOOD_SPGR_GREENVOL_DRWT` renamed to `WDSG` here?
+Is that one of the inputs to the carbon estimation functions?
+:::
+
 ```{r}
 nsvb_vars <- nsvb_vars |> 
   left_join(
@@ -482,12 +505,12 @@ nsvb_vars <- nsvb_vars |>
         WOOD_SPGR_GREENVOL_DRYWT,
         CARBON_RATIO_LIVE
       ) |>
-      rename(WDSG = WOOD_SPGR_GREENVOL_DRYWT), #I assume this is the variable some carbon estimation function is looking for
+      rename(WDSG = WOOD_SPGR_GREENVOL_DRYWT), 
     by = join_by(SPCD)
   )
 ```
 
-::: callout-tip
+::: callout-important
 ## Question
 
 I'm not sure what's going on here, but it *looks* like the code creates a new column called `CULL_DECAY_RATIO` using the `DENSITY_PROP` column for `DECAYCD` 3.
