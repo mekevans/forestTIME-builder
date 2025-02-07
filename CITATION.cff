@@ -1,0 +1,47 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: forestTIME-builder
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Renata
+    family-names: Diaz
+    affiliation: >-
+      University of Arizona, Communications & Cyber
+      Technology
+    orcid: 'https://orcid.org/0000-0003-0803-4734'
+  - given-names: Eric R.
+    family-names: Scott
+    email: ericrscott@arizona.edu
+    affiliation: >-
+      University of Arizona, Communications & Cyber
+      Technology
+    orcid: 'https://orcid.org/0000-0002-7430-7879'
+  - given-names: Dani
+    family-names: Steinberg
+    affiliation: >-
+      University of Arizona, School of Natural Resources &
+      The Environment
+  - given-names: Kristina
+    family-names: Riemer
+    affiliation: >-
+      University of Arizona, Communications & Cyber
+      Technology
+    orcid: 'https://orcid.org/0000-0003-3802-3331'
+  - given-names: Margaret
+    family-names: Evans
+    affiliation: >-
+      University of Arizona, Laboratory of Tree Ring
+      Research
+repository-code: 'https://github.com/mekevans/forestTIME-builder'
+keywords:
+  - FIA
+  - forest inventory analysis
+  - carbon estimation
+  - biomass estimation
+license: GPL-3.0
+version: v0.1.0
