@@ -31,7 +31,7 @@ The `pre_carbon` contains the stable version of forestTIME prior to the addition
 -   `docs/` contains Quarto documents explaining and exploring various aspects of this codebase.
 -   `renv/` is set up by the `renv` package (see [Reproducibility](#reproducibility))
 
-## Reproducibility
+## Reproducibility {#reproducibility}
 
 This project uses [`renv`](https://rstudio.github.io/renv/articles/renv.html) to manage R package dependencies.
 Run `renv::restore()` to install all the required packages with the correct versions to run the code.
@@ -43,6 +43,23 @@ Currently the `03-upload_parquet_db_zenodo.R` script will not work.
 ## Automation
 
 The GitHub action to generate the database is currently disabled until we figure out how to shrink the database size significantly.
+
+## Citation
+
+To cite this work, please use:
+
+> Diaz R, Scott E, Steinberg D, Riemer K, Evans M (2025).
+> “forestTIME-builder: generating annualized carbon and biomass estimates from FIA data.” <https://github.com/mekevans/forestTIME-builder>.
+
+Please also cite Westfall et al. (2004):
+
+> Westfall, J.A., Coulston, J.W., Moisen, G.G., Andersen, H.-E., 2022.
+> Sampling and estimation documentation for the Enhanced Forest Inventory and Analysis Program: 2022.
+> Gen. Tech.
+> Rep. NRS-GTR-207.
+> Madison, WI: U.S. Department of Agriculture, Forest Service, Northern Research Station.
+> 129 p. 207, 1–129.
+> <https://doi.org/10.2737/NRS-GTR-207>
 
 <!--
 ## Automation and Zenodo push
