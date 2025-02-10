@@ -31,7 +31,7 @@ The `pre_carbon` contains the stable version of forestTIME prior to the addition
 -   `docs/` contains Quarto documents explaining and exploring various aspects of this codebase.
 -   `renv/` is set up by the `renv` package (see [Reproducibility](#reproducibility))
 
-## Reproducibility
+## Reproducibility {#reproducibility}
 
 This project uses [`renv`](https://rstudio.github.io/renv/articles/renv.html) to manage R package dependencies.
 Run `renv::restore()` to install all the required packages with the correct versions to run the code.
@@ -43,6 +43,20 @@ Currently the `03-upload_parquet_db_zenodo.R` script will not work.
 ## Automation
 
 The GitHub action to generate the database is currently disabled until we figure out how to shrink the database size significantly.
+
+## Citation
+
+To cite this work, please use:
+
+> Diaz R, Scott E, Steinberg D, Riemer K, Evans M (2025).
+> “forestTIME-builder: generating annualized carbon and biomass estimates from FIA data.” <https://github.com/mekevans/forestTIME-builder>.
+
+Please also cite Westfall et al. (2024):
+
+> Westfall, J.A., Coulston, J.W., Gray, A.N., Shaw, J.D., Radtke, P.J., Walker, D.M., Weiskittel, A.R., MacFarlane, D.W., Affleck, D.L.R., Zhao, D., Temesgen, H., Poudel, K.P., Frank, J.M., Prisley, S.P., Wang, Y., Sánchez Meador, A.J., Auty, D., Domke, G.M., 2024.
+> A national-scale tree volume, biomass, and carbon modeling system for the United States.
+> U.S. Department of Agriculture, Forest Service.
+> <https://doi.org/10.2737/wo-gtr-104>
 
 <!--
 ## Automation and Zenodo push
