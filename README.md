@@ -51,15 +51,12 @@ To cite this work, please use:
 > Diaz R, Scott E, Steinberg D, Riemer K, Evans M (2025).
 > “forestTIME-builder: generating annualized carbon and biomass estimates from FIA data.” <https://github.com/mekevans/forestTIME-builder>.
 
-Please also cite Westfall et al. (2004):
+Please also cite Westfall et al. (2024):
 
-> Westfall, J.A., Coulston, J.W., Moisen, G.G., Andersen, H.-E., 2022.
-> Sampling and estimation documentation for the Enhanced Forest Inventory and Analysis Program: 2022.
-> Gen. Tech.
-> Rep. NRS-GTR-207.
-> Madison, WI: U.S. Department of Agriculture, Forest Service, Northern Research Station.
-> 129 p. 207, 1–129.
-> <https://doi.org/10.2737/NRS-GTR-207>
+> Westfall, J.A., Coulston, J.W., Gray, A.N., Shaw, J.D., Radtke, P.J., Walker, D.M., Weiskittel, A.R., MacFarlane, D.W., Affleck, D.L.R., Zhao, D., Temesgen, H., Poudel, K.P., Frank, J.M., Prisley, S.P., Wang, Y., Sánchez Meador, A.J., Auty, D., Domke, G.M., 2024.
+> A national-scale tree volume, biomass, and carbon modeling system for the United States.
+> U.S. Department of Agriculture, Forest Service.
+> <https://doi.org/10.2737/wo-gtr-104>
 
 <!--
 ## Automation and Zenodo push
