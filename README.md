@@ -19,6 +19,9 @@ Instead it will run automatically via GitHub Actions and push the finished datab
 Functions to query an already-generated database can be found in <https://github.com/mekevans/forestTIME/>.
 However, anyone who wants to can download this repo and run the scripts to create a database locally.
 
+This is a work in progress.
+Find additional notes and documentation in .md files in the `docs/` folder.
+
 ## The `pre_carbon` branch
 
 The `pre_carbon` contains the stable version of forestTIME prior to the addition of NSVB carbon estimation.
@@ -31,7 +34,7 @@ The `pre_carbon` contains the stable version of forestTIME prior to the addition
 -   `docs/` contains Quarto documents explaining and exploring various aspects of this codebase.
 -   `renv/` is set up by the `renv` package (see [Reproducibility](#reproducibility))
 
-## Reproducibility
+## Reproducibility {#reproducibility}
 
 This project uses [`renv`](https://rstudio.github.io/renv/articles/renv.html) to manage R package dependencies.
 Run `renv::restore()` to install all the required packages with the correct versions to run the code.
@@ -44,6 +47,7 @@ Currently the `03-upload_parquet_db_zenodo.R` script will not work.
 
 The GitHub action to generate the database is currently disabled until we figure out how to shrink the database size significantly.
 
+```{=html}
 <!--
 ## Automation and Zenodo push
 
@@ -51,6 +55,7 @@ The GitHub action to generate the database is currently disabled until we figure
 -   One workflow runs for each state, generating state-level database tables which are stored as .parquet files. The .parquet files are stored as GitHub artifacts. A final workflow runs to stack all of the state-level tables into one database, which is uploaded to a Zenodo archive. This is currently private, located at: <https://zenodo.org/records/13377070>. This can be updated to a public archive when we are ready.
 -   To set up a push to Zenodo from GitHub actions, generate a Zenodo token in your Zenodo account and supply this as an environment variable as an Actions secret in the GitHub repository.
 -->
+```
 
 ------------------------------------------------------------------------
 
