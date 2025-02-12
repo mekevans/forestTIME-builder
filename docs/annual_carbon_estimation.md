@@ -113,6 +113,11 @@ do??
 > It looks like `chain_by_joins()` adds a `TREE_FIRST_CN` column that
 > connects every observation to the first `CN` a tree was given. Is this
 > column needed? Or is `TREE_COMPOSITE_ID` enough?
+>
+> Answer: I found references in Renata’s notes to two methods for
+> creating unique keys for trees and that they work equally well for
+> *most* trees but sometimes disagree. I wonder if sometimes trees at
+> the border of plots “move” plots between years or something like that?
 
 ## Plot table
 
@@ -155,7 +160,7 @@ cond <-
 
 I’m skipping some steps in `create_all_tables.R`, but I don’t think
 they’re all necessary. This section would replace what goes on in
-`add_tree_annualized_to_db.R`, which I think is probably overly
+`add_annual_estimates_to_db.R`, which I think is probably overly
 complicated and has the issue of not working when a tree goes “missing”
 for a survey.
 
