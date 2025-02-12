@@ -1,7 +1,7 @@
 ---
 title: "Adding interpolated TPA_UNADJ"
 author: Eric Scott
-format: html
+format: gfm
 ---
 
 Experimenting with how we will add a `TPA_UNADJ` column to the annualized tree table.

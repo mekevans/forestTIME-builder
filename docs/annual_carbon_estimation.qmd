@@ -1,7 +1,7 @@
 ---
 title: "Calculating Annualized Carbon Estimates"
 author: "Eric Scott"
-format: html
+format: gfm
 toc: true
 ---
 
