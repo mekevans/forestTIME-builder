@@ -291,15 +291,15 @@ Interpolation needed:
 -   `CULL` - `tree` table; rotten and missing cull, a percentage (interpolate)
 -   `STATUSCD` - `tree` table; alive (1) or dead (2)
 -   `DECAYCD` - `tree` table; needed for joining to `REF_TREE_DECAY_PROP`, unclear how to interpolate as it is categorical.
+-   `STDORGCD` - `cond` table; stand origin code, method of stand regeneration for trees in the condition (2.5.25) (categorical)
 
 Invariant; join *after* interpolation:
 
 -   `CULL_DECAY_RATIO` - this is a weird one—it's the `DENSITY_PROP` value from the `REF_TREE_DECAY_PROP` table when `DECAYCD = 3`.  I do not know why, but it's in the David Walker code like this.
 -   `ECOSUBCD` - `plot` table; ecological subsection code (invariant)
--   `STDORGCD` - `cond` table; stand origin code, method of stand regeneration for trees in the condition (2.5.25) (categorical and I *think* invariant)
+-   `SPCD` - `REF_SPECIES` table; species code (invariant)
 -   `SFTWD_HRDWD` - `REF_SPECIES` table; softwood or hardwood (invariant)
 -   `JENKINS_SPGRPCD` - `REF_SPECIES` table; species group code (invariant)
--   `SPCD` - `REF_SPECIES` table; species code (invariant)
 -   `WDSG` - renamed from `WOOD_SPGR_GREENVOL_DRYWT` in `REF_SPECIES` table; green specific gravity of wood based on volume attributes in the `tree` table (invariant)
 
 There are some trees in the `tree` table that were dead on their first survey and don't have any height or diameter measurements.
@@ -328,6 +328,12 @@ tree |>
   group_by(TREE_COMPOSITE_ID) |> 
   summarize(n_SPCD = length(unique(SPCD))) |> 
   filter(n_SPCD > 1)
+
+tree |> 
+  group_by(TREE_COMPOSITE_ID) |> 
+  filter(length(unique(SPCD))>1) |> 
+  select(TREE_COMPOSITE_ID, INVYR, SPCD) |> 
+  arrange(TREE_COMPOSITE_ID, INVYR)
 ```
 
 For now I'll just keep the last ID
@@ -623,7 +629,6 @@ This makes me think about caveats of interpolation since it's not really appropr
 Here's where we use the functions in `carbon_code/` to estimate carbon and AGB.
 
 I'll be trying to replicate the code in `R/add_carbon_variables_mortyr.R`
-
 
 
 ```{r}
