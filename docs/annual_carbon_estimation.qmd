@@ -1,7 +1,7 @@
 ---
 title: "Calculating Annualized Carbon Estimates"
 author: "Eric Scott"
-format: html
+format: gfm
 toc: true
 ---
 
@@ -100,6 +100,9 @@ But if that's try, what does the `chain_by_joins()` function do??
 It looks like `chain_by_joins()` adds a `TREE_FIRST_CN` column that connects every observation to the first `CN` a tree was given.
 Is this column needed?
 Or is `TREE_COMPOSITE_ID` enough?
+
+Answer: I found references in Renata's notes to two methods for creating unique keys for trees and that they work equally well for *most* trees but sometimes disagree.
+I wonder if sometimes trees at the border of plots "move" plots between years or something like that?
 :::
 
 ## Plot table
@@ -140,7 +143,7 @@ cond <-
 # Annualizing
 
 I'm skipping some steps in `create_all_tables.R`, but I don't think they're all necessary.
-This section would replace what goes on in `add_tree_annualized_to_db.R`, which I think is probably overly complicated and has the issue of not working when a tree goes "missing" for a survey.
+This section would replace what goes on in `add_annual_estimates_to_db.R`, which I think is probably overly complicated and has the issue of not working when a tree goes "missing" for a survey.
 
 First, `ACTUALHT` and `HT` get coalesced.
 If I remember correctly, `ACTUALHT` only applies when a tree is broken, and we want to use that value for carbon estimation if it exists.
@@ -268,7 +271,37 @@ ggplot(df_interpolated, aes(x = YEAR)) +
 
 ### Actual data
 
-It *might* be trickier to do with the real data?
+It *might* be trickier to do with the real data because:
+
+1.  We might need to "annualize" the `TREE_CN` key, which is different for each inventory year for the same `TREE_COMPOSITE_ID`
+2.  Some, but not many, trees have a recorded `MORTYR`, which we'd like to (optionally) use instead of the midpoint between surveys as an estimated end to that tree's timeseries.
+
+Renata's code only interpolates/extrapolates `DIA`, `HT`, and `ACTUALHT` and other variables needed for carbon estimation are added later with joins.
+I'm not sure that's the best approach, especially since some of the other variables used (e.g. `CULL`, the precentage of rotten wood) are continuous and could also be linearly interpolated.
+I'm going to try doing the necessary joins *first* and then annualizing.
+
+Variable used by carbon estimation code in `add_carbon_variables_*.R`:
+
+Interpolation needed:
+
+-   `CR` - `tree` table; compacted crown ratio (interpolate)
+-   `DIA` - `tree` table; diameter (interpolate)
+-   `HT` - `tree` table; height (interpolate)
+-   `ACTUALHT` - `tree` table; height accounting for broken tops (interpolate)
+-   `CULL` - `tree` table; rotten and missing cull, a percentage (interpolate)
+-   `STATUSCD` - `tree` table; alive (1) or dead (2)
+-   `DECAYCD` - `tree` table; needed for joining to `REF_TREE_DECAY_PROP`, unclear how to interpolate as it is categorical.
+-   `STDORGCD` - `cond` table; stand origin code, method of stand regeneration for trees in the condition (2.5.25) (categorical)
+
+Invariant; join *after* interpolation:
+
+-   `CULL_DECAY_RATIO` - this is a weird one—it's the `DENSITY_PROP` value from the `REF_TREE_DECAY_PROP` table when `DECAYCD = 3`.  I do not know why, but it's in the David Walker code like this.
+-   `ECOSUBCD` - `plot` table; ecological subsection code (invariant)
+-   `SPCD` - `REF_SPECIES` table; species code (invariant)
+-   `SFTWD_HRDWD` - `REF_SPECIES` table; softwood or hardwood (invariant)
+-   `JENKINS_SPGRPCD` - `REF_SPECIES` table; species group code (invariant)
+-   `WDSG` - renamed from `WOOD_SPGR_GREENVOL_DRYWT` in `REF_SPECIES` table; green specific gravity of wood based on volume attributes in the `tree` table (invariant)
+
 There are some trees in the `tree` table that were dead on their first survey and don't have any height or diameter measurements.
 We should get rid of these.
 
@@ -282,44 +315,93 @@ tree <- tree |>
              all(STATUSCD != 1)))
 ```
 
-I *think* only `ACTUALHT` and `DIA` need interpolation?
-We should be able to get rid of most everything in the `tree` table when creating annualized measures.
-If users need the per-tree data, they can join back with the `tree` table by TREE_COMPOSITE_ID.
+
+::: callout-important
+## Question
+
+Why do some trees change species between surveys?
+I assume they were misidentified at some point, but what should we do about it?
+Keep the last ID maybe?
+
+```{r}
+tree |> 
+  group_by(TREE_COMPOSITE_ID) |> 
+  summarize(n_SPCD = length(unique(SPCD))) |> 
+  filter(n_SPCD > 1)
+
+tree |> 
+  group_by(TREE_COMPOSITE_ID) |> 
+  filter(length(unique(SPCD))>1) |> 
+  select(TREE_COMPOSITE_ID, INVYR, SPCD) |> 
+  arrange(TREE_COMPOSITE_ID, INVYR)
+```
+
+For now I'll just keep the last ID
+
+```{r}
+tree <- tree |> 
+  group_by(TREE_COMPOSITE_ID) |> 
+  mutate(SPCD = last(SPCD)) 
+```
+:::
+
+#### Interpolation & Extrapolation
+
+First, interpolate/extrapolate continuous variables
+
+```{r}
+tree_to_interpolate <- tree |> 
+  select(
+    TREE_COMPOSITE_ID,
+    PLOT_COMPOSITE_ID,
+    SPCD,
+    INVYR,
+    DIA,
+    HT,
+    ACTUALHT,
+    CR,
+    CULL,
+    STATUSCD,
+    MORTYR,
+    DECAYCD
+  )
+```
 
 First, expand to include all years
 
 ```{r}
 #| label: tree-expand
-all_yrs <- tree |> 
-  group_by(TREE_COMPOSITE_ID) |>
+
+# this needs to include all columns that are invariant over time
+all_yrs <- tree_to_interpolate |> 
+  group_by(TREE_COMPOSITE_ID, PLOT_COMPOSITE_ID, SPCD) |>
   expand(YEAR = full_seq(INVYR, 1))
 
 tree_annual <- 
   right_join(
-    tree |> select(TREE_COMPOSITE_ID, INVYR, ACTUALHT, HT, DIA, STATUSCD, MORTYR),
+    tree_to_interpolate,
     all_yrs,
-    by = join_by(TREE_COMPOSITE_ID, INVYR == YEAR)
+    by = join_by(TREE_COMPOSITE_ID, PLOT_COMPOSITE_ID, SPCD, INVYR == YEAR)
   ) |>
   arrange(TREE_COMPOSITE_ID, INVYR) |> 
   rename(YEAR = INVYR)
 tree_annual
 ```
 
-Then interpolate with our custom `approx()` wrapper function, `interpolate()`
+Then interpolate with our custom `approx()` wrapper function, `inter_extra_polate()`
 
 ```{r}
 #| label: tree-interpolate
 tree_interpolated <- 
   tree_annual |> 
   group_by(TREE_COMPOSITE_ID) |> 
-  mutate(
-    ACTUALHT = inter_extra_polate(x = YEAR, y = ACTUALHT),
-    DIA = inter_extra_polate(x = YEAR, y = DIA),
-    HT = inter_extra_polate(x = YEAR, y = HT)
-  )
+  mutate(across(c(ACTUALHT, DIA, HT, CULL, CR),
+                \(var) inter_extra_polate(x = YEAR, y = var)
+                ))
 tree_interpolated
 ```
 
+#### Estimate mortality
 Then we need to determine the year trees died.
 
 ```{r}
@@ -376,149 +458,178 @@ tree |>
 tree_annualized
 ```
 
-### Visualize results
 
-Let's take a sample of trees and visualize them.
+#### Columns from the `REF_SPECIES` table
+
+Join in time-invariant columns that are required for carbon estimation
 
 ```{r}
-set.seed(123)
-tree_sample <- tree |> pull(TREE_COMPOSITE_ID) |> unique() |> sample(50)
-tree_annualized |> filter(TREE_COMPOSITE_ID %in% tree_sample) |> 
-  ggplot(aes(x = YEAR, y = DIA, color = TREE_COMPOSITE_ID)) +
-  geom_line(show.legend = FALSE)
+# REF_SPECIES table variables
+ref_species_raw <- read_csv(here("data/rawdat/REF_SPECIES.csv"))
+ref_species <- ref_species_raw |> 
+  select(SPCD,
+         JENKINS_SPGRPCD, 
+         SFTWD_HRDWD, 
+         WDSG = WOOD_SPGR_GREENVOL_DRYWT)
+tree_annualized <- left_join(tree_annualized, ref_species, by = join_by(SPCD))
 ```
 
+
+#### `ECOSUBCD` from the `plot` table
+
 ```{r}
-tree_annualized |> filter(TREE_COMPOSITE_ID %in% tree_sample) |> 
-  ggplot(aes(x = YEAR, y = HT, color = TREE_COMPOSITE_ID)) +
-  geom_line(show.legend = FALSE)
+plot_ecosubcds <- plot |>
+  select(PLOT_COMPOSITE_ID, ECOSUBCD) |>
+  distinct()
+
+tree_annualized <- left_join(tree_annualized, plot_ecosubcds, by = join_by(PLOT_COMPOSITE_ID))
 ```
 
-```{r}
-tree_annualized |> filter(TREE_COMPOSITE_ID %in% tree_sample) |> 
-  ggplot(aes(x = YEAR, y = ACTUALHT, color = TREE_COMPOSITE_ID)) +
-  geom_line(show.legend = FALSE)
-```
-
-Cool!
-But this makes me wonder if we should really interpolate ACTUALHT linearly.
-Trees don't break a little bit at a time!
-
-# Carbon estimation
-
-Here's where we use the functions in `carbon_code/` to estimate carbon and AGB.
-I think this will involve a lot of joining—first to the `tree` table to get the species code, then to some reference tables to get info about each species (e.g. hardwood vs. softwood), then to some other variables??
-Then all this gets plugged into some functions??
-
-I'll be trying to replicate the code in `R/add_nsvb_inputs_to_db.R` and then `R/add_carbon_variables_mortyr.R`
-
-## NSVB vars table
-
-Each `PLOT_COMPOSITE_ID` corresponds to multiple `PLOT_CN`—each year has a different `PLT_CN`.
-Maybe the plot-level variables change from year to year, so we need to join by `PLT_CN`?
+#### `STDORGCD` from the `cond` table
 
 ```{r}
-nsvb_vars <- tree |>
-    select(
-      TREE_COMPOSITE_ID,
-      PLOT_COMPOSITE_ID,
-      PLT_CN,
-      STATUSCD,
-      ##Don't we want to use the interpolated version in tree_annualized?
-      # DIA,      
-      # HT,       
-      # ACTUALHT, 
-      ###
-      CONDID,
-      SPCD,
-      TREECLCD,
-      CULL,
-      VOLCFGRS,
-      ## Don't we want to estimate this from the interpolated values?
-      # DRYBIO_AG, 
-      # CARBON_AG, 
-      ###
-      STANDING_DEAD_CD,
-      DECAYCD,
-      CR
-    )
+std_org_codes <- cond |> 
+  select(PLOT_COMPOSITE_ID, STDORGCD) |> 
+  #replace NAs with 0s (I think assuming that no data means it is natural regeneration)
+  mutate(STDORGCD = if_else(is.na(STDORGCD), 0, STDORGCD)) |> 
+  distinct()
 
-```
-
-::: callout-important
-## Question
-
-Why does the code fill in `NA`s in the `CULL` column with `0`s?
-:::
-
-```{r}
-nsvb_vars <- nsvb_vars |> 
-  mutate(CULL = ifelse(is.na(CULL), 0, CULL))
-```
-
-Then we join to the plot table to get the ECOSUBCD column
-
-```{r}
-#just confirming that each PLOT_CN only has one ECOSUBCD
-# plot |>
-#   group_by(PLT_CN) |> summarize(n = length(unique(ECOSUBCD))) |> filter(n!=1)
-
-plot_ecosubcds <- plot |> 
-  group_by(PLT_CN) |> 
-  summarize(ECOSUBCD = first(ECOSUBCD))
-
-nsvb_vars <- left_join(nsvb_vars, plot_ecosubcds, by = join_by(PLT_CN))
-```
-
-Then we need the following columns from the `cond` table: `CONDID`, `STDORGCD`, `COND_STATUS_CD.`
-
-```{r}
-nsvb_vars <- left_join(nsvb_vars, 
-          cond |> select(PLT_CN, CONDID, STDORGCD, COND_STATUS_CD),
-          by = join_by(PLT_CN, CONDID))
-```
-
-Now we join in some columns from reference tables.
-
-```{r}
-ref_species <- read_csv(here("data/rawdat/REF_SPECIES.csv"))
-ref_tree_carbon_ratio_dead <- 
-  read_csv(here("data/rawdat/REF_TREE_CARBON_RATIO_DEAD.csv"))
-ref_tree_decay_prop <- read_csv(here("data/rawdat/REF_TREE_DECAY_PROP.csv"))
-```
-
-::: callout-important
-## Question
-
-Why is `WOOD_SPGR_GREENVOL_DRWT` renamed to `WDSG` here?
-Is that one of the inputs to the carbon estimation functions?
-:::
-
-```{r}
-nsvb_vars <- nsvb_vars |> 
+# tree_annualized <- 
   left_join(
-    ref_species |>
-      select(
-        SPCD,
-        JENKINS_SPGRPCD,
-        SFTWD_HRDWD,
-        WOOD_SPGR_GREENVOL_DRYWT,
-        CARBON_RATIO_LIVE
-      ) |>
-      rename(WDSG = WOOD_SPGR_GREENVOL_DRYWT), 
-    by = join_by(SPCD)
+    tree_annualized,
+    std_org_codes,
+    by = join_by(PLOT_COMPOSITE_ID)
+  ) #hm...
+```
+
+::: callout-important
+## Question
+
+```{r}
+std_org_codes |> 
+  count(PLOT_COMPOSITE_ID) |> filter(n>1)
+```
+
+Why would a plot have multiple values for STDORGCD?
+
+```{r}
+cond |> 
+  filter(PLOT_COMPOSITE_ID == "44_1_9_149") |> 
+  mutate(STDORGCD = if_else(is.na(STDORGCD), 0, STDORGCD)) |> 
+  select(INVYR, COND_CN, PLT_CN, STDORGCD, COND_STATUS_CD)
+```
+
+```{r}
+cond_ri_raw <- read_csv(here("data/rawdat/state/RI_COND.csv"))
+cond_ri_raw |> 
+  filter(PLT_CN %in% c(55944501010538, 120044589010661, 14527782020004,602592947126144))
+```
+
+Possibly our assumption that `NA` = 0 is incorrect?
+
+For now, I'll just pick the first one
+
+```{r} 
+tree_annualized <-
+  left_join(
+    tree_annualized,
+    std_org_codes |> slice_head(n = 1, by = PLOT_COMPOSITE_ID),
+    by = join_by(PLOT_COMPOSITE_ID)
   )
 ```
+:::
+
+
+#### REF_TREE_DECAY_PROP
 
 ::: callout-important
 ## Question
 
 I'm not sure what's going on here, but it *looks* like the code creates a new column called `CULL_DECAY_RATIO` using the `DENSITY_PROP` column for `DECAYCD` 3.
 Then later it looks like this is overwritten if the tree is NOT alive (`STATUSCD!=1`) to be 1.
-There are no notes in the code indicating why this is done using `DECAYCD` 3:
+There are no notes in the code (either Renata's or David Walker's) indicating why this is done.
+`DECAYCD` 3:
 
 > Only limb stubs exist; the top is broken; a variable amount of bark remains; sapwood is sloughing; heartwood has advanced decay in upper bole and is beginning at the base.
 :::
+
+```{r}
+ref_tree_decay_prop <- read_csv(here("data/rawdat/REF_TREE_DECAY_PROP.csv"))
+ref_tree_carbon_ratio_dead <- read_csv(here("data/rawdat/REF_TREE_CARBON_RATIO_DEAD.csv"))
+```
+
+
+```{r}
+tree_annualized <- 
+  tree_annualized |> 
+  ungroup() |> 
+  #first joins by SFTWD_HRDWD only the DENSITY_PROP column for DECAYCD 3, but calls it CULL_DECAY_RATIO
+  left_join(
+    ref_tree_decay_prop |>
+      filter(DECAYCD == 3) |>
+      select(
+        SFTWD_HRDWD,
+        CULL_DECAY_RATIO = DENSITY_PROP
+      ),
+    by = join_by(SFTWD_HRDWD) 
+  ) |> 
+  #then joins additional columns (including DENSITY_PROP) based on DECAYCD and SFTWD_HRDWD
+  left_join(
+    ref_tree_decay_prop |>
+      select(SFTWD_HRDWD,
+             DECAYCD,
+             DENSITY_PROP,
+             BARK_LOSS_PROP,
+             BRANCH_LOSS_PROP),
+    by = join_by(DECAYCD, SFTWD_HRDWD)
+  ) |> 
+  #then join to the carbon ratio table to get CARBON_RATIO
+  left_join(
+    ref_tree_carbon_ratio_dead |>
+      select(SFTWD_HRDWD, DECAYCD, CARBON_RATIO),
+    by = join_by(DECAYCD, SFTWD_HRDWD)
+  ) 
+```
+
+
+#### Additional wrangling
+
+`NA`s for `CULL` get replaced with 0s (not entirely sure why, but assumes that no data = 100% live wood)
+
+```{r}
+tree_annualized <- tree_annualized |> 
+  mutate(CULL = ifelse(is.na(CULL), 0, CULL))
+```
+
+
+TODO: figure out how to interpolate DECAYCD.  Notes in midpoint_step_categorical.R
+
+
+### Visualize results
+
+Let's take a sample of trees and visualize them.
+
+```{r}
+set.seed(123)
+
+tree_sample <- tree_annualized |> pull(TREE_COMPOSITE_ID) |> unique() |> sample(50)
+tree_subset <- tree_annualized |>
+  filter(TREE_COMPOSITE_ID %in% tree_sample)
+tree_subset |> 
+  select(TREE_COMPOSITE_ID, YEAR, DIA, HT, ACTUALHT, CR, CULL) |> 
+  pivot_longer(DIA:CULL, names_to = "variable") |> 
+  ggplot(aes(x = YEAR, y = value, color = TREE_COMPOSITE_ID)) +
+  facet_wrap(vars(variable), scales = "free_y") +
+  geom_line(show.legend = FALSE)
+```
+This makes me think about caveats of interpolation since it's not really appropriate to linearly interpolate ACTUALHT—trees tops don't break off linearly.
+
+# Carbon estimation
+
+Here's where we use the functions in `carbon_code/` to estimate carbon and AGB.
+
+I'll be trying to replicate the code in `R/add_carbon_variables_mortyr.R`
+
 
 ```{r}
 nsvb_vars |> ungroup() |> count(DECAYCD)
@@ -555,3 +666,87 @@ nsvb_vars <-
     by = join_by(DECAYCD, SFTWD_HRDWD)
   ) 
 ```
+
+What happened with all the rows that had `NA` for `DECAYCD`?
+
+```{r}
+nsvb_vars |> 
+  filter(is.na(DECAYCD)) |> 
+  select(CARBON_RATIO, DENSITY_PROP, BARK_LOSS_PROP, BRANCH_LOSS_PROP, STATUSCD, CULL_DECAY_RATIO, everything())
+```
+
+All those joined variables are also `NA`.
+Seems like maybe it doesn't matter though because they will be filled in later on if `STATUSCD==1` .
+
+::: callout-important
+## Question
+
+Why does `CULL_DECAY_RATIO` get set to 1 for trees that are dead?
+I think maybe the `CULL_DECAY_RATIO` variable is just poorly named.
+It comes from a value for `DENSITY_PROP` which is:
+
+> Density proportion.
+> The proportion of the tree remaining after deductions for decay
+
+So, a dead tree should be 100% decay.
+(But why are live trees not 0% decay or just use their `DECAYCD` appropriate value for `CULL_DECAY_RATIO` ???)
+:::
+
+Create more variables needed for carbon estimation
+
+```{r}
+nsvb_vars <- 
+  nsvb_vars |>
+  mutate(
+    CULL_DECAY_RATIO = if_else(STATUSCD == 1, CULL_DECAY_RATIO, 1),
+    STANDING_DEAD_CD = if_else(STATUSCD == 1, 0, STANDING_DEAD_CD),
+    # TODO: why is this important?  Why not just use NA?
+    DECAYCD = if_else(STATUSCD == 1, 0, DECAYCD),
+    # TODO: why are these variables created?
+    DECAY_WD = if_else(STATUSCD == 1, 1, DENSITY_PROP),
+    DECAY_BK = if_else(STATUSCD == 1, 1, BARK_LOSS_PROP),
+    DECAY_BR = if_else(STATUSCD == 1, 1, BRANCH_LOSS_PROP),
+    #TODO: why is this called C_FRAC if it is a percentage?
+    C_FRAC = if_else(STATUSCD == 1,
+                     CARBON_RATIO_LIVE * 100,
+                     CARBON_RATIO * 100),
+    # the & here is && in renata's code, which shouldn't work but does for reasons I don't understand
+    DEAD_AND_STANDING = STATUSCD == 2 & STANDING_DEAD_CD == 1,
+    LIVE = STATUSCD == 1
+  )
+```
+
+Filtering
+
+::: callout-important
+## Question
+
+Why do we filter to exclude trees that are not alive or dead and standing?
+Why only include `COND_STATUS_CD` 1 (accessible forest land)?
+This removes 1,627 rows for RI
+:::
+
+```{r}
+nsvb_vars <- nsvb_vars |> 
+      filter(COND_STATUS_CD == 1, DEAD_AND_STANDING | LIVE)
+```
+
+Clean up unused columns.
+
+```{r}
+nsvb_vars <- nsvb_vars |> 
+  # rename(TRE_CN = TREE_CN) |> #still not sure we need this or why it is renamed
+  select(
+    -CONDID,
+    -COND_STATUS_CD,
+    -CARBON_RATIO_LIVE,
+    -CARBON_RATIO,
+    -DENSITY_PROP,
+    -BARK_LOSS_PROP,
+    -BRANCH_LOSS_PROP,
+    -DEAD_AND_STANDING,
+    -LIVE
+  ) 
+```
+
+# 
