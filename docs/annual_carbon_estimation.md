@@ -250,7 +250,7 @@ continuous set of numbers created by `approx()` to start with.
 
 ``` r
 inter_extra_polate <- function(x, y) {
-  if (sum(!is.na(y)) < 2){
+  if (sum(!is.na(y)) < 2) {
     return(y)
   } else {
     #first interpolate
@@ -805,6 +805,12 @@ methods:
 2.  Using the `MORTYR` variable if it was recorded, otherwise with \#1
     above
 
+> [!IMPORTANT]
+>
+> I think this has to happen *before* carbon estimation because standing
+> dead trees contribute carbon. That means there does need to be two
+> versions of the resulting annualized carbon estimates I think.
+
 #### Estimate mortality
 
 Then we need to determine the year trees died. For now, let’s maybe
@@ -838,19 +844,19 @@ tree_last_yr <-
   ) |> 
   #estimate the mortality year as the midpoint between surveys
   mutate(
+    #TODO confirm that midpoint rule rounds up?
     dead_yr = ceiling(mean(c(last_live, first_dead))),
     #if dead_yr is NA still (because it was never alive and mean(c(NA, first_dead)) is NA), then just use the first_dead year
     dead_yr = if_else(is.na(dead_yr), first_dead, dead_yr),
-    last_yr = if_else(!is.na(dead_yr), dead_yr, max(YEAR)),
-  ) |> 
   #use MORTYR data if it exists
-  mutate(
-    last_yr_mortyr = if_else(!is.na(MORTYR), MORTYR, last_yr)
+    dead_yr_mortyr = if_else(!is.na(MORTYR), MORTYR, dead_yr),
+    death_yr_midpt = if_else(!is.na(dead_yr), dead_yr, max(YEAR)),
+    death_yr_mortyr = if_else(!is.na(dead_yr), dead_yr_mortyr, max(YEAR))
   ) |> 
   #summarize per tree
   group_by(TREE_COMPOSITE_ID) |> 
-  summarize(last_yr = max(last_yr, na.rm = TRUE),
-            last_yr_mortyr = max(last_yr_mortyr, na.rm = TRUE))
+  summarize(death_yr_midpt = max(death_yr_midpt, na.rm = TRUE),
+            death_yr_mortyr = max(death_yr_mortyr, na.rm = TRUE))
 ```
 
     Warning: There were 4059 warnings in `mutate()`.
@@ -875,17 +881,16 @@ tree_interpolated_midpoint <- left_join(
 ) |>
   select(TREE_COMPOSITE_ID,
          YEAR,
-         last_yr,
+         death_yr_midpt,
          STATUSCD,
          DECAYCD,
          everything()) |>
   #use midpoint rule column
   #if the tree isn't dead, set STATUSCD to 1, else to 2
   mutate(
-    #TODO should this be >=??
-    STATUSCD = if_else(YEAR >= last_yr, 2, 1),
+    STATUSCD = if_else(YEAR >= death_yr_midpt, 2, 1),
     #if tree is alive, set STANDING_DEAD_CD to NA
-    STANDING_DEAD_CD = if_else(YEAR < last_yr, NA, STANDING_DEAD_CD),
+    STANDING_DEAD_CD = if_else(YEAR < death_yr_midpt, NA, STANDING_DEAD_CD),
     #only use DECAYCD for standing dead trees >4.9 DIA
     DECAYCD = if_else(STANDING_DEAD_CD == 1 & DIA > 4.9, DECAYCD, NA)
   ) |> 
@@ -895,7 +900,7 @@ tree_interpolated_midpoint <- left_join(
     \(var) if_else(is.na(DECAYCD), NA, var)
   )) |> 
   # clean up temporary vars
-  select(-last_yr, -last_yr_mortyr, -MORTYR)
+  select(-death_yr_midpt, -MORTYR)
 
 #Some tests:
 tree_interpolated_midpoint |> 
@@ -939,7 +944,14 @@ Create and re-name variables needed for carbon estimation
 >
 > ``` r
 > df <- data.frame(x = c(1, 2, NA), y = 1:3)
-> df[df$x < 2]
+> df |> filter(x < 2) #works
+> ```
+>
+>       x y
+>     1 1 1
+>
+> ``` r
+> df[df$x < 2] #errors
 > ```
 >
 >     Error in `[.data.frame`(df, df$x < 2): undefined columns selected
@@ -974,9 +986,8 @@ Filtering
 >
 > ### Question
 >
-> Why do we filter to exclude trees that are not alive or dead and
-> standing? Why only include `COND_STATUS_CD` 1 (accessible forest
-> land)? This removes 1,627 rows for RI
+> Why only include `COND_STATUS_CD` 1 (accessible forest land)? This
+> removes 1,627 rows for RI
 
 ``` r
 fiadb <- tree_prepped <- tree_prepped |> 

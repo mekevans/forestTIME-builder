@@ -705,7 +705,8 @@ E.g.
 ```{r}
 #| error: true
 df <- data.frame(x = c(1, 2, NA), y = 1:3)
-df[df$x < 2]
+df |> filter(x < 2) #works
+df[df$x < 2] #errors
 ```
 :::
 
@@ -738,7 +739,6 @@ Filtering
 ::: callout-important
 ## Question
 
-Why do we filter to exclude trees that are not alive or dead and standing?
 Why only include `COND_STATUS_CD` 1 (accessible forest land)?
 This removes 1,627 rows for RI
 :::
@@ -756,12 +756,6 @@ fiadb <- tree_prepped <- tree_prepped |>
 ```
 
 With `fiadb` in the global environment, we can now run `add_carbon_variables_midpoint.R` successfully!! 🎉
-
-
-#TODO test with `MORTYR`
-
-Make sure all the codes get interpolated correctly when `MORTYR` is used as the first year a tree is dead.
-
 
 [^1]: About 60 trees in RI do actually "change" species.
     These are likely misidentifications.
