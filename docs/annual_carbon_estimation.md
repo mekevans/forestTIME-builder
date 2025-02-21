@@ -737,6 +737,7 @@ tree_interpolated <-
       filter(DECAYCD == 3) |>
       select(
         SFTWD_HRDWD,
+        #not sure I understand the naming of this variable
         CULL_DECAY_RATIO = DENSITY_PROP
       ),
     by = join_by(SFTWD_HRDWD) 
@@ -926,18 +927,35 @@ and AGB.
 I’ll be trying to replicate the code in
 `R/add_carbon_variables_mortyr.R`
 
-Create more variables needed for carbon estimation
+Create and re-name variables needed for carbon estimation
+
+> [!NOTE]
+>
+> I think some of the odd looking choices here have to do with
+> limitations in the carbon estimation code provided by David Walker.
+> Index-based filtering doesn’t work when there are `NA`s.
+>
+> E.g.
+>
+> ``` r
+> df <- data.frame(x = c(1, 2, NA), y = 1:3)
+> df[df$x < 2]
+> ```
+>
+>     Error in `[.data.frame`(df, df$x < 2): undefined columns selected
 
 ``` r
 tree_prepped <-
   tree_interpolated_midpoint |>
   mutate(
-    #use 1 for CULL_DECAY_RATIO for live trees???
+    #use 1 for CULL_DECAY_RATIO for live trees
     CULL_DECAY_RATIO = if_else(STATUSCD == 1, CULL_DECAY_RATIO, 1),
+    # Using 0 instead of NA for live trees likely has to do with index-based
+    # filtering
     STANDING_DEAD_CD = if_else(STATUSCD == 1, 0, STANDING_DEAD_CD),
-    # TODO: why is this important?  Why not just use NA?
     DECAYCD = if_else(STATUSCD == 1, 0, DECAYCD),
-    # TODO: why are these variables created?
+    # these are the proportion *remaining* after deducting for decay, so set to
+    # 1 for live trees
     DECAY_WD = if_else(STATUSCD == 1, 1, DENSITY_PROP),
     DECAY_BK = if_else(STATUSCD == 1, 1, BARK_LOSS_PROP),
     DECAY_BR = if_else(STATUSCD == 1, 1, BRANCH_LOSS_PROP),
@@ -945,7 +963,9 @@ tree_prepped <-
     C_FRAC = if_else(STATUSCD == 1,
                      CARBON_RATIO_LIVE * 100,
                      CARBON_RATIO * 100)
-  )
+  ) |> 
+  #done with these columns
+  select(-CARBON_RATIO_LIVE, CARBON_RATIO, DENSITY_PROP, BARK_LOSS_PROP, BRANCH_LOSS_PROP)
 ```
 
 Filtering
@@ -959,37 +979,15 @@ Filtering
 > land)? This removes 1,627 rows for RI
 
 ``` r
-tree_prepped <- tree_prepped |> 
+fiadb <- tree_prepped <- tree_prepped |> 
   #only keep accessible forest land (???)
   filter(COND_STATUS_CD == 1) |> 
   #remove fallen trees
   filter((STANDING_DEAD_CD == 1 & STATUSCD == 2) | STATUSCD == 1) |> 
   #remove trees with no recorded DIA (where interpolation failed I guess?)
-  filter(!is.na(DIA))
-```
-
-Clean up unused columns.
-
-> [!IMPORTANT]
->
-> ### Question
->
-> Why did we merge these columns just to remove them? Most or all are
-> not used!
-
-``` r
-fiadb <- tree_prepped <- tree_prepped |> 
-  # rename(TRE_CN = TREE_CN) |> #still not sure we need this or why it is renamed
-  select(
-    -COND_STATUS_CD, #used for filtering above
-    
-    #not used for anything???
-    -CARBON_RATIO_LIVE,
-    -CARBON_RATIO,
-    -DENSITY_PROP,
-    -BARK_LOSS_PROP,
-    -BRANCH_LOSS_PROP,
-  ) 
+  filter(!is.na(DIA)) |> 
+  #done with COND_STATUS_CD column
+  select(-COND_STATUS_CD)
 ```
 
 With `fiadb` in the global environment, we can now run
