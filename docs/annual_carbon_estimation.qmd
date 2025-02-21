@@ -640,16 +640,39 @@ tree_last_yr <-
 
 #### Adjust for mortality
 
+- `STANDING_DEAD_CD` only applies to dead trees
+- `DECAYCD` only applies to standing dead trees
+- dead trees shouldn't continue growing (although they do legitimately shrink sometimes, not sure what to do about that)
+
+::: callout-important
+## Question
+
+It seems pretty clear that DIA shouldn't change after a tree's death, but would HT and ACTUALHT change for a standing dead tree?  Probably?  However, we don't want to extrapolate negative (or even 0?) values.
+
+```{r}
+tree |> 
+  filter(TREE_COMPOSITE_ID == "44_1_7_229_1_1") |> 
+  select(TREE_COMPOSITE_ID, INVYR, STATUSCD, STANDING_DEAD_CD, DIA, HT, ACTUALHT)
+```
+E.g. this tree went from 40 to 18 in HT between 2008 and 2013 and then was recorded as "no status" in 2020 so extrapolated values become negative.
+
+:::
+
+I'm pretty sure all of this has to be done *after* choosing a method to estimate mortality, so this is a branching point that will create two tables.
+
 ```{r}
 
 #test tree
-# tree_example <- tree_interpolated |> 
-#   filter(TREE_COMPOSITE_ID == "44_1_1_228_3_7")
+# tree_example <- tree_interpolated |>
+#   filter(TREE_COMPOSITE_ID == "44_1_1_91_2_5")
 
 #join in the mortality year estimates
-tree_interpolated_midpoint <- left_join(
-  tree_interpolated, tree_last_yr,
-  by = join_by(TREE_COMPOSITE_ID)
+tree_interpolated_midpoint <- 
+  left_join(
+    # tree_example,
+    tree_interpolated,
+    tree_last_yr,
+    by = join_by(TREE_COMPOSITE_ID)
 ) |>
   select(TREE_COMPOSITE_ID,
          YEAR,
@@ -671,6 +694,19 @@ tree_interpolated_midpoint <- left_join(
     c(DENSITY_PROP, BARK_LOSS_PROP, BRANCH_LOSS_PROP, CARBON_RATIO),
     \(var) if_else(is.na(DECAYCD), NA, var)
   )) |> 
+  # Stop trees from changing size after they die
+  # TODO not sure this is a good idea.  Standing dead trees do shrink over time.
+  group_by(TREE_COMPOSITE_ID) |> 
+  mutate(across(
+    c(DIA, HT, ACTUALHT),
+    \(x) if_else(STATUSCD == 2, NA, x)
+  )) |>
+  fill(DIA, HT, ACTUALHT) |> 
+  # Fallen dead trees don't have dimensions I think
+  mutate(across(
+    c(DIA, HT, ACTUALHT),
+    \(x) if_else(STANDING_DEAD_CD == 0 & STATUSCD == 2, NA, x)
+  )) |> 
   # clean up temporary vars
   select(-death_yr_midpt, -MORTYR)
 
@@ -682,20 +718,19 @@ tree_interpolated_midpoint |>
 
 tree_interpolated_midpoint |> 
   filter(STANDING_DEAD_CD == 0 & !is.na(DECAYCD)) |>
-  select(TREE_COMPOSITE_ID, YEAR, STATUSCD, STANDING_DEAD_CD, DECAYCD) |> 
+  select(TREE_COMPOSITE_ID, YEAR, STATUSCD, STANDING_DEAD_CD, DECAYCD, DIA, HT, ACTUALHT) |> 
   arrange(TREE_COMPOSITE_ID, YEAR)
+
+#check for negative interpolated numbers
+tree_interpolated_midpoint |> 
+  filter(if_any(c(DIA, HT, ACTUALHT), \(x) x < 0))
 ```
 
 
 
 # Carbon estimation
 
-Here's where we use the functions in `carbon_code/` to estimate carbon and AGB.
-
-I'll be trying to replicate the code in `R/add_carbon_variables_mortyr.R`
-
-
-Create and re-name variables needed for carbon estimation
+These are some final preparations only necessary for running the code in `R/add_carbon_variables_mi.R`.
 
 ::: callout-note
 I think some of the odd looking choices here have to do with limitations in the carbon estimation code provided by David Walker.  Index-based filtering doesn't work when there are `NA`s.
@@ -709,6 +744,7 @@ df |> filter(x < 2) #works
 df[df$x < 2] #errors
 ```
 :::
+
 
 ```{r}
 tree_prepped <-
@@ -745,7 +781,7 @@ This removes 1,627 rows for RI
 
 ```{r}
 fiadb <- tree_prepped <- tree_prepped |> 
-  #only keep accessible forest land (???)
+  #only keep accessible forest land (why?)
   filter(COND_STATUS_CD == 1) |> 
   #remove fallen trees
   filter((STANDING_DEAD_CD == 1 & STATUSCD == 2) | STATUSCD == 1) |> 

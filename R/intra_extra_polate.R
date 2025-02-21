@@ -4,7 +4,7 @@
 #' is used for annualizing tree measurements such as `DIA`, `HT`, and
 #' `ACTUALHT`.  Extrapolation is necessary for trees that have `NA`s recorded in
 #' their first inventory marked dead because we want to extrapolate their growth
-#' from the last time they were inventoried a live to an estimated mortality
+#' from the last time they were inventoried alive to an estimated mortality
 #' year.
 #' 
 #' @param x numeric; an x variable, usually `YEAR` in forestTIME-builder
@@ -25,6 +25,7 @@ inter_extra_polate <- function(x, y, extrapolate = TRUE) {
     #first interpolate
     interpolated <- approx(x, y, xout = x)$y
   }
+  
   #then extrapolate trailing NAs if needed
   if (isFALSE(extrapolate)) {
     return(interpolatedd)
@@ -42,4 +43,3 @@ inter_extra_polate <- function(x, y, extrapolate = TRUE) {
     }
   }
 }
-

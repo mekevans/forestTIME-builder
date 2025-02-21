@@ -2,12 +2,12 @@
 #' 
 #' Categorical variables like `DECAYCD` can't be linearly interpolated between
 #' inventory years.  Instead, we assume they switch values at the midpoint
-#' (rounded up) between non-missing values.  Trailing NAs are replaced with the
-#' last non-na value and leading NAs are returned as-is.
+#' (rounded up) between non-missing values.  Trailing `NA`s are replaced with
+#' the last non-`NA` value and leading `NA`s are returned as-is.
 #'
 #' @param x a vector
 #'
-#' @returns a vector with no NAs
+#' @returns a vector with no `NA`s
 #' @export
 #'
 #' @examples
