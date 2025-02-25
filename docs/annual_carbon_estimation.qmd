@@ -13,6 +13,8 @@ library(readr)
 library(dplyr)
 library(tidyr)
 library(here)
+library(purrr)
+library(ggplot2)
 
 ```
 
@@ -20,54 +22,43 @@ I'm going to try to work through a small sample of data to figure out how the co
 
 # Read in data
 
-I'll use RI as an example.
+I'll use ~~RI~~ CO as an example, but only a sample of 10,000 trees.
 Some of the columns get auto-detected as the wrong type (e.g. CN should be character, not numeric, even though it looks like a number).
-I got these column types from the Green Book and recorded them in a list in `scripts/create_column_types.R`.
+I got these column types from the Green Book and recorded them in a list in `scripts/create_column_types.R`.  The list is designed for duckdb functions, so here I convert them to a form that works with `readr`.
+
+```{r}
+col_types <- read_rds(here("data/rawdat/table_types.rds"))
+col_types_readr <- col_types |> 
+  map(\(v) { #for every vector element of col_types...
+    as.list(v) |> #convert to list
+      #then modify to replace with readr col_*() column specification functions
+      modify_at(which(v == "STRING"), \(x) col_character()) |> 
+      modify_at(which(v == "INTEGER"), \(x) col_integer()) |> 
+      modify_at(which(v == "DOUBLE"), \(x) col_double())
+  })
+```
+
 
 ```{r}
 tree_raw <- read_csv(
-  here("data/rawdat/state/RI_TREE.csv"),
-  col_types = cols(
-    CN = col_character(),
-    PLT_CN = col_character(),
-    PREV_TRE_CN = col_character(),
-    DAMTYP1 = col_integer(),
-    DAMSEV1 = col_integer(),
-    DAMTYP2 = col_integer(),
-    DAMSEV2 = col_integer(),
-    ACTUALHT = col_double(),
-    HT = col_double(),
-    DIA = col_double(),
-    MORTYR = col_double(),
-    INVYR = col_double()
-  )
+  here("data/rawdat/state/CO_TREE.csv"),
+  col_types = col_types_readr$tree_types
 )
 
 plot_raw <- read_csv(
-  here("data/rawdat/state/RI_PLOT.csv"),
-  col_types = cols(
-    CN = col_character()
-  )
+  here("data/rawdat/state/CO_PLOT.csv"),
+  col_types = col_types_readr$plot_types
 )
 
 plotgeom_raw <- read_csv(
-  here("data/rawdat/state/RI_PLOTGEOM.csv"),
-  col_types = cols(
-    CN = col_character()
-  )
-)
+  here("data/rawdat/state/CO_PLOTGEOM.csv"),
+  col_types = col_types_readr$plotgeom_types
+) 
 
 #needed later
 cond_raw <- read_csv(
-  here("data/rawdat/state/RI_COND.csv"),
-  col_types = cols(
-    CN = col_character(),
-    PLT_CN = col_character(),
-    NBR_LIVE_STEMS = col_integer(),
-    LAND_COVER_CLASS_CD_RET = col_integer(),
-    TRTYR2 = col_integer(),
-    DSTRBYR2 = col_integer()
-  )
+  here("data/rawdat/state/CO_COND.csv"),
+  col_types = col_types_readr$cond_types
 )
 ```
 
@@ -86,24 +77,18 @@ tree <- tree_raw |>
     TREE_COMPOSITE_ID = paste(STATECD, UNITCD, COUNTYCD, PLOT, SUBP, TREE, sep = "_"),
     .before = 1
   )
-
 ```
 
 It is my understanding that the `TREE_COMPOSITE_ID` is now consistent through time as well since the combination of state, unit, county, plot, sub-plot, and tree number are unique for each tree and the same every inventory.
-But if that's try, what does the `chain_by_joins()` function do??
 
-### Chain by joins
+I'll get a sample of 10,000 trees for now.
 
-::: callout-important
-## Question
+```{r}
+set.seed(234)
+tree_samp <- sample(unique(tree$TREE_COMPOSITE_ID), 10000)
+tree <- tree |> filter(TREE_COMPOSITE_ID %in% tree_samp)
+```
 
-It looks like `chain_by_joins()` adds a `TREE_FIRST_CN` column that connects every observation to the first `CN` a tree was given.
-Is this column needed?
-Or is `TREE_COMPOSITE_ID` enough?
-
-Answer: I found references in Renata's notes to two methods for creating unique keys for trees and that they work equally well for *most* trees but sometimes disagree.
-I wonder if sometimes trees at the border of plots "move" plots between years or something like that?
-:::
 
 ## Plot table
 
@@ -155,7 +140,7 @@ tree <-
   select(ACTUALHT, HT, everything())
 ```
 
-Maybe I'm not understanding something that the code needs to do, but I think we can just \~\~use the built-in R function for linear interpolation, `approx()`.
+Maybe I'm not understanding something that the code needs to do, but I think we can just use the built-in R function for linear interpolation, `approx()`.
 
 Let's try an example
 
@@ -164,20 +149,21 @@ Let's try an example
 ```{r}
 #| label: toy-data
 df <- tibble::tribble(
-  ~TREE_COMPOSITE_ID, ~YEAR, ~HT, ~STATUSCD,
-  1, 2000, 20, 1,
-  1, 2005, 30, 1,
-  1, 2010, 37, 1,
-  1, 2015, 45, 2,
-  2, 2000, 5, 1,
-  2, 2005, NA, NA,
-  2, 2010, NA, NA,
-  2, 2015, 20, 1,
-  2, 2020, 32, 1,
-  3, 2000, NA, 2,
-  4, 2000, 10, 1,
-  4, 2005, 14, 1,
-  4, 2010, NA, 2
+  ~TREE_COMPOSITE_ID, ~YEAR, ~HT, ~STATUSCD, ~DECAYCD, ~MORTYR,
+  1, 2000, 20, 1, NA, NA,
+  1, 2005, 30, 1, NA, NA,
+  1, 2010, 37, 1, NA, NA,
+  1, 2015, 45, 2, 2, 2011,
+  1, 2020, 33, 2, 3, NA,
+  2, 2000, 5, 1, NA, NA,
+  2, 2005, NA, NA, NA, NA,
+  2, 2010, NA, NA, NA, NA,
+  2, 2015, 20, 1, NA, NA,
+  2, 2020, 32, 1, NA, NA,
+  3, 2000, NA, 2, 2, NA,
+  4, 2000, 10, 1, NA, NA,
+  4, 2005, 14, 1, NA, NA,
+  4, 2010, NA, 2, 2, NA
 )
 
 ```
@@ -207,72 +193,52 @@ That is accomplished with `Hmisc::approxExtrap()`, but needs a continuous set of
 
 ```{r}
 #| label: interpolate-function
-inter_extra_polate <- function(x, y) {
-  if (sum(!is.na(y)) < 2) {
-    return(y)
-  } else {
-    #first interpolate
-    interpolated <- approx(x, y, xout = x)$y
-  }
-  #then extrapolate trailing NAs if needed
-  if (all(!is.na(interpolated))) {
-    return(interpolated)
-  } else {
-    extrapolated <- 
-      Hmisc::approxExtrap(
-        x = x[!is.na(interpolated)],
-        y = interpolated[!is.na(interpolated)],
-        xout = x[is.na(interpolated)]
-      )$y
-    return(c(interpolated[!is.na(interpolated)], extrapolated))
-  }
-}
 
-#for "interpolating" categorical vars
-step_interp <- function(x) {
-  if (all(is.na(x))) {
-    return(x)
-  }
-  x_non_nas <- x[!is.na(x)]
-  i <- seq_along(x)
-  
-  # index at which each non-missing value is
-  i_non_nas <- i[!is.na(x)]
-  
-  # count leading NAs
-  leading_NAs <- i_non_nas[1] - 1
-  
-  #this is the number of rep()s on the right side (not including the non-missing value)
-  right <- floor((dplyr::lead(i_non_nas) - i_non_nas) / 2)
-  right[is.na(right)] <- 0
-  
-  #number of rep()s to the left, including the non-missing value
-  left <- ceiling((i_non_nas - dplyr::lag(i_non_nas)) / 2)
-  left[is.na(left)] <- 1
-  
-  times <- left + right
-  
-  #extrapolate trailing NAs
-  #reps of last value gets adjusted so sum(times) adds up to the total length of the input
-  times[length(times)] <- length(x) - (sum(times) - times[length(times)] + leading_NAs)
-  
-  x_interp <- purrr::map2(x_non_nas, times, rep) |> purrr::list_c()
-  
-  #add back leading NAs
-  c(rep(NA, leading_NAs), x_interp)
-}
+source(here("R/inter_extra_polate.R"))
+source(here("R/step_interp.R"))
+
 ```
 
 ```{r}
 #| label: toy-interpolate
 df_interpolated <- df_all_yrs |> 
   group_by(TREE_COMPOSITE_ID) |> 
-  mutate(HT_interpolated = inter_extra_polate(x = YEAR, y = HT))
+  mutate(HT_interp = inter_extra_polate(x = YEAR, y = HT), .after = HT)
 df_interpolated
 ```
 
 Yeah, that seems to have done it!
-Then we can just cut off any dead trees at the estimated mortality year.
+
+Now let's try a categorical variable like `STATUSCD` and `DECAYCD`
+
+```{r}
+df_interpolated <- df_interpolated |> 
+  group_by(TREE_COMPOSITE_ID) |> 
+  mutate(STATUSCD_interp = step_interp(STATUSCD), .after = STATUSCD) |> 
+  mutate(DECAYCD_interp = step_interp(DECAYCD), .after = DECAYCD)
+df_interpolated
+```
+
+But in the case of a recorded `MORTYR`, we actually want `STATUSCD` to switch to 2 not in the midpoint
+
+```{r}
+df_interpolated |> 
+  group_by(TREE_COMPOSITE_ID) |> 
+  mutate(
+    first_dead = if_else(
+      condition = any(!is.na(MORTYR)), #has recorded MORTYR
+      true = max(MORTYR, na.rm = TRUE),
+      false = YEAR[min(which(STATUSCD == 2))]
+    )
+  ) |> 
+  #then adjust STATUSCD & DECAYCD
+  mutate(STATUSCD_interp = if_else(YEAR >= first_dead, 2, STATUSCD_interp)) |>
+  #MORTYR might be earlier than the midpoint, so backfill NAs for DECAYCD
+  fill(DECAYCD_interp, .direction = "up") |> 
+  #But, decay only applies to dead trees
+  mutate(DECAYCD_interp = if_else(STATUSCD_interp == 2, DECAYCD_interp, NA))
+```
+
 
 ```{r}
 #| label: toy-mortyr
@@ -299,7 +265,7 @@ df_interpolated <-
 library(ggplot2)
 ggplot(df_interpolated, aes(x = YEAR)) +
   geom_point(aes(y = HT)) +
-  geom_line(aes(y = HT_interpolated)) +
+  geom_line(aes(y = HT_interp)) +
   facet_wrap(vars(TREE_COMPOSITE_ID))
 ```
 
@@ -341,18 +307,9 @@ Invariant; join *after* interpolation:
 -   `CARBON_RATIO` - `REF_TREE_CARBON_RATIO_DEAD` table; wood carbon fraction of dead trees (invariant)
 
 
-```{r}
-tree |> 
-  group_by(TREE_COMPOSITE_ID) |> 
-  filter(length(unique(STANDING_DEAD_CD)) > 1) |> 
-  select(TREE_COMPOSITE_ID, INVYR, STATUSCD, STANDING_DEAD_CD, everything()) |> 
-  arrange(TREE_COMPOSITE_ID, INVYR)
-```
-
-
 There are some trees in the `tree` table that were dead on their first survey and don't have any height or diameter measurements.
 We should get rid of these.
-I'll also drop trees that change species (for now)
+
 
 ```{r}
 #| label: tree-filter-always-dead
@@ -362,21 +319,32 @@ tree <- tree |>
              all(is.na(ACTUALHT)) |
              all(is.na(HT)) |
              all(STATUSCD != 1)))
+```
 
+I'll also drop trees that change species (for now)
+
+```{r}
 # drop trees with more than 1 SPCD
 tree <- tree |> 
   group_by(TREE_COMPOSITE_ID) |> 
   filter(length(unique(SPCD)) == 1)
 ```
 
-Let's convert `NA`s for `DECAYCD` and `STANDING_DEAD_CD` to `-1`s (an unused code) *for now*, so the variable works nicely with our `step_interp()` function (i.e. to distinguish `NA`s for live trees or missing inventories from years that need interpolation), then we can switch `-1`s back to `NA`s later based on estimated mortality year.
+::: callout-important
+## Question
+
+Taking a look at trees with a recorded `MORTYR`.  One obvious question is what to do with trees that are recorded as alive in the inventory that takes place in their `MORTYR`. https://github.com/mekevans/forestTIME-builder/issues/61
 
 ```{r}
-tree <- tree |> 
-  mutate(across(c(DECAYCD, STANDING_DEAD_CD), \(x) if_else(is.na(x), -1, x)))
+tree |> 
+  group_by(TREE_COMPOSITE_ID) |> 
+  filter(any(!is.na(MORTYR)) & n() > 1) |> 
+  arrange(TREE_COMPOSITE_ID, INVYR) |> 
+  select(TREE_COMPOSITE_ID, INVYR, MORTYR, STATUSCD, DECAYCD, STANDING_DEAD_CD, everything())
 ```
+:::
 
-And let's assume an `NA` for `STDORGCD` is a `0`
+Join `CONDID` from the `COND` table, assuming that an `NA` for `STDORGCD` is equivalent to a 0
 
 ```{r}
 cond_cols <- cond |> 
@@ -387,6 +355,7 @@ tree <-
   left_join(tree, cond_cols,
             by = join_by(PLOT_COMPOSITE_ID, INVYR, CONDID))
 ```
+
 
 #### Interpolation & Extrapolation
 
@@ -419,8 +388,12 @@ First, expand to include all years
 #| label: tree-expand
 
 # this needs to include all columns that are invariant over time
+#TODO this is slow and not translatable to duckdb.  Need to look again at how/if Renata did this step 
 all_yrs <- tree_to_interpolate |> 
-  group_by(TREE_COMPOSITE_ID, PLOT_COMPOSITE_ID, SPCD) |>
+  group_by(
+    TREE_COMPOSITE_ID,
+    PLOT_COMPOSITE_ID, SPCD
+    ) |>
   expand(YEAR = full_seq(INVYR, 1))
 
 tree_annual <- 
@@ -434,7 +407,7 @@ tree_annual <-
 tree_annual
 ```
 
-Then interpolate with our custom `approx()` wrapper function, `inter_extra_polate()`
+Then interpolate continuous variables with our custom `approx()` wrapper function, `inter_extra_polate()` and categorical variables with `step_interp()`.
 
 ```{r}
 #| label: tree-interpolate
@@ -442,26 +415,65 @@ tree_interpolated <-
   tree_annual |> 
   group_by(TREE_COMPOSITE_ID) |> 
   mutate(
+    #linearly interpolate/extrapolate
     across(c(ACTUALHT, DIA, HT, CULL, CR),
            \(var) inter_extra_polate(x = YEAR, y = var)),
-    across(c(DECAYCD, STANDING_DEAD_CD, STDORGCD, COND_STATUS_CD), step_interp)
-  )
+    #interpolate to switch at midpoint (rounded up)
+    across(c(STATUSCD, DECAYCD, STANDING_DEAD_CD, STDORGCD, COND_STATUS_CD), 
+           step_interp)
+  ) |> ungroup()
 tree_interpolated
 ```
 
-After interpolating, we can change those -1s back to NAs
+### Mortality
+
+I think maybe here is where we need to deal with estimated mortality year to correct `STATUSCD`, `DECAYCD` and `STANDING_DEAD_CD`.  This is a fork in the road, producing two possible tables after this depending on whether `MORTYR` is used or not.
 
 ```{r}
-tree_interpolated <- tree_interpolated |> 
-  mutate(across(c(DECAYCD, STANDING_DEAD_CD), \(x) if_else(x == -1, NA, x)))
+tree_interpolated_mortyr <- 
+  tree_interpolated |> 
+  group_by(TREE_COMPOSITE_ID) |> 
+  mutate(
+    #to use MORTYR
+    first_dead = if_else(
+      condition = any(!is.na(MORTYR)), #has recorded MORTYR
+      true = max(MORTYR, na.rm = TRUE),
+      false = YEAR[min(which(STATUSCD == 2))]
+    )
+    #otherwise
+    # first_dead = YEAR[min(which(STATUSCD == 2))]
+  ) |> 
+  #then adjust STATUSCD & DECAYCD
+  mutate(STATUSCD = if_else(YEAR >= first_dead, 2, STATUSCD)) |>
+  #MORTYR might be earlier than the midpoint, so backfill NAs for DECAYCD and STANDING_DEAD_CD
+  fill(DECAYCD, STANDING_DEAD_CD, .direction = "up") |> 
+  #But, STANDING_DEAD_CD only applies to dead trees
+  mutate(STANDING_DEAD_CD = if_else(STATUSCD == 2, STANDING_DEAD_CD, NA)) |> 
+  #and DECAYCD only applies to standing dead trees > 4.9 DIA
+  mutate(DECAYCD = if_else(STANDING_DEAD_CD == 1 & DIA > 4.9, DECAYCD, NA)) |> 
+  #fallen trees shouldn't have measurments for DIA, HT, and ACTUALHT
+  mutate(across(c(DIA, HT, ACTUALHT), \(x) if_else(STANDING_DEAD_CD == 0, NA, x)))
+```
+
+Inspect some trees
+
+```{r}
+tree_interpolated_mortyr |>
+  filter(any(!is.na(MORTYR))) |>
+  filter(length(unique(HT)) > 2) |>
+  filter(all(c(0, 1) %in% STANDING_DEAD_CD)) |>
+  arrange(TREE_COMPOSITE_ID, YEAR) |>
+  select(TREE_COMPOSITE_ID, YEAR, MORTYR, first_dead, HT, STATUSCD, STANDING_DEAD_CD, DECAYCD)
 ```
 
 There are some trees where interpolation fails.
 I suspect they are all ones with only one non-NA measurement and there is nothing we can do.
 
 ```{r}
+#| eval: false
 failed_to_interpolate <- 
   tree_interpolated |> 
+  group_by(TREE_COMPOSITE_ID) |> 
   filter(any(is.na(DIA))) |>
   pull(TREE_COMPOSITE_ID) |>
   unique()
@@ -472,6 +484,35 @@ tree |>
   arrange(TREE_COMPOSITE_ID, INVYR) |> 
   select(TREE_COMPOSITE_ID, INVYR, STATUSCD, DIA, ACTUALHT, everything())
 ```
+
+
+::: callout-important
+## Question
+
+It seems pretty clear that DIA shouldn't change after a tree's death, but would HT and ACTUALHT change for a standing dead tree?  Probably?  However, we don't want to extrapolate negative (or even 0?) values, and the tree shouldn't *grow* after death, right?
+
+```{r}
+tree |> 
+  filter(any(lag(ACTUALHT) > ACTUALHT)) |> #trees that shrank
+  filter(sum(STATUSCD == 2) > 1) |> # and were recorded dead at least twice
+  select(TREE_COMPOSITE_ID, INVYR, STATUSCD, STANDING_DEAD_CD, DIA, HT, ACTUALHT) |> 
+  arrange(TREE_COMPOSITE_ID, INVYR)
+```
+
+
+```{r}
+#| eval: false
+
+#only works with RI or full database
+tree |> 
+  filter(TREE_COMPOSITE_ID == "44_1_7_229_1_1") |> 
+  select(TREE_COMPOSITE_ID, INVYR, STATUSCD, STANDING_DEAD_CD, DIA, HT, ACTUALHT)
+```
+
+E.g. this tree in RI went from 40 to 18 in HT between 2008 and 2013 and then was recorded as "no status" in 2020 so extrapolated values become negative.
+
+:::
+
 
 #### `REF_SPECIES` table
 
@@ -486,7 +527,7 @@ ref_species <- ref_species_raw |>
          SFTWD_HRDWD, 
          CARBON_RATIO_LIVE,
          WDSG = WOOD_SPGR_GREENVOL_DRYWT)
-tree_interpolated <- left_join(tree_interpolated, ref_species, by = join_by(SPCD))
+tree_interpolated_mortyr <- left_join(tree_interpolated_mortyr, ref_species, by = join_by(SPCD))
 ```
 
 #### `ECOSUBCD` from the `plot` table
@@ -496,7 +537,8 @@ plot_ecosubcds <- plot |>
   select(PLOT_COMPOSITE_ID, ECOSUBCD) |>
   distinct()
 
-tree_interpolated <- left_join(tree_interpolated, plot_ecosubcds, by = join_by(PLOT_COMPOSITE_ID))
+tree_interpolated_mortyr <- 
+  left_join(tree_interpolated_mortyr, plot_ecosubcds, by = join_by(PLOT_COMPOSITE_ID))
 ```
 
 #### REF_TREE_DECAY_PROP
@@ -518,8 +560,8 @@ ref_tree_carbon_ratio_dead <- read_csv(here("data/rawdat/REF_TREE_CARBON_RATIO_D
 ```
 
 ```{r}
-tree_interpolated <- 
-  tree_interpolated |> 
+tree_interpolated_mortyr <- 
+  tree_interpolated_mortyr |> 
   ungroup() |> 
   #first joins by SFTWD_HRDWD only the DENSITY_PROP column for DECAYCD 3, but calls it CULL_DECAY_RATIO
   left_join(
@@ -555,7 +597,7 @@ tree_interpolated <-
 `NA`s for `CULL` get replaced with 0s (not entirely sure why, but assumes that no data = 100% live wood)
 
 ```{r}
-tree_interpolated <- tree_interpolated |> 
+tree_interpolated_mortyr <- tree_interpolated_mortyr |> 
   mutate(CULL = ifelse(is.na(CULL), 0, CULL))
 ```
 
@@ -567,8 +609,8 @@ Let's take a sample of trees and visualize them.
 ```{r}
 set.seed(123)
 
-tree_sample <- tree_interpolated |> pull(TREE_COMPOSITE_ID) |> unique() |> sample(50)
-tree_subset <- tree_interpolated |>
+tree_sample <- tree_interpolated_mortyr |> pull(TREE_COMPOSITE_ID) |> unique() |> sample(50)
+tree_subset <- tree_interpolated_mortyr |>
   filter(TREE_COMPOSITE_ID %in% tree_sample)
 tree_subset |> 
   select(TREE_COMPOSITE_ID, YEAR, DIA, HT, ACTUALHT, CR, CULL, DECAYCD, STANDING_DEAD_CD, STDORGCD) |> 
@@ -580,122 +622,9 @@ tree_subset |>
 
 This makes me think about caveats of interpolation since it's not really appropriate to linearly interpolate ACTUALHT—trees tops don't break off linearly.
 
-# Mortality
-
-We need to estimate mortality of trees in interpolated data using two methods:
-
-1. Assume the trees died at the midpoint (rounding up) between the last year they were recorded alive and the first year they were recorded dead
-2. Using the `MORTYR` variable if it was recorded, otherwise with #1 above
-
-::: callout-important
-
-I think this has to happen *before* carbon estimation because standing dead trees contribute carbon.  That means there does need to be two versions of the resulting annualized carbon estimates I think.
-
-:::
-
-#### Estimate mortality
-
-Then we need to determine the year trees died.
-For now, let's maybe store this in a different table that we can use in a filtering join later.
-
-The estimated mortality year will be used for:
-
-1. Determining when to switch `STATUSCD` from 1 (alive) to 2 (dead)\
-2. Determining when to use `NA`s for `STANDING_DEAD_CD` (non-`NA`s only for dead trees)
-2. Determining when to use `NA`s for `DECAYCD` (non-`NA`s only for standing dead trees >4.9 `DIA`)
-3. Determining when to use `NA`s for `DENSITY_PROP`, `BARK_LOSS_PROP`, and `BRANCH_LOSS_PROP`, which were joined on `DECAYCD`
-
-I think the strategy that will be most efficient is to produce a separate table with mortality estimations for each tree that can be used as input to a function that does some joining and mutating.
-
-```{r}
-#| label: tree-mortyr
-
-#NOTE: some of these `if_else()` could be replaced with `coalesce()`, but `if_else()` might be more explicit and readable
-
-tree_last_yr <-
-  tree_interpolated |> 
-  group_by(TREE_COMPOSITE_ID) |> #for each tree...
-  #figure out when it was last recorded alive and first recorded dead
-  mutate(
-    last_live = YEAR[max(which(STATUSCD == 1))],
-    first_dead = YEAR[min(which(STATUSCD == 2))]
-  ) |> 
-  #estimate the mortality year as the midpoint between surveys
-  mutate(
-    #TODO confirm that midpoint rule rounds up?
-    dead_yr = ceiling(mean(c(last_live, first_dead))),
-    #if dead_yr is NA still (because it was never alive and mean(c(NA, first_dead)) is NA), then just use the first_dead year
-    dead_yr = if_else(is.na(dead_yr), first_dead, dead_yr),
-  #use MORTYR data if it exists
-    dead_yr_mortyr = if_else(!is.na(MORTYR), MORTYR, dead_yr),
-    death_yr_midpt = if_else(!is.na(dead_yr), dead_yr, max(YEAR)),
-    death_yr_mortyr = if_else(!is.na(dead_yr), dead_yr_mortyr, max(YEAR))
-  ) |> 
-  #summarize per tree
-  group_by(TREE_COMPOSITE_ID) |> 
-  summarize(death_yr_midpt = max(death_yr_midpt, na.rm = TRUE),
-            death_yr_mortyr = max(death_yr_mortyr, na.rm = TRUE))
-
-```
-
-#### Adjust for mortality
-
-```{r}
-
-#test tree
-# tree_example <- tree_interpolated |> 
-#   filter(TREE_COMPOSITE_ID == "44_1_1_228_3_7")
-
-#join in the mortality year estimates
-tree_interpolated_midpoint <- left_join(
-  tree_interpolated, tree_last_yr,
-  by = join_by(TREE_COMPOSITE_ID)
-) |>
-  select(TREE_COMPOSITE_ID,
-         YEAR,
-         death_yr_midpt,
-         STATUSCD,
-         DECAYCD,
-         everything()) |>
-  #use midpoint rule column
-  #if the tree isn't dead, set STATUSCD to 1, else to 2
-  mutate(
-    STATUSCD = if_else(YEAR >= death_yr_midpt, 2, 1),
-    #if tree is alive, set STANDING_DEAD_CD to NA
-    STANDING_DEAD_CD = if_else(YEAR < death_yr_midpt, NA, STANDING_DEAD_CD),
-    #only use DECAYCD for standing dead trees >4.9 DIA
-    DECAYCD = if_else(STANDING_DEAD_CD == 1 & DIA > 4.9, DECAYCD, NA)
-  ) |> 
-  # Set things like BRANCH_LOSS_PROP to NA as they were joined on DECAYCD
-  mutate(across(
-    c(DENSITY_PROP, BARK_LOSS_PROP, BRANCH_LOSS_PROP, CARBON_RATIO),
-    \(var) if_else(is.na(DECAYCD), NA, var)
-  )) |> 
-  # clean up temporary vars
-  select(-death_yr_midpt, -MORTYR)
-
-#Some tests:
-tree_interpolated_midpoint |> 
-  filter(STATUSCD == 1 & !is.na(STANDING_DEAD_CD)) |>
-  select(TREE_COMPOSITE_ID, YEAR, STATUSCD, STANDING_DEAD_CD, DECAYCD) |> 
-  arrange(TREE_COMPOSITE_ID, YEAR)
-
-tree_interpolated_midpoint |> 
-  filter(STANDING_DEAD_CD == 0 & !is.na(DECAYCD)) |>
-  select(TREE_COMPOSITE_ID, YEAR, STATUSCD, STANDING_DEAD_CD, DECAYCD) |> 
-  arrange(TREE_COMPOSITE_ID, YEAR)
-```
-
-
-
 # Carbon estimation
 
-Here's where we use the functions in `carbon_code/` to estimate carbon and AGB.
-
-I'll be trying to replicate the code in `R/add_carbon_variables_mortyr.R`
-
-
-Create and re-name variables needed for carbon estimation
+These are some final preparations only necessary for running the code in `R/add_carbon_variables_mi.R`.
 
 ::: callout-note
 I think some of the odd looking choices here have to do with limitations in the carbon estimation code provided by David Walker.  Index-based filtering doesn't work when there are `NA`s.
@@ -710,9 +639,10 @@ df[df$x < 2] #errors
 ```
 :::
 
+
 ```{r}
 tree_prepped <-
-  tree_interpolated_midpoint |>
+  tree_interpolated_mortyr |>
   mutate(
     #use 1 for CULL_DECAY_RATIO for live trees
     CULL_DECAY_RATIO = if_else(STATUSCD == 1, CULL_DECAY_RATIO, 1),
@@ -745,7 +675,7 @@ This removes 1,627 rows for RI
 
 ```{r}
 fiadb <- tree_prepped <- tree_prepped |> 
-  #only keep accessible forest land (???)
+  #only keep accessible forest land (why?)
   filter(COND_STATUS_CD == 1) |> 
   #remove fallen trees
   filter((STANDING_DEAD_CD == 1 & STATUSCD == 2) | STATUSCD == 1) |> 
