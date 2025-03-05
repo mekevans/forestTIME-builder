@@ -11,6 +11,7 @@ toc: true
 
 library(readr)
 library(dplyr)
+# library(dtplyr)
 library(tidyr)
 library(here)
 library(purrr)
@@ -87,6 +88,7 @@ I'll get a sample of 10,000 trees for now.
 set.seed(234)
 tree_samp <- sample(unique(tree$TREE_COMPOSITE_ID), 10000)
 tree <- tree |> filter(TREE_COMPOSITE_ID %in% tree_samp)
+# tree <- tree |> lazy_dt()
 ```
 
 
@@ -180,7 +182,8 @@ First we need to expand it to include all years between surveys.
 all_yrs <-
   df |>
   group_by(TREE_COMPOSITE_ID) |>
-  expand(YEAR = full_seq(YEAR, 1))
+  expand(YEAR = seq.int(min(YEAR, na.rm = TRUE), max(YEAR, na.rm = TRUE)))
+  # expand(YEAR = full_seq(YEAR, 1))
 
 df_all_yrs <- right_join(df, all_yrs) |> arrange(TREE_COMPOSITE_ID, YEAR)
 df_all_yrs
@@ -294,6 +297,7 @@ Interpolation needed:
 -   `STANDING_DEAD_CD` - `tree` table; `NA` for live trees, 0 or 1 for dead trees.
 -   `STDORGCD` - `cond` table; stand origin code, method of stand regeneration for trees in the condition (2.5.25) (categorical). This is also `NA` sometimes, but here I think it is safe to assume that `NA` can be replaced with `0` (natural stands).
 -   `COND_STATUS_CD` - `cond` table; eventually for carbon estimation only trees in 'accessible forest land' (`COND_STATUS_CD == 1`) are kept (not sure why)
+-   `CONDID` - `tree` table; key for joining to `cond` table? Not needed for carbon estimation, but needed for scaling to population I think (used in rFIA code).
 
 Invariant; join *after* interpolation:
 
@@ -353,7 +357,7 @@ cond_cols <- cond |>
 
 tree <- 
   left_join(tree, cond_cols,
-            by = join_by(PLOT_COMPOSITE_ID, INVYR, CONDID))
+            by = c("PLOT_COMPOSITE_ID", "INVYR", "CONDID"))
 ```
 
 
@@ -378,6 +382,7 @@ tree_to_interpolate <- tree |>
     DECAYCD,
     STANDING_DEAD_CD,
     STDORGCD,
+    CONDID,
     COND_STATUS_CD
   )
 ```
@@ -389,18 +394,20 @@ First, expand to include all years
 
 # this needs to include all columns that are invariant over time
 #TODO this is slow and not translatable to duckdb.  Need to look again at how/if Renata did this step 
-all_yrs <- tree_to_interpolate |> 
+all_yrs <- tree_to_interpolate |>  
   group_by(
     TREE_COMPOSITE_ID,
-    PLOT_COMPOSITE_ID, SPCD
+    PLOT_COMPOSITE_ID,
+    SPCD
     ) |>
   expand(YEAR = full_seq(INVYR, 1))
+  # expand(YEAR = seq.int(min(INVYR, na.rm = TRUE), max(INVYR, na.rm = TRUE)))
 
 tree_annual <- 
   right_join(
     tree_to_interpolate,
     all_yrs,
-    by = join_by(TREE_COMPOSITE_ID, PLOT_COMPOSITE_ID, SPCD, INVYR == YEAR)
+    by = c("TREE_COMPOSITE_ID", "PLOT_COMPOSITE_ID", "SPCD", "INVYR" = "YEAR")
   ) |>
   arrange(TREE_COMPOSITE_ID, INVYR) |> 
   rename(YEAR = INVYR)
@@ -419,7 +426,7 @@ tree_interpolated <-
     across(c(ACTUALHT, DIA, HT, CULL, CR),
            \(var) inter_extra_polate(x = YEAR, y = var)),
     #interpolate to switch at midpoint (rounded up)
-    across(c(STATUSCD, DECAYCD, STANDING_DEAD_CD, STDORGCD, COND_STATUS_CD), 
+    across(c(STATUSCD, DECAYCD, STANDING_DEAD_CD, STDORGCD, CONDID, COND_STATUS_CD), 
            step_interp)
   ) |> ungroup()
 tree_interpolated
@@ -613,8 +620,8 @@ tree_sample <- tree_interpolated_mortyr |> pull(TREE_COMPOSITE_ID) |> unique() |
 tree_subset <- tree_interpolated_mortyr |>
   filter(TREE_COMPOSITE_ID %in% tree_sample)
 tree_subset |> 
-  select(TREE_COMPOSITE_ID, YEAR, DIA, HT, ACTUALHT, CR, CULL, DECAYCD, STANDING_DEAD_CD, STDORGCD) |> 
-  pivot_longer(DIA:STDORGCD, names_to = "variable") |> 
+  select(TREE_COMPOSITE_ID, YEAR, DIA, HT, ACTUALHT, CR, CULL, DECAYCD, STANDING_DEAD_CD, STDORGCD, CONDID) |> 
+  pivot_longer(DIA:CONDID, names_to = "variable") |> 
   ggplot(aes(x = YEAR, y = value, color = TREE_COMPOSITE_ID)) +
   facet_wrap(vars(variable), scales = "free_y") +
   geom_line(show.legend = FALSE)
