@@ -393,8 +393,8 @@ First, expand to include all years
 #| label: tree-expand
 
 # this needs to include all columns that are invariant over time
-#TODO this is slow and not translatable to duckdb.  Need to look again at how/if Renata did this step 
-all_yrs <- tree_to_interpolate |>  
+#TODO this is slow and not translatable to duckdb.  Need to look again at how/if Renata did this step,
+all_yrs <- tree_to_interpolate |> 
   group_by(
     TREE_COMPOSITE_ID,
     PLOT_COMPOSITE_ID,
@@ -402,6 +402,14 @@ all_yrs <- tree_to_interpolate |>
     ) |>
   expand(YEAR = full_seq(INVYR, 1))
   # expand(YEAR = seq.int(min(INVYR, na.rm = TRUE), max(INVYR, na.rm = TRUE)))
+
+#may have better luck with computational issues by chunking this by groups of plots
+plot_chunks <- tree_to_interpolate |> ungroup() |> select(PLOT_COMPOSITE_ID) |> distinct() |> mutate(plot_chunk = ntile(PLOT_COMPOSITE_ID, n = 10))
+
+chunk_list <- 
+  left_join(tree_to_interpolate, plot_chunks) |>
+  group_by(plot_chunk) |> 
+  group_split()
 
 tree_annual <- 
   right_join(
@@ -458,8 +466,11 @@ tree_interpolated_mortyr <-
   mutate(STANDING_DEAD_CD = if_else(STATUSCD == 2, STANDING_DEAD_CD, NA)) |> 
   #and DECAYCD only applies to standing dead trees > 4.9 DIA
   mutate(DECAYCD = if_else(STANDING_DEAD_CD == 1 & DIA > 4.9, DECAYCD, NA)) |> 
-  #fallen trees shouldn't have measurments for DIA, HT, and ACTUALHT
-  mutate(across(c(DIA, HT, ACTUALHT), \(x) if_else(STANDING_DEAD_CD == 0, NA, x)))
+  #fallen trees shouldn't have measurements for DIA, HT, and ACTUALHT
+  mutate(
+    across(c(DIA, HT, ACTUALHT),
+           \(x) if_else(STANDING_DEAD_CD == 0, NA, x, missing = x))
+  )
 ```
 
 Inspect some trees
@@ -470,7 +481,11 @@ tree_interpolated_mortyr |>
   filter(length(unique(HT)) > 2) |>
   filter(all(c(0, 1) %in% STANDING_DEAD_CD)) |>
   arrange(TREE_COMPOSITE_ID, YEAR) |>
-  select(TREE_COMPOSITE_ID, YEAR, MORTYR, first_dead, HT, STATUSCD, STANDING_DEAD_CD, DECAYCD)
+  select(TREE_COMPOSITE_ID, YEAR, MORTYR, first_dead, DIA, HT, STATUSCD, STANDING_DEAD_CD, DECAYCD)
+```
+```{r}
+tree |> filter(TREE_COMPOSITE_ID == "8_1_19_89224_3_24") |> 
+  select(INVYR, DIA, HT, STATUSCD, STANDING_DEAD_CD, everything())
 ```
 
 There are some trees where interpolation fails.
