@@ -2,7 +2,7 @@ source(here::here("R", "import_tables_from_csvs.R"))
 source(here::here("R", "add_cns_to_db.R"))
 source(here::here("R", "add_qa_flags_to_db.R"))
 source(here::here("R", "add_info_table_to_db.R"))
-source(here::here("R", "add_tree_annualized_to_db.R"))
+source(here::here("R", "add_annual_estimates_to_db.R"))
 source(here::here("R", "add_sapling_transitions_to_db.R"))
 source(here::here("R", "add_nsvb_inputs_to_db.R"))
 

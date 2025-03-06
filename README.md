@@ -19,6 +19,9 @@ Instead it will run automatically via GitHub Actions and push the finished datab
 Functions to query an already-generated database can be found in <https://github.com/mekevans/forestTIME/>.
 However, anyone who wants to can download this repo and run the scripts to create a database locally.
 
+This is a work in progress.
+Find additional notes and documentation in .md files in the `docs/` folder.
+
 ## The `pre_carbon` branch
 
 The `pre_carbon` contains the stable version of forestTIME prior to the addition of NSVB carbon estimation.
