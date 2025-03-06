@@ -2,7 +2,7 @@
 #' 
 #' Categorical variables like `DECAYCD` can't be linearly interpolated between
 #' inventory years.  Instead, we assume they switch values at the midpoint
-#' (rounded up) between non-missing values.  Trailing `NA`s are replaced with
+#' (rounded down) between non-missing values.  Trailing `NA`s are replaced with
 #' the last non-`NA` value and leading `NA`s are returned as-is.
 #'
 #' @param x a vector
@@ -25,14 +25,14 @@ step_interp <- function(x) {
   # count leading NAs
   leading_NAs <- i_non_nas[1] - 1
   
-  #this is the number of rep()s on the right side (not including the non-missing value)
-  right <- floor((dplyr::lead(i_non_nas) - i_non_nas) / 2)
-  right[is.na(right)] <- 0
-  
   #number of rep()s to the left, including the non-missing value
-  left <- ceiling((i_non_nas - dplyr::lag(i_non_nas)) / 2)
-  left[is.na(left)] <- 1
+  left <- floor((i_non_nas - dplyr::lag(i_non_nas)) / 2)
+  left[is.na(left)] <- 0
   
+  #this is the number of rep()s on the right side (not including the non-missing value)
+  right <- ceiling((dplyr::lead(i_non_nas) - i_non_nas) / 2)
+  right[is.na(right)] <- 1
+
   times <- left + right
   
   #extrapolate trailing NAs
@@ -44,3 +44,10 @@ step_interp <- function(x) {
   #add back leading NAs
   c(rep(NA, leading_NAs), x_interp)
 }
+
+
+x <- c("A", NA, NA, NA, NA, NA, "B")
+step_interp(c("B", NA, NA, "C"))
+step_interp(c("A", NA, "B", NA, NA, "C", NA, NA, NA, "D", NA, NA))
+
+all(step_interp(x) == c("A", "A", "A", "B", "B", "B", "B"))
