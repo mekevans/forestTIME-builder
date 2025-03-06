@@ -1,0 +1,98 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: >-
+  forestTIME-builder: generating annualized carbon and
+  biomass estimates from FIA data
+message: >-
+  If you use this software, please cite it as well as Westfall et al. 
+  (2024) using the metadata from this file.
+type: software
+authors:
+  - given-names: Renata
+    family-names: Diaz
+    affiliation: >-
+      University of Arizona, Communications & Cyber
+      Technology
+    orcid: 'https://orcid.org/0000-0003-0803-4734'
+  - given-names: Eric R.
+    family-names: Scott
+    email: ericrscott@arizona.edu
+    affiliation: >-
+      University of Arizona, Communications & Cyber
+      Technology
+    orcid: 'https://orcid.org/0000-0002-7430-7879'
+  - given-names: Dani
+    family-names: Steinberg
+    affiliation: >-
+      University of Arizona, School of Natural Resources &
+      The Environment
+    orcid: 'https://orcid.org/0000-0002-3695-3837'
+  - given-names: Kristina
+    family-names: Riemer
+    affiliation: >-
+      University of Arizona, Communications & Cyber
+      Technology
+    orcid: 'https://orcid.org/0000-0003-3802-3331'
+  - given-names: Margaret
+    family-names: Evans
+    affiliation: >-
+      University of Arizona, Laboratory of Tree Ring
+      Research
+repository-code: 'https://github.com/mekevans/forestTIME-builder'
+url: 'https://github.com/mekevans/forestTIME-builder'
+keywords:
+  - FIA
+  - forest inventory analysis
+  - carbon estimation
+  - biomass estimation
+license: GPL-3.0
+version: v0.1.
+date-released: 2025-02-06
+references:
+  - type: report
+    title: A national-scale tree volume, biomass, and carbon modeling system for the
+      United States
+    authors:
+    - family-names: Westfall
+      given-names: James A.
+    - family-names: Coulston
+      given-names: John W.
+    - family-names: Gray
+      given-names: Andrew N.
+    - family-names: Shaw
+      given-names: John D.
+    - family-names: Radtke
+      given-names: Philip J.
+    - family-names: Walker
+      given-names: David M.
+    - family-names: Weiskittel
+      given-names: Aaron R.
+    - family-names: MacFarlane
+      given-names: David W.
+    - family-names: Affleck
+      given-names: David L.R.
+    - family-names: Zhao
+      given-names: Dehai
+    - family-names: Temesgen
+      given-names: Hailemariam
+    - family-names: Poudel
+      given-names: Krishna P.
+    - family-names: Frank
+      given-names: Jereme M.
+    - family-names: Prisley
+      given-names: Stephen P.
+    - family-names: Wang
+      given-names: Yingfang
+    - family-names: Sánchez Meador
+      given-names: Andrew J.
+    - family-names: Auty
+      given-names: David
+    - family-names: Domke
+      given-names: Grant M.
+    url: http://dx.doi.org/10.2737/WO-GTR-104
+    doi: 10.2737/wo-gtr-104
+    institution:
+      name: U.S. Department of Agriculture, Forest Service
+    year: '2024'
