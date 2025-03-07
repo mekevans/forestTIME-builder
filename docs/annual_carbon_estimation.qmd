@@ -23,7 +23,7 @@ I'm going to try to work through a small sample of data to figure out how the co
 
 # Read in data
 
-I'll use ~~RI~~ CO as an example, but only a sample of 10,000 trees.
+I'll use CO as an example.
 Some of the columns get auto-detected as the wrong type (e.g. CN should be character, not numeric, even though it looks like a number).
 I got these column types from the Green Book and recorded them in a list in `scripts/create_column_types.R`.  The list is designed for duckdb functions, so here I convert them to a form that works with `readr`.
 
@@ -81,16 +81,6 @@ tree <- tree_raw |>
 ```
 
 It is my understanding that the `TREE_COMPOSITE_ID` is now consistent through time as well since the combination of state, unit, county, plot, sub-plot, and tree number are unique for each tree and the same every inventory.
-
-I'll get a sample of 10,000 trees for now.
-
-```{r}
-set.seed(234)
-tree_samp <- sample(unique(tree$TREE_COMPOSITE_ID), 10000)
-tree <- tree |> filter(TREE_COMPOSITE_ID %in% tree_samp)
-# tree <- tree |> lazy_dt()
-```
-
 
 ## Plot table
 
@@ -299,7 +289,7 @@ Interpolation needed:
 -   `COND_STATUS_CD` - `cond` table; eventually for carbon estimation only trees in 'accessible forest land' (`COND_STATUS_CD == 1`) are kept (not sure why)
 -   `CONDID` - `tree` table; key for joining to `cond` table? Not needed for carbon estimation, but needed for scaling to population I think (used in rFIA code).
 
-Invariant; join *after* interpolation:
+Invariant; join *after* interpolation or just `fill()` to complete:
 
 -   `CULL_DECAY_RATIO` - this is a weird one—it's the `DENSITY_PROP` value from the `REF_TREE_DECAY_PROP` table when `DECAYCD = 3`. I do not know why, but it's in the David Walker code like this.
 -   `ECOSUBCD` - `plot` table; ecological subsection code (invariant)
@@ -392,33 +382,36 @@ First, expand to include all years
 ```{r}
 #| label: tree-expand
 
-# this needs to include all columns that are invariant over time
-#TODO this is slow and not translatable to duckdb.  Need to look again at how/if Renata did this step,
-all_yrs <- tree_to_interpolate |> 
-  group_by(
-    TREE_COMPOSITE_ID,
-    PLOT_COMPOSITE_ID,
-    SPCD
-    ) |>
-  expand(YEAR = full_seq(INVYR, 1))
-  # expand(YEAR = seq.int(min(INVYR, na.rm = TRUE), max(INVYR, na.rm = TRUE)))
+#We do the expand() in chunks because it is computationally expensive otherwise
+plot_chunks <- 
+  tree_to_interpolate |>
+  ungroup() |>
+  select(PLOT_COMPOSITE_ID) |>
+  distinct() |>
+  mutate(plot_chunk = ntile(PLOT_COMPOSITE_ID, n = 10))
 
-#may have better luck with computational issues by chunking this by groups of plots
-plot_chunks <- tree_to_interpolate |> ungroup() |> select(PLOT_COMPOSITE_ID) |> distinct() |> mutate(plot_chunk = ntile(PLOT_COMPOSITE_ID, n = 10))
-
-chunk_list <- 
-  left_join(tree_to_interpolate, plot_chunks) |>
+all_yrs <- 
+  left_join(tree_to_interpolate, plot_chunks, by = join_by(PLOT_COMPOSITE_ID)) |>
   group_by(plot_chunk) |> 
-  group_split()
+  group_split() |> 
+  map(\(x) {
+    x |> 
+      group_by(
+        TREE_COMPOSITE_ID
+      ) |>
+      expand(YEAR = full_seq(INVYR, 1))
+  }) |> list_rbind()
 
 tree_annual <- 
   right_join(
     tree_to_interpolate,
     all_yrs,
-    by = c("TREE_COMPOSITE_ID", "PLOT_COMPOSITE_ID", "SPCD", "INVYR" = "YEAR")
+    by = join_by(TREE_COMPOSITE_ID, INVYR == YEAR)
   ) |>
   arrange(TREE_COMPOSITE_ID, INVYR) |> 
-  rename(YEAR = INVYR)
+  rename(YEAR = INVYR) |> 
+  #fill any time-invariant columns like PLOT_COMPOSITE_ID
+  fill(PLOT_COMPOSITE_ID, SPCD)
 tree_annual
 ```
 
