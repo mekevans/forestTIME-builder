@@ -25,12 +25,12 @@ col_types_readr <- col_types |>
   })
 ```
 
-
 ## Data Preparation
 
 I need to make sure I have all the columns for population estimation *and* all the columns for carbon estimation using the walker code (documented better in `annual_carbon_estimation.qmd`).
 
-To do that, we need additional tables not already unzipped.  I'll use RI as an example state since those tables are already built in to `rFIA`
+To do that, we need additional tables not already unzipped.
+I'll use RI as an example state since those tables are already built in to `rFIA`
 
 ```{r}
 db <- fiaRI
@@ -86,7 +86,6 @@ POP_STRATUM <-
          ADJ_FACTOR_SUBP, ADJ_FACTOR_MACR, CN, P1POINTCNT)
 ```
 
-
 ```{r}
 # Join the tables
 data <- PLOT %>%
@@ -120,13 +119,11 @@ data <- data |>
   ungroup()
 ```
 
-
 coalesce `ACTUALHT`
 
 ```{r}
 
 ```
-
 
 ## Merge ref data
 
@@ -135,7 +132,6 @@ Required columns from REF_SPECIES and other tables get merged in here
 ```{r}
 
 ```
-
 
 ## Expand
 
@@ -161,7 +157,6 @@ Then we'll merge in TPA_UNADJ based on rules Dani has figured out
 
 ```
 
-
 ## Adjust for mortality
 
 Then we'll adjust all columns related to mortality (`STATUSCD`, `STANDING_DEAD_CD`, `DECAYCD`, and dimensions like `DIA`, `HT`, etc.)
@@ -169,7 +164,6 @@ Then we'll adjust all columns related to mortality (`STATUSCD`, `STANDING_DEAD_C
 ```{r}
 
 ```
-
 
 ## Estimate carbon
 
