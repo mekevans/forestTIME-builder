@@ -1,3 +1,4 @@
+#these are the tables we need
 tables <- c(
   "PLOT",
   "COND",
@@ -20,10 +21,10 @@ tables <- c(
 #' @param rawdat_dir where to save the zip files.
 #' @param extract logical; extract the TREE and PLOT csv files?
 #' @param keep_zip logical; keep the .zip file after CSVs are extracted?
-download_zip_from_datamart <- function(states,
-                                       rawdat_dir = "data/rawdat/state/",
-                                       extract = TRUE,
-                                       keep_zip = FALSE) {
+get_fia_tables <- function(states,
+                           rawdat_dir = "data/rawdat/state/",
+                           extract = TRUE,
+                           keep_zip = FALSE) {
   states <- match.arg(states, state.abb, several.ok = TRUE)
   
   base_url <- "https://apps.fs.usda.gov/fia/datamart/CSV/"
