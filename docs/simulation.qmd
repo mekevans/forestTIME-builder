@@ -1,0 +1,327 @@
+---
+title: "Simulation"
+author: Eric Scott
+format: html
+---
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+source(here::here("R/inter_extra_polate.R"))
+source(here::here("R/step_interp.R"))
+```
+
+The idea here is to simulate what happens when you only periodically sample a population with a panel design and then interpolate using either the actual year of death of individuals or assume midpoint between samples.
+
+## Simulated tree growth
+
+I don't think it really matters much how I simulate tree growth for this, but two options are a logistic growth curve (plus observation error) or a Ricker model, which includes "process error" (i.e. different growth rates for each year) (plus observation error).
+
+Logistic:
+
+```{r}
+# Generate a logistic growth curve with paramaters pulled randomly and with observation error
+gen_logistic <- function(x = 1:100, obs_err = 2) {
+  #not exactly sure what these parameters do, but fiddled around until I got mostly nice looking logistic growth curves.
+  phi1 <- rnorm(1, 100, 5) #related to max height?
+  phi2 <- rnorm(1, -10, 2) #related to starting height?
+  phi3 <- rbeta(1, 1.2, 8) #related to growth rate?
+  
+  #logistic growth equation + random (normal) error
+  y <- phi1 / (1 + exp(-(phi2 + phi3 * x))) + rnorm(x, sd = obs_err)
+  y
+}
+```
+
+```{r}
+x <- 1:200
+plot(x, gen_logistic(x, 2))
+```
+
+Ricker:
+
+I pulled this equation from an [old blog post](https://ericrscott.com/posts/2020-02-24-hacking-glms/index.html#hacking-a-ricker-model-glm) of mine and it is probably not the most appropriate for trees, but I like the inclusion of "process error".
+
+$$
+N_{t+1} = N_te^{r(1-\frac{N_t}{K})}
+$$
+
+```{r}
+# Generate logistic-ish growth with max height `K` and random growth rates each year, plus observation error
+gen_ricker <- function(x = 1:100,
+                       K = rnorm(1, 100, 20),
+                       obs_err = 2) {
+  rs <- rbeta(length(x), 1, 10) #random growth rates each year
+  #repeatedly calculate Nt+1 using it for the next Nt with accumulate()
+  Ns <- purrr::accumulate(
+    rs,
+    function(n_t, r) {
+      n_t * exp(r * (1 - n_t / K)) 
+    },
+    .init = sample(1:10, 1)
+  )
+  # correct length of vector and add observation error
+  Ns[seq_along(x)] + rnorm(length(x), 0, obs_err)
+}
+```
+
+```{r}
+x <- 1:200
+plot(x, gen_ricker(x, obs_err = 2))
+```
+
+## Simulation setup
+
+I created some parameters for number of trees per plot, number of plots, and then assign each tree a random time step for birth and random death time between 20 and 150 timesteps after birth
+
+```{r}
+n_trees <- 50
+n_plots <- 20
+
+sim_setup <-
+  expand_grid(
+    tree = seq_len(n_trees),
+    plot = seq_len(n_plots)
+  ) |> 
+  #give each tree a unique ID and lifespan
+  mutate(tree = paste0("p", plot, "t", tree)) |> 
+  #give each tree a birth time and death time
+  mutate(birth_time = sample(1:200, n(), replace = TRUE)) |> 
+  mutate(death_time = birth_time + sample(20:150, n(), replace = TRUE))
+sim_setup
+```
+
+## Mass mortality
+
+Whether we use the *actual* death year or the midpoint between surveys to interpolate death should only really matter if there are known mass mortality events, so let's introduce one.
+I'll pick 20% of living trees in a single plot in time step 73 (arbitrary, but chosen to *not* be a inventory year or midpoint—see below) and overwrite their death year.
+
+```{r}
+#get a random slice of 20% of trees in plot 1 that would be alive in timestep 73
+mass_mortality_trees <- sim_setup |> 
+  group_by(tree) |> 
+  filter(plot == 1, between(73, birth_time, death_time)) |> 
+  ungroup() |> 
+  slice_sample(prop = 0.2) |> 
+  pull(tree)
+
+#overwrite the death time for those trees
+sim_setup <- sim_setup |> 
+  mutate(death_time = if_else(tree %in% mass_mortality_trees, 73, death_time))
+```
+
+## Run Simulation
+
+Now I'll grow those trees using my Ricker model generator function (could use logistic too. Both are probably equally wrong)
+
+```{r}
+  #run simulation for all the years from the first birth time to last death time
+sim <- sim_setup |> 
+  group_by(tree, plot) |> 
+  expand(time = birth_time:death_time) |>
+  arrange(plot, tree, time) |> 
+  #grow trees
+  group_by(tree) |> 
+  mutate(ht = gen_ricker(time)) |> 
+  mutate(mortyr = max(time))
+```
+
+Let's see what it looks like:
+
+```{r}
+ggplot(sim, aes(x = time, y = ht, color = as.factor(plot), group = tree)) + 
+  geom_point() +
+  geom_line() +
+  theme(legend.position = "none")
+```
+
+Let's only keep the middle years and scale them to start at 1 so births and deaths kinda even out??
+
+```{r}
+sim <- sim |> filter(time >= 100, time <= 200) |> 
+  mutate(time = time - 99,
+         mortyr = mortyr - 99)
+```
+
+```{r}
+ggplot(sim, aes(x = time, y = ht, color = as.factor(plot), group = tree)) + 
+  geom_point() +
+  geom_line() +
+  theme(legend.position = "none")
+```
+
+## Simulate Panel Design
+
+Measure plots every 10 years, but in a way that the same number of plots are measured every year.
+
+I'll just use the plot numbers as an offset
+
+::: callout-note
+Note that this means the choice of number of plots is related to this step.
+If you change number of plots, this probably has to change too.
+:::
+
+Figuring out how to stagger the plot observations was the hardest part!
+
+```{r}
+plot = 1:20 #20 plots
+period = 10 #measured every 10 years
+length = 100 #for 100 years
+seq(plot[1] %% period, length, period)
+seq(plot[2] %% period, length, period)
+#...
+seq(plot[11] %% period, length, period) #same years as plot 1
+seq(plot[12] %% period, length, period) #same years as plot 2
+
+#create inventory schedule
+inventory_schedule <- sim |> 
+  #get all the years for all the trees
+  select(plot, tree, mortyr) |>
+  distinct() |>
+  expand_grid(time = 1:101) |> 
+  group_by(plot) |> 
+  #filter to just inventory years
+  filter(time %in% seq(unique(plot) %% period, 101, period)) |> 
+  ungroup() |> 
+  #keep the inventory after death
+  filter(lag(time) < mortyr) |> 
+  #expand again, this time for just the range of inventories for each particular tree
+  group_by(tree, plot, mortyr) |> 
+  expand(time = full_seq(time, 1)) |> 
+  group_by(plot) |> 
+  mutate(invyr = time %in% seq(unique(plot) %% period, 101, period))
+
+periodic_expanded <- 
+  #add extra years and invyr column
+  right_join(sim, inventory_schedule) |> 
+  arrange(plot, tree, time) |> 
+  mutate(ht = if_else(invyr, ht, NA)) |> 
+  #remove leading NAs
+  group_by(tree) |> 
+  filter(!all(is.na(ht))) |> 
+  filter(row_number() >= which.min(is.na(ht)))
+
+
+periodic <- periodic_expanded |> 
+  #remove non-inventory years
+  filter(invyr)
+  
+```
+
+```{r}
+ggplot(periodic, aes(x = time, y = ht, color = as.factor(plot), group = tree)) + 
+  geom_point() +
+  geom_line() +
+  theme(legend.position = "none")
+```
+
+## Interpolation
+
+### Use mortyr
+
+This is an extreme case where we "know" the mortality year for every tree
+
+```{r}
+interpolated_mortyr <-
+  periodic_expanded |> 
+  group_by(plot, tree) |> 
+  #linearly interpolate ht
+  mutate(ht = inter_extra_polate(time, ht)) |> 
+  #filter dead trees
+  filter(time < mortyr)
+```
+
+```{r}
+ggplot(interpolated_mortyr, aes(x = time, y = ht, color = as.factor(plot), group = tree)) +
+  geom_point() +
+  geom_line() +
+  theme(legend.position = "none")
+```
+
+### Use midpoint
+
+Assume we don't know the death time exactly
+
+```{r}
+#figure out in which inventory trees are marked dead
+dead_year_records <- periodic |> 
+  mutate(first_dead = time[which.max(is.na(ht))]) |> 
+  mutate(alive = time < first_dead) |> 
+  select(tree, plot, time, alive)
+
+
+interpolated_midpt <-
+  left_join(periodic_expanded, dead_year_records) |> 
+  #linearly interpolate ht
+  group_by(plot, tree) |> 
+  mutate(ht = inter_extra_polate(time, ht)) |> 
+  #use midpoint rule for death
+  mutate(alive = step_interp(alive)) |> 
+  filter(alive)
+```
+
+```{r}
+ggplot(interpolated_midpt, aes(x = time, y = ht, color = as.factor(plot), group = tree)) +
+  geom_point() +
+  geom_line() +
+  theme(legend.position = "none")
+```
+
+## Get population averages
+
+I'm not yet entirely sure how to do this for the panel design, but for the simulated and interpolated data, you just take means.
+
+```{r}
+periodic_stat <- periodic |> 
+  group_by(time) |> 
+  summarize(
+    # sum = sum(ht, na.rm = TRUE),
+    mean = mean(ht, na.rm = TRUE),
+    sd = sd(ht, na.rm = TRUE),
+    sem = sd/sqrt(n())
+  )
+sim_stat <- sim |> 
+  group_by(time) |> 
+  summarize(
+    sum = sum(ht, na.rm = TRUE),
+    mean = mean(ht, na.rm = TRUE),
+    sd = sd(ht, na.rm = TRUE),
+    sem = sd/sqrt(n())
+  )
+interpolated_mortyr_stat <- interpolated_mortyr |> 
+  group_by(time) |> 
+  summarize(
+    sum = sum(ht, na.rm = TRUE),
+    mean = mean(ht, na.rm = TRUE),
+    sd = sd(ht, na.rm = TRUE),
+    sem = sd/sqrt(n())
+  )
+interpolated_midpt_stat <- interpolated_midpt |> 
+  group_by(time) |> 
+  summarize(
+    sum = sum(ht, na.rm = TRUE),
+    mean = mean(ht, na.rm = TRUE),
+    sd = sd(ht, na.rm = TRUE),
+    sem = sd/sqrt(n())
+  )
+```
+
+```{r}
+p <- position_dodge(width = 0.4)
+
+list(
+  sim = sim_stat,
+  periodic = periodic_stat,
+  interpolated_midpt = interpolated_midpt_stat,
+  interpolated_mortyr = interpolated_mortyr_stat
+) |> 
+  bind_rows(.id = "method") |> 
+  ggplot(aes(x = time, y = mean, color = method)) +
+  geom_point(position = p) +
+  geom_line(position = p) +
+  geom_ribbon(aes(ymin = mean - sem, ymax = mean + sem, fill = method), 
+              color = NA, alpha = 0.2, position = p) +
+  # scale_x_continuous(limits = c(40, 55)) +
+  NULL
+```
