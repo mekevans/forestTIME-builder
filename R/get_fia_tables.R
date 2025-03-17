@@ -22,7 +22,7 @@ tables <- c(
 #' @param extract logical; extract the TREE and PLOT csv files?
 #' @param keep_zip logical; keep the .zip file after CSVs are extracted?
 get_fia_tables <- function(states,
-                           rawdat_dir = "data/rawdat/state/",
+                           rawdat_dir = here::here("data/rawdat/state/"),
                            extract = TRUE,
                            keep_zip = FALSE) {
   states <- match.arg(states, state.abb, several.ok = TRUE)
@@ -94,4 +94,14 @@ unzip_csvs <- function(zips, rawdat_dir, keep_zip) {
     }
   })
   return(invisible(TRUE))
+}
+
+
+#' Read in needed tables
+#' 
+#' Wrapper for [rFIA::readFIA] that reads in the necessary tables
+#' @inheritParams rFIA::readFIA()
+#' 
+read_fia <- function(states, dir = here::here("data/rawdat/state/")) {
+  rFIA::readFIA(dir = dir, states = states, tables = tables)
 }
