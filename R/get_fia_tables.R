@@ -58,7 +58,7 @@ get_fia_tables <- function(states,
   
   if (length(urls) == 0) {
     cli::cli_warn("All CSVs already downloaded!")
-    return(NULL)
+    return(invisible(NULL))
   }
   
   #download file(s)
@@ -78,7 +78,7 @@ get_fia_tables <- function(states,
     return(zips)
   } else {
     unzip_csvs(zips, rawdat_dir = rawdat_dir, keep_zip = keep_zip)
-    return(NULL)
+    return(invisible(NULL))
   }
 }
 
@@ -103,5 +103,5 @@ unzip_csvs <- function(zips, rawdat_dir, keep_zip) {
 #' @inheritParams rFIA::readFIA()
 #' 
 read_fia <- function(states, dir = here::here("data/rawdat/state/")) {
-  rFIA::readFIA(dir = dir, states = states, tables = tables)
+  rFIA::readFIA(dir = dir, states = states, tables = tables) |> purrr::map(tibble::as_tibble)
 }

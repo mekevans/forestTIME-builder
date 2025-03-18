@@ -14,123 +14,45 @@ library(readr)
 library(here)
 library(purrr)
 library(dplyr)
-col_types <- read_rds(here("data/rawdat/table_types.rds"))
-col_types_readr <- col_types |> 
-  map(\(v) { #for every vector element of col_types...
-    as.list(v) |> #convert to list
-      #then modify to replace with readr col_*() column specification functions
-      modify_at(which(v == "STRING"), \(x) col_character()) |> 
-      modify_at(which(v == "INTEGER"), \(x) col_integer()) |> 
-      modify_at(which(v == "DOUBLE"), \(x) col_double())
-  })
+
+source("../R/get_fia_tables.R")
+source("../R/prep_data.R")
+source("../R/expand_data.R")
+source("../R/step_interp.R")
+source("../R/inter_extra_polate.R")
+source("../R/interpolate_data.R")
+```
+
+## Data Download
+
+```{r}
+get_fia_tables(
+  states = c("RI", "DE", "CO", "OR"),
+  keep_zip = TRUE
+)
 ```
 
 ## Data Preparation
 
 I need to make sure I have all the columns for population estimation *and* all the columns for carbon estimation using the walker code (documented better in `annual_carbon_estimation.qmd`).
 
-To do that, we need additional tables not already unzipped.
-I'll use RI as an example state since those tables are already built in to `rFIA`
-
 ```{r}
-db <- fiaRI
-"PLOGEOM" %in% names(db)
-#doesn't have the PLOTGEOM table in it
-PLOTGEOM <- read_csv(
-  here("data/rawdat/state/RI_PLOTGEOM.csv"),
-  col_types = col_types_readr$plotgeom_types
-) |> select(CN, ECOSUBCD) |> 
-  mutate(CN = as.numeric(CN)) #just to match vignette and fiaRI data
-
-
+db <- read_fia(states = "RI")
+names(db)
 ```
 
-Get the columns needed
+Get the columns needed into a single table
 
 ```{r}
-# Select only the columns we need from each table, to keep things slim
-PLOT <- 
-  db$PLOT |> 
-  mutate(plot_ID = paste(STATECD, UNITCD, COUNTYCD, PLOT, sep = "_"), .before = 1) |> 
-  select(plot_ID, CN, INVYR, MACRO_BREAKPOINT_DIA)
-
-COND <- 
-  select(db$COND, PLT_CN, CONDID, CONDPROP_UNADJ, PROP_BASIS, 
-         COND_STATUS_CD, STDORGCD, OWNGRPCD)
-
-TREE <- 
-  db$TREE |> 
-  mutate(
-    plot_ID = paste(STATECD, UNITCD, COUNTYCD, PLOT, sep = "_"),
-    tree_ID = paste(STATECD, UNITCD, COUNTYCD, PLOT, SUBP, TREE, sep = "_"),
-    .before = 1
-  ) |> 
-  select(plot_ID, tree_ID, PLT_CN, CONDID, SUBP, TREE, STATUSCD, DECAYCD,
-         STANDING_DEAD_CD, DRYBIO_AG, CARBON_AG, TPA_UNADJ, DIA, CR, HT,
-         ACTUALHT, CULL, SPCD)
-
-POP_ESTN_UNIT <- 
-  select(db$POP_ESTN_UNIT, CN, EVAL_CN, AREA_USED, P1PNTCNT_EU)
-
-POP_EVAL <-
-  select(db$POP_EVAL, EVALID, EVAL_GRP_CN, ESTN_METHOD, CN, END_INVYR,
-         REPORT_YEAR_NM)
-
-POP_EVAL_TYP <- select(db$POP_EVAL_TYP, EVAL_TYP, EVAL_CN)
-
-POP_PLOT_STRATUM_ASSGN <- 
-  select(db$POP_PLOT_STRATUM_ASSGN, STRATUM_CN, PLT_CN, INVYR)
-
-POP_STRATUM <- 
-  select(db$POP_STRATUM, ESTN_UNIT_CN, EXPNS, P2POINTCNT, ADJ_FACTOR_MICR,
-         ADJ_FACTOR_SUBP, ADJ_FACTOR_MACR, CN, P1POINTCNT)
+data <- prep_data(db)
 ```
 
-```{r}
-# Join the tables
-data <- PLOT %>%
-  # Add a PLT_CN column for easy joining
-  mutate(PLT_CN = CN) %>%
-  left_join(PLOTGEOM, by = "CN") |> 
-  # Join COND & TREE
-  left_join(COND, by = 'PLT_CN') %>%
-  left_join(TREE, by = join_by(plot_ID, PLT_CN, CONDID)) %>%
-  # Population tables
-  left_join(POP_PLOT_STRATUM_ASSGN, by = join_by(INVYR, PLT_CN), relationship = 'many-to-many') %>% #many-to-many relationship?
-  left_join(POP_STRATUM, by = c('STRATUM_CN' = 'CN')) %>%
-  left_join(POP_ESTN_UNIT, by = c('ESTN_UNIT_CN' = 'CN')) %>%
-  left_join(POP_EVAL, by = c('EVAL_CN' = 'CN')) %>%
-  left_join(POP_EVAL_TYP, by = 'EVAL_CN', relationship = 'many-to-many') |> 
-  filter(INVYR >= 2000.0)
-```
-
-remove problems
+Check that each tree has only 1 entry per year
 
 ```{r}
-#remove trees that are always dead
-data <- data |> 
-  group_by(tree_ID) |> 
-  filter(!(all(is.na(DIA)) |
-             all(is.na(ACTUALHT)) |
-             all(is.na(HT)) |
-             all(STATUSCD != 1))) |> 
-#remove trees that change species
-  filter(length(unique(SPCD)) == 1) |> 
-  ungroup()
-```
-
-coalesce `ACTUALHT`
-
-```{r}
-
-```
-
-## Merge ref data
-
-Required columns from REF_SPECIES and other tables get merged in here
-
-```{r}
-
+data |> 
+  group_by(tree_ID, INVYR) |> 
+  summarise(n = n()) |> filter(n > 1)
 ```
 
 ## Expand
@@ -138,15 +60,20 @@ Required columns from REF_SPECIES and other tables get merged in here
 Here's where I'll expand to include all years and then fill any time-invariant columns
 
 ```{r}
-
+data_expanded <- expand_data(data)
 ```
 
 ## Interpolate
 
-Then I'll apply the interpolation functions here
+Then I'll apply the interpolation functions here.
+
+::: callout-important
+Still need to figure out how to interpolate some variables:\
+<https://github.com/mekevans/forestTIME-builder/issues/64>
+:::
 
 ```{r}
-
+data_interpolated <- interpolate_data(data_expanded)
 ```
 
 ## TPA_UNADJ
@@ -164,6 +91,12 @@ Then we'll adjust all columns related to mortality (`STATUSCD`, `STANDING_DEAD_C
 ```{r}
 
 ```
+
+After this, can join REF tables
+
+## Prep for Carbon Estimation
+
+Join REF tables and such
 
 ## Estimate carbon
 
