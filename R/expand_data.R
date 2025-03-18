@@ -27,7 +27,7 @@ expand_data <- function(data) {
     dplyr::arrange(tree_ID, YEAR) |> 
     #fill down any time-invariant columns
     dplyr::group_by(tree_ID) |> 
-    tidyr::fill(plot_ID, SPCD, ECOSUBCD, PROP_BASIS) |> 
+    tidyr::fill(plot_ID, SPCD, ECOSUBCD, DESIGNCD, PROP_BASIS) |> 
     dplyr::ungroup() |> 
     #rearrange
     dplyr::select(tree_ID, plot_ID, YEAR, DIA, HT, ACTUALHT, CR, CULL, everything()) 

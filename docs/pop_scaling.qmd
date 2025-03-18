@@ -66,6 +66,7 @@ data_expanded <- expand_data(data)
 ## Interpolate
 
 Then I'll apply the interpolation functions here.
+This also joins in the `TPA_UNADJ` column based on "rules" from `DESIGNCD`.
 
 ::: callout-important
 Still need to figure out how to interpolate some variables:\
@@ -74,14 +75,6 @@ Still need to figure out how to interpolate some variables:\
 
 ```{r}
 data_interpolated <- interpolate_data(data_expanded)
-```
-
-## TPA_UNADJ
-
-Then we'll merge in TPA_UNADJ based on rules Dani has figured out
-
-```{r}
-
 ```
 
 ## Adjust for mortality

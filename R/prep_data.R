@@ -23,6 +23,7 @@ prep_data <- function(db) {
       plot_ID,
       CN,
       INVYR,
+      DESIGNCD, #for joining TPA_UNADJ based on rules later
       # MACRO_BREAKPOINT_DIA #unclear if this is really needed
     )
   
