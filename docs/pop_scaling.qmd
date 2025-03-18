@@ -21,6 +21,7 @@ source("../R/expand_data.R")
 source("../R/step_interp.R")
 source("../R/inter_extra_polate.R")
 source("../R/interpolate_data.R")
+source("../R/adjust_mortality.R")
 ```
 
 ## Data Download
@@ -82,7 +83,7 @@ data_interpolated <- interpolate_data(data_expanded)
 Then we'll adjust all columns related to mortality (`STATUSCD`, `STANDING_DEAD_CD`, `DECAYCD`, and dimensions like `DIA`, `HT`, etc.)
 
 ```{r}
-
+data_mortyr <- adjust_mortality(data_interpolated, use_mortyr = TRUE)
 ```
 
 After this, can join REF tables
@@ -90,6 +91,10 @@ After this, can join REF tables
 ## Prep for Carbon Estimation
 
 Join REF tables and such
+
+```{r}
+
+```
 
 ## Estimate carbon
 

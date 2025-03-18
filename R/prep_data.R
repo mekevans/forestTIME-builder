@@ -59,6 +59,7 @@ prep_data <- function(db) {
       INVYR,
       PLT_CN,
       CONDID,
+      MORTYR,
       STATUSCD,
       DECAYCD,
       STANDING_DEAD_CD,
