@@ -8,7 +8,9 @@ adjust_mortality <- function(data_interpolated, use_mortyr = TRUE) {
         first_dead = if_else(
           condition = any(!is.na(MORTYR)), #has recorded MORTYR
           true = max(MORTYR, na.rm = TRUE),
-          false = YEAR[min(which(STATUSCD == 2))]
+          # if no STATUSCD 2, prints warning, but it's ok because YEAR[Inf] is
+          # NA, which is appropriate here
+          false = YEAR[min(which(STATUSCD == 2))] 
         )
       )
   } else {
@@ -21,6 +23,7 @@ adjust_mortality <- function(data_interpolated, use_mortyr = TRUE) {
   
   df |> 
     #then adjust STATUSCD & DECAYCD
+    #NAs propagate, which is fine
     mutate(STATUSCD = if_else(YEAR >= first_dead, 2, STATUSCD)) |>
     #MORTYR might be earlier than the midpoint, so backfill NAs for DECAYCD and STANDING_DEAD_CD
     tidyr::fill(DECAYCD, STANDING_DEAD_CD, .direction = "up") |> 
