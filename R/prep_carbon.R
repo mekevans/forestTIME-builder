@@ -8,21 +8,21 @@
 #'   [adjust_mortality()].
 #' @param ref_dir path to directory containing REF_SPECIES.csv,
 #'   REF_TREE_DECAY_PROP.csv, and REF_TREE_CARBON_RATIO_DEAD.csv.
-#'   
+#'
 prep_carbon <- function(data_mortyr, ref_dir = "data/rawdat/") {
   #read in ref tables
-  ref_species <- 
-    read_csv(here::here(ref_dir, "REF_SPECIES.csv")) |> 
+  ref_species <-
+    read_csv(here::here(ref_dir, "REF_SPECIES.csv")) |>
     select(
       SPCD,
-      JENKINS_SPGRPCD, 
-      SFTWD_HRDWD, 
+      JENKINS_SPGRPCD,
+      SFTWD_HRDWD,
       CARBON_RATIO_LIVE,
       WDSG = WOOD_SPGR_GREENVOL_DRYWT
     ) #TODO change this in walker code, not here
-  
+
   ref_tree_decay_prop <-
-    read_csv(here::here(ref_dir, "REF_TREE_DECAY_PROP.csv")) |> 
+    read_csv(here::here(ref_dir, "REF_TREE_DECAY_PROP.csv")) |>
     select(
       SFTWD_HRDWD,
       DECAYCD,
@@ -30,22 +30,25 @@ prep_carbon <- function(data_mortyr, ref_dir = "data/rawdat/") {
       BARK_LOSS_PROP,
       BRANCH_LOSS_PROP
     )
-  
-  ref_tree_carbon_ratio_dead <- 
+
+  ref_tree_carbon_ratio_dead <-
     read_csv(here::here(ref_dir, "REF_TREE_CARBON_RATIO_DEAD.csv")) |>
     select(SFTWD_HRDWD, DECAYCD, CARBON_RATIO)
-  
+
   #remove trees with non positive values for HT and warn if there were any
-  weird_obs <- data_mortyr |> 
+  weird_obs <- data_mortyr |>
     filter(HT <= 0 | is.na(HT))
   if (nrow(weird_obs) > 0) {
-    warning(nrow(weird_obs), " observations removed due to negative or missing HT values")
-    data_mortyr <- data_mortyr |> 
+    warning(
+      nrow(weird_obs),
+      " observations removed due to negative or missing HT values"
+    )
+    data_mortyr <- data_mortyr |>
       filter(HT > 0 & !is.na(HT))
   }
-  
-  data_mortyr |> 
-    ungroup() |> 
+
+  data_mortyr |>
+    ungroup() |>
     #join to get species properties
     left_join(ref_species, by = join_by(SPCD)) |>
     #first joins by SFTWD_HRDWD only the DENSITY_PROP column for DECAYCD 3, but calls it CULL_DECAY_RATIO
@@ -57,11 +60,11 @@ prep_carbon <- function(data_mortyr, ref_dir = "data/rawdat/") {
           #not sure I understand the naming of this variable
           CULL_DECAY_RATIO = DENSITY_PROP
         ),
-      by = join_by(SFTWD_HRDWD)  
-    ) |> 
+      by = join_by(SFTWD_HRDWD)
+    ) |>
     #then joins additional columns (including DENSITY_PROP) based on DECAYCD and SFTWD_HRDWD
-    left_join(ref_tree_decay_prop, by = join_by(DECAYCD, SFTWD_HRDWD)) |> 
-    left_join(ref_tree_carbon_ratio_dead, by = join_by(DECAYCD, SFTWD_HRDWD)) |> 
+    left_join(ref_tree_decay_prop, by = join_by(DECAYCD, SFTWD_HRDWD)) |>
+    left_join(ref_tree_carbon_ratio_dead, by = join_by(DECAYCD, SFTWD_HRDWD)) |>
     #TODO Why is CULL_DECAY_RATIO set to 1 when trees are dead?
     mutate(
       CULL_DECAY_RATIO = if_else(STATUSCD == 1, CULL_DECAY_RATIO, 1),
@@ -73,6 +76,10 @@ prep_carbon <- function(data_mortyr, ref_dir = "data/rawdat/") {
       DECAY_BK = if_else(STATUSCD == 1, 1, BARK_LOSS_PROP),
       DECAY_BR = if_else(STATUSCD == 1, 1, BRANCH_LOSS_PROP),
       #TODO: why is this called C_FRAC if it is a percentage?
-      C_FRAC = if_else(STATUSCD == 1, CARBON_RATIO_LIVE * 100, CARBON_RATIO * 100)
-    ) 
+      C_FRAC = if_else(
+        STATUSCD == 1,
+        CARBON_RATIO_LIVE * 100,
+        CARBON_RATIO * 100
+      )
+    )
 }
