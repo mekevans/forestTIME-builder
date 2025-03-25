@@ -7,12 +7,12 @@ source(here::here("R/predictCRM2.R"))
 #'
 #'
 #' @param data prepped data produced by [prep_carbon()].
-#' @param carbon_dir directory where some files are
+#' @param carbon_dir absolute path to directory where some files are
 #'
 #' @references TODO: add ref to the paper this code is from
-estimate_carbon <- function(data, carbon_dir = "carbon_code") {
+estimate_carbon <- function(data, carbon_dir = here::here("carbon_code")) {
   med_cr_prop <-
-    readr::read_csv(here::here(
+    readr::read_csv(fs::path(
       carbon_dir,
       "Decay_and_Dead/nsvb/median_crprop.csv"
     )) |>
@@ -70,7 +70,7 @@ estimate_carbon <- function(data, carbon_dir = "carbon_code") {
   #applyAllLevels() I think
 
   # equation numbers and forms are stored in ref file
-  forms <- read.csv(here::here(
+  forms <- read.csv(fs::path(
     carbon_dir,
     "Files",
     "equation_forms_and_calls.csv"
@@ -92,7 +92,8 @@ estimate_carbon <- function(data, carbon_dir = "carbon_code") {
   fiadb2 <- predictCRM2(
     data = fiadb,
     # directory where the coefficient files are
-    coef_dir = here::here("carbon_code", "Coefs", "combined"),
+    coef_dir = fs::path(carbon_dir, "Coefs", "combined"),
+    forms = forms,
     # what are the variable names for dbh/total height/cull
     # should probably update this for c_frac, actual_ht, etc
     var_names = c(DBH = "DIA", THT = "HT", CULL = "CULL"),
@@ -102,5 +103,26 @@ estimate_carbon <- function(data, carbon_dir = "carbon_code") {
 
   #TODO select only columns needed!!
   #return
-  fiadb2
+  fiadb2 |> dplyr::as_tibble() |> 
+    select(
+      tree_ID, 
+      plot_ID,
+      YEAR,
+      DIA, 
+      HT, 
+      ACTUALHT,
+      CR,
+      CULL,
+      PLT_CN,
+      CONDID,
+      MORTYR, 
+      STATUSCD,
+      DECAYCD, 
+      STANDING_DEAD_CD,
+      SPCD,
+      CN, #not sure which CN this is
+      # DESIGNCD, #only needed this to get TPA_UNADJ
+      TPA_UNADJ,
+      # TODO add carbon vars but name them what they are in FIAdb
+    )
 }
