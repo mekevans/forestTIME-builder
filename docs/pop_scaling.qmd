@@ -1,11 +1,13 @@
 ---
-title: "Untitled"
+title: "Population-level summaries of annualized FIA data"
+author: Eric Scott
 format: html
 ---
 
-Following the 'rFIA demystified' [vignette](https://doserlab.com/files/rfia/articles/fiademystified#with-sampling-errors) on estimation at the population level with sampling errors, but with interpolation and extrapolation to annualize data.
+My goal with this is to follow along with the 'rFIA demystified' [vignette](https://doserlab.com/files/rfia/articles/fiademystified#with-sampling-errors) on estimation at the population level with sampling errors, but using interpolated/extrapolated annual data as best as I can.
 
-The sections below are intended to represent chunks that could be turned into functions, e.g. `expand_time()`, `interpolate_data()`, `estimate_carbon()`, etc.
+Each "step" of the process has been turned into a function.
+In RStudio, you can find the definition of a function by typing {{< kbd mac=Ctrl-. >}}.
 
 ```{r}
 #| label: setup
@@ -15,18 +17,21 @@ library(here)
 library(purrr)
 library(dplyr)
 
-source("../R/get_fia_tables.R")
-source("../R/prep_data.R")
-source("../R/expand_data.R")
-source("../R/step_interp.R")
-source("../R/inter_extra_polate.R")
-source("../R/interpolate_data.R")
-source("../R/adjust_mortality.R")
-source("../R/prep_carbon.R")
-source("../R/estimate_carbon.R")
+source(here("R/get_fia_tables.R"))
+source(here("R/prep_data.R"))
+source(here("R/expand_data.R"))
+source(here("R/step_interp.R"))
+source(here("R/inter_extra_polate.R"))
+source(here("R/interpolate_data.R"))
+source(here("R/adjust_mortality.R"))
+source(here("R/prep_carbon.R"))
+source(here("R/estimate_carbon.R"))
 ```
 
 ## Data Download
+
+This downloads zip files of all CSVs and extracts the necessary ones.
+It will skip downloading if the files already exist
 
 ```{r}
 get_fia_tables(
@@ -44,79 +49,140 @@ db <- read_fia(states = "DE")
 names(db)
 ```
 
-Get the columns needed into a single table
+Get the columns needed into a single table and create the unique plot and tree IDS, `plot_ID` and `tree_ID`
+
+::: callout-note
+Note these unique ID columns have been renamed from `PLOT_COMPOSITE_ID` and `TREE_COMPOSITE_ID` to match the names used in `rFIA`, but they are constructed the same way still.
+:::
+
+::: callout-important
+Not all the columns necessary for population estimation are merged here because there is a "many-to-many" relationship with the `POP_PLOT_STRATUM_ASSGN` table.
+I believe this is because each plot can belong to multiple strata per year.
+Joining this table here would mess up interpolation because each tree would have multiple rows per year.
+See commented out code in `R/prep_data.R` for more detail
+:::
 
 ```{r}
 data <- prep_data(db)
+data
 ```
 
 Check that each tree has only 1 entry per year
 
 ```{r}
-data |> 
+n <- data |> 
   group_by(tree_ID, INVYR) |> 
-  summarise(n = n()) |> filter(n > 1)
+  summarise(n = n(), .groups = "drop") |>
+  filter(n > 1) |> 
+  nrow()
+stopifnot(n == 0)
 ```
 
 ## Expand
 
-Here's where I'll expand to include all years and then fill any time-invariant columns
+Here's where I'll expand to include all years and then fill-down any time-invariant columns.
+Time-invariant columns include `plot_ID`, `SPCD`, `ECOSUBCD`, `DESIGNCD`, and `PROP_BASIS`.
 
 ```{r}
 data_expanded <- expand_data(data)
+data_expanded
 ```
 
 ## Interpolate
 
 Then I'll apply the interpolation functions here.
-This also joins in the `TPA_UNADJ` column based on "rules" from `DESIGNCD`.
+Continuous variables are interpolated with `inter_extra_polate()` and categorical variables are interpolated with `step_interp()`.
+`interpolate_data()` also joins in the `TPA_UNADJ` column based on "rules" from `DESIGNCD` that Dani compiled.
 
 ::: callout-important
-Still need to figure out how to interpolate some variables:\
+I'm still unsure on how to interpolate some variables:\
 <https://github.com/mekevans/forestTIME-builder/issues/64>
 :::
 
 ```{r}
 data_interpolated <- interpolate_data(data_expanded)
+data_interpolated
+```
+
+```{r}
+data_interpolated |> 
+  filter(is.na(TPA_UNADJ) & !is.na(DIA)) |> 
+  select(DIA, DESIGNCD, TPA_UNADJ) |> 
+  distinct()
+
 ```
 
 ## Adjust for mortality
 
-Then we'll adjust all columns related to mortality (`STATUSCD`, `STANDING_DEAD_CD`, `DECAYCD`, and dimensions like `DIA`, `HT`, etc.)
+Then we'll adjust all columns related to mortality (`STATUSCD`, `STANDING_DEAD_CD`, `DECAYCD`, and dimensions like `DIA`, `HT`, etc.).
+E.g.
+`DECAYCD` only applies to standing dead trees and `STANDING_DEAD_CD` only applies to trees with `STATUSCD` 2 (dead).
+
+::: callout-important
+I'm uncertain if I'm treating trees that have `STATUSCD` 0 correctly\
+<https://github.com/mekevans/forestTIME-builder/issues/59>
+:::
 
 ::: callout-note
 I double-checked, and the warning this gives can be ignored safely.
-It happens when trees aren't ever marked as dead (`STATUSCD==2`) and results in a "first dead" year of `NA`, which is appropriate.
+It happens when trees aren't ever marked as dead (`STATUSCD==2`) and results in a "first dead" year of `NA`, which *is* appropriate.
 :::
 
 ```{r}
 data_mortyr <- adjust_mortality(data_interpolated, use_mortyr = TRUE)
 data_midpt <- adjust_mortality(data_interpolated, use_mortyr = FALSE)
+all.equal(data_mortyr, data_midpt)
 ```
 
-After this, can join REF tables
+These tables will be identical in states like RI where `MORTYR` is never used, but in states like CO these tables will differ slightly for some subset of trees.
 
 ## Prep for Carbon Estimation
 
-Join REF tables and such
+`prep_carbon()` joins in reference tables based on species code.
+These variables are needed by the carbon estimation functions.
+It also converts some `NA`s because the functions provided by David Walker are not set up to handle indexing with `NA`s.
 
 ```{r}
 data_mortyr_prepped <- prep_carbon(data_mortyr)
 data_midpt_prepped <- prep_carbon(data_midpt)
+data_mortyr_prepped
 ```
 
 ## Estimate carbon
 
-Here, our table will get run through the david walker code (which, ideally will be turned into a function)
+`estimate_carbon()` wraps some of the code David Walker provided into a function that returns a data frame.
+
+::: callout-important
+In particular, it uses the version of `predictCRM2.R` originally from `carbon_code/Decay_and_Dead/R/VT_CRM2_ApplyFuns.R`.
+There is another, slightly different, version of that function in `carbon_code/R/VT_CRM2_ApplyFuns.R`, but it was not being used by Renata's code, so I am assuming I also can ignore it.\
+<https://github.com/mekevans/forestTIME-builder/issues/66>
+:::
 
 ```{r}
 carbon_midpt <- estimate_carbon(data_midpt_prepped)
 carbon_mortyr <- estimate_carbon(data_mortyr_prepped)
+carbon_midpt
 ```
 
-::: callout-important
-Still to-do: remove unneeded columns from this output!
-:::
+Carbon and biomass appear to be NA for many observations.
+Some are NA because they are not alive or standing dead trees.
+
+Some are when `ACTUALHT` is negative (<https://github.com/mekevans/forestTIME-builder/issues/60>), some are where `TPA_UNADJ` is missing (<https://github.com/mekevans/forestTIME-builder/issues/68>).
+Some have `NA` for cull ratio (`CR`) which *might* have something to do with interpolation.
+
+```{r}
+carbon_midpt |>
+  filter(is.na(CARBON_AG)) 
+
+carbon_midpt |> 
+  filter(is.na(CARBON_AG) & (STATUSCD == 1 | STANDING_DEAD_CD == 1)) |> 
+  filter(ACTUALHT > 0) |> 
+  filter(!is.na(TPA_UNADJ)) 
+```
+
+Ah, it looks like they all are standing dead trees without a `DECAYCD` (so nothing gets joined from the REF tables).
+Will need to look into that more.
+There's only one observation like that in the raw data, so this is some issue in interpolation or adjusting for mortality.
 
 ## Plot level sums
 
@@ -129,3 +195,6 @@ Then summarize by stratum
 ## Population level
 
 Then sum attributes across estimation units for region of interest
+
+Why not just add up all the carbon of all the trees?
+(maybe after adjusting TPA_UNADJ?)

@@ -7,7 +7,7 @@
 #' handled with [step_interp()].
 #' 
 #' @param data_expanded tibble produced by [expand_data()]
-interpolate_data <- function(data_expanded, tpa_rules_path = "data/DESIGNCD_TPA.csv") {
+interpolate_data <- function(data_expanded, tpa_rules_path = here::here("data/DESIGNCD_TPA.csv")) {
   #variables to linearly interpolate/extrapolate
   cols_interpolate <- c("ACTUALHT", "DIA", "HT", "CULL", "CR", "CONDPROP_UNADJ")
   #variables that switch at the midpoint (rounded down) between surveys

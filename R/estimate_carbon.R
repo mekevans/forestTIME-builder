@@ -19,17 +19,22 @@ estimate_carbon <- function(data, carbon_dir = here::here("carbon_code")) {
     mutate(SFTWD_HRDWD = if_else(hwd_yn == 'N', 'S', 'H'))
 
   #seems like should go in prep_carbon() maybe?
-  data_midpt_prepped <-
-    data_midpt_prepped |>
+  data_prepped <-
+    data |>
     mutate(
       PROVINCE = getDivision(ECOSUBCD, TRUE),
       DIVISION = getDivision(ECOSUBCD)
     ) |>
+    # no trees with missing heights and no woodland species
+    filter(JENKINS_SPGRPCD < 10, !is.na(HT)) |> 
     #this is only necessary because this code uses [] for indexing instead of `filter()`
-    mutate(CULL = ifelse(is.na(CULL), 0, CULL))
+    mutate(
+      across(c(DECAYCD, STANDING_DEAD_CD), \(x) if_else(STATUSCD == 1, 0, x)),
+      CULL = ifelse(is.na(CULL), 0, CULL)
+    )
 
   fiadb <-
-    data_midpt_prepped |>
+    data_prepped |>
     left_join(
       med_cr_prop |> select(PROVINCE = Province, SFTWD_HRDWD, CRmn),
       by = join_by(SFTWD_HRDWD, PROVINCE)
@@ -99,30 +104,34 @@ estimate_carbon <- function(data, carbon_dir = here::here("carbon_code")) {
     var_names = c(DBH = "DIA", THT = "HT", CULL = "CULL"),
     gross.volume = FALSE,
     all.vars = TRUE
-  )
-
-  #TODO select only columns needed!!
-  #return
-  fiadb2 |> dplyr::as_tibble() |> 
+  ) |> 
+    dplyr::as_tibble() |>
+    #select only columns needed
     select(
-      tree_ID, 
+      tree_ID,
       plot_ID,
       YEAR,
-      DIA, 
-      HT, 
+      DIA,
+      HT,
       ACTUALHT,
       CR,
       CULL,
       PLT_CN,
       CONDID,
-      MORTYR, 
       STATUSCD,
-      DECAYCD, 
+      DECAYCD,
       STANDING_DEAD_CD,
       SPCD,
       CN, #not sure which CN this is
       # DESIGNCD, #only needed this to get TPA_UNADJ
       TPA_UNADJ,
-      # TODO add carbon vars but name them what they are in FIAdb
+      # DRYBIO_AG = AGB, #Includes foliage, which is not part of DRYBIO_AG
+      DRYBIO_AG = BIOMASS, #Does not include foliage
+      CARBON_AG = CARBON
     )
+  
+  #TODO: undo changing of NAs to 0s
+  
+  #return
+  fiadb2
 }

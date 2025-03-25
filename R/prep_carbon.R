@@ -6,13 +6,13 @@
 #'
 #' @param data_mortyr annualized tree table already adjusted for mortality by
 #'   [adjust_mortality()].
-#' @param ref_dir path to directory containing REF_SPECIES.csv,
+#' @param ref_dir absolute path to directory containing REF_SPECIES.csv,
 #'   REF_TREE_DECAY_PROP.csv, and REF_TREE_CARBON_RATIO_DEAD.csv.
 #'
-prep_carbon <- function(data_mortyr, ref_dir = "data/rawdat/") {
+prep_carbon <- function(data_mortyr, ref_dir = here::here("data/rawdat/")) {
   #read in ref tables
   ref_species <-
-    read_csv(here::here(ref_dir, "REF_SPECIES.csv")) |>
+    read_csv(fs::path(ref_dir, "REF_SPECIES.csv")) |>
     select(
       SPCD,
       JENKINS_SPGRPCD,
@@ -22,7 +22,7 @@ prep_carbon <- function(data_mortyr, ref_dir = "data/rawdat/") {
     ) #TODO change this in walker code, not here
 
   ref_tree_decay_prop <-
-    read_csv(here::here(ref_dir, "REF_TREE_DECAY_PROP.csv")) |>
+    read_csv(fs::path(ref_dir, "REF_TREE_DECAY_PROP.csv")) |>
     select(
       SFTWD_HRDWD,
       DECAYCD,
@@ -32,7 +32,7 @@ prep_carbon <- function(data_mortyr, ref_dir = "data/rawdat/") {
     )
 
   ref_tree_carbon_ratio_dead <-
-    read_csv(here::here(ref_dir, "REF_TREE_CARBON_RATIO_DEAD.csv")) |>
+    read_csv(fs::path(ref_dir, "REF_TREE_CARBON_RATIO_DEAD.csv")) |>
     select(SFTWD_HRDWD, DECAYCD, CARBON_RATIO)
 
   #remove trees with non positive values for HT and warn if there were any
@@ -63,14 +63,14 @@ prep_carbon <- function(data_mortyr, ref_dir = "data/rawdat/") {
       by = join_by(SFTWD_HRDWD)
     ) |>
     #then joins additional columns (including DENSITY_PROP) based on DECAYCD and SFTWD_HRDWD
-    left_join(ref_tree_decay_prop, by = join_by(DECAYCD, SFTWD_HRDWD)) |>
+    left_join(ref_tree_decay_prop, by = join_by(DECAYCD, SFTWD_HRDWD)) |> 
     left_join(ref_tree_carbon_ratio_dead, by = join_by(DECAYCD, SFTWD_HRDWD)) |>
     #TODO Why is CULL_DECAY_RATIO set to 1 when trees are dead?
     mutate(
-      CULL_DECAY_RATIO = if_else(STATUSCD == 1, CULL_DECAY_RATIO, 1),
-      STANDING_DEAD_CD = if_else(STATUSCD == 1, 0, STANDING_DEAD_CD),
+      # CULL_DECAY_RATIO = if_else(STATUSCD == 1, CULL_DECAY_RATIO, 1),
+      # STANDING_DEAD_CD = if_else(STATUSCD == 1, 0, STANDING_DEAD_CD),
       #TODO shouldn't DECAYCD actually get ajusted based on STANDING_DEAD_CD?
-      DECAYCD = if_else(STATUSCD == 1, 0, DECAYCD),
+      # DECAYCD = if_else(STATUSCD == 1, 0, DECAYCD),
       #additional variables for walker code only
       DECAY_WD = if_else(STATUSCD == 1, 1, DENSITY_PROP),
       DECAY_BK = if_else(STATUSCD == 1, 1, BARK_LOSS_PROP),
@@ -81,5 +81,5 @@ prep_carbon <- function(data_mortyr, ref_dir = "data/rawdat/") {
         CARBON_RATIO_LIVE * 100,
         CARBON_RATIO * 100
       )
-    )
+    ) 
 }

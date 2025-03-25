@@ -120,14 +120,11 @@ prep_data <- function(db) {
   # left_join(POP_EVAL, by = c('EVAL_CN' = 'CN')) %>%
   # left_join(POP_EVAL_TYP, by = 'EVAL_CN', relationship = 'many-to-many') |>
 
-  #remove trees that are always dead
+  #remove trees that have only 0 or 1 non-NA measurment (we can't interpolate these)
   data <- data |>
     group_by(tree_ID) |>
     filter(
-      !(all(is.na(DIA)) |
-        all(is.na(ACTUALHT)) |
-        all(is.na(HT)) |
-        all(STATUSCD != 1))
+      sum(!is.na(DIA)) > 1 & sum(!is.na(HT)) > 1
     ) |>
     #remove trees that change species
     filter(length(unique(SPCD)) == 1) |>
