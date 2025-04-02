@@ -12,10 +12,13 @@ source(here::here("R/predictCRM2.R"))
 #' @references TODO: add ref to the paper this code is from
 estimate_carbon <- function(data, carbon_dir = here::here("carbon_code")) {
   med_cr_prop <-
-    readr::read_csv(fs::path(
-      carbon_dir,
-      "Decay_and_Dead/nsvb/median_crprop.csv"
-    )) |>
+    readr::read_csv(
+      fs::path(
+        carbon_dir,
+        "Decay_and_Dead/nsvb/median_crprop.csv"
+      ),
+      show_col_types = FALSE
+    ) |>
     mutate(SFTWD_HRDWD = if_else(hwd_yn == 'N', 'S', 'H'))
 
   #seems like should go in prep_carbon() maybe?
@@ -26,7 +29,7 @@ estimate_carbon <- function(data, carbon_dir = here::here("carbon_code")) {
       DIVISION = getDivision(ECOSUBCD)
     ) |>
     # no trees with missing heights and no woodland species
-    filter(JENKINS_SPGRPCD < 10, !is.na(HT)) |> 
+    filter(JENKINS_SPGRPCD < 10, !is.na(HT)) |>
     #this is only necessary because this code uses [] for indexing instead of `filter()`
     mutate(
       across(c(DECAYCD, STANDING_DEAD_CD), \(x) if_else(STATUSCD == 1, 0, x)),
@@ -104,7 +107,7 @@ estimate_carbon <- function(data, carbon_dir = here::here("carbon_code")) {
     var_names = c(DBH = "DIA", THT = "HT", CULL = "CULL"),
     gross.volume = FALSE,
     all.vars = TRUE
-  ) |> 
+  ) |>
     dplyr::as_tibble() |>
     #select only columns needed
     select(
@@ -129,9 +132,9 @@ estimate_carbon <- function(data, carbon_dir = here::here("carbon_code")) {
       DRYBIO_AG = BIOMASS, #Does not include foliage
       CARBON_AG = CARBON
     )
-  
+
   #TODO: undo changing of NAs to 0s
-  
+
   #return
   fiadb2
 }

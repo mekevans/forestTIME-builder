@@ -12,7 +12,7 @@
 prep_carbon <- function(data_mortyr, ref_dir = here::here("data/rawdat/")) {
   #read in ref tables
   ref_species <-
-    read_csv(fs::path(ref_dir, "REF_SPECIES.csv")) |>
+    read_csv(fs::path(ref_dir, "REF_SPECIES.csv"), show_col_types = FALSE) |>
     select(
       SPCD,
       JENKINS_SPGRPCD,
@@ -22,7 +22,10 @@ prep_carbon <- function(data_mortyr, ref_dir = here::here("data/rawdat/")) {
     ) #TODO change this in walker code, not here
 
   ref_tree_decay_prop <-
-    read_csv(fs::path(ref_dir, "REF_TREE_DECAY_PROP.csv")) |>
+    read_csv(
+      fs::path(ref_dir, "REF_TREE_DECAY_PROP.csv"),
+      show_col_types = FALSE
+    ) |>
     select(
       SFTWD_HRDWD,
       DECAYCD,
@@ -32,7 +35,10 @@ prep_carbon <- function(data_mortyr, ref_dir = here::here("data/rawdat/")) {
     )
 
   ref_tree_carbon_ratio_dead <-
-    read_csv(fs::path(ref_dir, "REF_TREE_CARBON_RATIO_DEAD.csv")) |>
+    read_csv(
+      fs::path(ref_dir, "REF_TREE_CARBON_RATIO_DEAD.csv"),
+      show_col_types = FALSE
+    ) |>
     select(SFTWD_HRDWD, DECAYCD, CARBON_RATIO)
 
   #remove trees with non positive values for HT and warn if there were any
@@ -63,7 +69,7 @@ prep_carbon <- function(data_mortyr, ref_dir = here::here("data/rawdat/")) {
       by = join_by(SFTWD_HRDWD)
     ) |>
     #then joins additional columns (including DENSITY_PROP) based on DECAYCD and SFTWD_HRDWD
-    left_join(ref_tree_decay_prop, by = join_by(DECAYCD, SFTWD_HRDWD)) |> 
+    left_join(ref_tree_decay_prop, by = join_by(DECAYCD, SFTWD_HRDWD)) |>
     left_join(ref_tree_carbon_ratio_dead, by = join_by(DECAYCD, SFTWD_HRDWD)) |>
     #TODO Why is CULL_DECAY_RATIO set to 1 when trees are dead?
     mutate(
@@ -81,5 +87,5 @@ prep_carbon <- function(data_mortyr, ref_dir = here::here("data/rawdat/")) {
         CARBON_RATIO_LIVE * 100,
         CARBON_RATIO * 100
       )
-    ) 
+    )
 }

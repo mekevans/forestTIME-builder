@@ -127,9 +127,9 @@ neg_trees <- data_interpolated |>
 
 data |> filter(tree_ID %in% neg_trees) |> 
   select(tree_ID, INVYR, DIA, HT, ACTUALHT, STATUSCD, STANDING_DEAD_CD) |>
-  arrange(tree_ID, INVYR) |> View()
+  arrange(tree_ID, INVYR)
 
-data_interpolated |> filter(tree_ID == "10_1_1_148_2_5") |> View()
+data_interpolated |> filter(tree_ID == "10_1_1_148_2_5")
 ```
 
 Examples:

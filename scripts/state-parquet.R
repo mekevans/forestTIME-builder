@@ -1,93 +1,74 @@
-state_to_use = Sys.getenv("STATE", unset = "RI") #use RI for testing because it is small
+state = Sys.getenv("STATE", unset = "RI") #use RI for testing because it is small
 #TODO set delete downloads arg of create_all_tables based on whether local or on GH Actions?
 
-library(duckdb)
-library(DBI)
+library(rFIA)
+library(readr)
+library(here)
+library(purrr)
 library(dplyr)
-library(dbplyr)
-source("R/download_zip_from_datamart.R")
-source("R/create_all_tables.R")
+library(fs)
+library(nanoparquet)
+library(glue)
+library(cli)
 
-if(!dir.exists(here::here("data", "db"))) {
-  dir.create(here::here("data", "db"), recursive = T)
+#load all functions needed
+fs::dir_ls("R/") |> walk(source)
+
+# Data Download
+cli_progress_step("Downloading FIA data for {state}")
+get_fia_tables(states = state, keep_zip = FALSE)
+
+# Data prep
+cli_progress_step("Wrangling data")
+data <-
+  read_fia(states = state) |>
+  prep_data()
+
+# Check that each tree only has 1 entry per year
+n <- data |>
+  group_by(tree_ID, INVYR) |>
+  summarise(n = n(), .groups = "drop") |>
+  filter(n > 1) |>
+  nrow()
+stopifnot(n == 0)
+
+# Expand to include all years between surveys and interpolate/extrapolate
+cli_progress_step("Interpolating between surveys")
+data_interpolated <- data |> expand_data() |> interpolate_data()
+
+# Adjust for mortality and estimate carbon.
+cli_progress_step("Adjusting for mortality and estimating carbon")
+# If any trees use the `MORTYR` variable, use both methods for adjusting for mortality
+do_both <- any(!is.na(data$MORTYR))
+
+if (do_both) {
+  data_mortyr <-
+    data_interpolated |>
+    adjust_mortality(use_mortyr = TRUE) |>
+    prep_carbon() |>
+    estimate_carbon()
 }
-if(!dir.exists(here::here("data", "parquet"))) {
-  dir.create(here::here("data", "parquet"), recursive = T)
+
+data_midpt <-
+  data_interpolated |>
+  adjust_mortality(use_mortyr = FALSE) |>
+  prep_carbon() |>
+  estimate_carbon()
+
+# TODO: pop scaling???
+
+# Write out to parquet
+cli_progress_step("Writing results")
+
+fs::dir_create("data/parquet")
+if (do_both) {
+  nanoparquet::write_parquet(
+    data_mortyr,
+    file = here(glue("data/parquet/{state}_mortyr.parquet"))
+  )
 }
 
-# Download data ####
-
-csv_dir <- here::here("data", "rawdat", "state")
-
-if (!dir.exists(csv_dir)) {
-  dir.create(csv_dir, recursive = T)
-}
-
-download_zip_from_datamart(states = state_to_use,
-                           rawdat_dir = csv_dir,
-                           extract = TRUE,
-                           keep_zip = TRUE)
-
-# Create database  ####
-
-# Specify the path to .duckdb file for database
-database_path <-
-  here::here("data", "db", paste0("foresttime-", state_to_use, ".duckdb"))
-
-if (file.exists(database_path)) {
-  file.remove(database_path)
-}
-
-# Connect to database
-con <- dbConnect(duckdb(dbdir = database_path))
-
-# Create database tables
-#TODO check out and eliminate warnings
-create_all_tables(con, rawdat_dir = csv_dir, delete_downloads = FALSE, state = state_to_use)
-
-# Store parquets #### 
-
-tree_parquet_query <- paste0("COPY tree TO 'data/parquet/tree_table_", state_to_use, ".parquet' (FORMAT PARQUET, PARTITION_BY (CYCLE), OVERWRITE_OR_IGNORE)")
-plot_parquet_query <- paste0("COPY plot TO 'data/parquet/plot_table_", state_to_use, ".parquet' (FORMAT PARQUET, OVERWRITE_OR_IGNORE)")
-cond_parquet_query <- gsub("plot", "cond", plot_parquet_query)
-qa_flags_parquet_query <- gsub("plot", "qa_flags", plot_parquet_query)
-tree_info_composite_id_parquet_query <- gsub("plot", "tree_info_composite_id", plot_parquet_query)
-sapling_transitions_parquet_query <- gsub("plot", "sapling_transitions", plot_parquet_query)
-tree_annualized_parquet_query <- gsub("plot", "tree_annualized", plot_parquet_query)
-tree_cns_parquet_query <- gsub("plot", "tree_cns", plot_parquet_query)
-all_invyrs_parquet_query <- gsub("plot", "all_invyrs", plot_parquet_query)
-nsvb_vars_query <- gsub("plot", "nsvb_vars", plot_parquet_query)
-tree_carbon_query <- gsub("plot", "tree_carbon", plot_parquet_query)
-tree_carbon_annualized_midpoint_query <- gsub("plot", "tree_carbon_annualized_midpoint", plot_parquet_query)
-tree_carbon_annualized_mortyr_query <- gsub("plot", "tree_carbon_annualized_mortyr", plot_parquet_query)
-
-dbExecute(con,
-          tree_parquet_query)
-dbExecute(con,
-          plot_parquet_query)
-dbExecute(con,
-          cond_parquet_query)
-dbExecute(con,
-          qa_flags_parquet_query)
-dbExecute(con,
-          tree_info_composite_id_parquet_query)
-dbExecute(con,
-          sapling_transitions_parquet_query)
-dbExecute(con,
-          tree_annualized_parquet_query)
-dbExecute(con,
-          tree_cns_parquet_query)
-dbExecute(con,
-          all_invyrs_parquet_query)
-dbExecute(con,
-          nsvb_vars_query)
-dbExecute(con,
-          tree_carbon_query)
-dbExecute(con,
-          tree_carbon_annualized_mortyr_query)
-dbExecute(con,
-          tree_carbon_annualized_midpoint_query)
-
-
-dbDisconnect(con, shutdown = TRUE)
-
+nanoparquet::write_parquet(
+  data_midpt,
+  here(glue("data/parquet/{state}_midpt.parquet"))
+)
