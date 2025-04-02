@@ -6,6 +6,7 @@
 - Added "null and length 0 coalescing operator" `%|||%` to `R/utils.R` which is used to suppress warnings that come from adjusting for mortality when a tree hasn't yet died.
 - fixed bug where TPA_UNADJ wasn't getting joined for trees with DIA between 4.9 and 5 (#68)
 - trees that have had RECONCILECD 7 ("Cruiser error") or 8 ("Procedural change") at any inventory are now removed in `prep_data()`
+- fixed a bug where categorical vars weren't interpolated correctly when switching from `NA`s (#72)
 
 # forestTIME-builder v0.1.0
 
