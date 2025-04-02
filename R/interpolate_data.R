@@ -17,6 +17,7 @@ interpolate_data <- function(
   #variables that switch at the midpoint (rounded down) between surveys
   cols_midpt_switch <- c(
     "STATUSCD",
+    "RECONCILECD",
     "DECAYCD",
     "STANDING_DEAD_CD",
     "STDORGCD",
