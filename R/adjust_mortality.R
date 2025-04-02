@@ -10,24 +10,23 @@ adjust_mortality <- function(data_interpolated, use_mortyr = TRUE) {
         first_dead = ifelse(
           test = any(!is.na(MORTYR)), #has recorded MORTYR
           yes = max(MORTYR, na.rm = TRUE),
-          #TODO do not count STATUSCD 0 as dying! It is more complicated than that
-          #https://github.com/mekevans/forestTIME-builder/issues/59
-          no = YEAR[min(which(STATUSCD == 2 | STATUSCD == 0) %|||% NA)]
+          no = YEAR[min(which(STATUSCD == 2) %|||% NA)]
         )
       )
   } else {
     df <- data_interpolated |>
       group_by(tree_ID) |>
       mutate(
-        #TODO do not count STATUSCD 0 as dying! It is more complicated than that
-        #https://github.com/mekevans/forestTIME-builder/issues/59
-        first_dead = YEAR[min(which(STATUSCD == 2 | STATUSCD == 0) %|||% NA)]
+        first_dead = YEAR[min(which(STATUSCD == 2) %|||% NA)]
       )
   }
 
   df |>
-    group_by(tree_ID) |>
+    #drop trees that transition to STATUSCD 0 and RECONCILECD 5, 6, or 9
+    #https://github.com/mekevans/forestTIME-builder/issues/59
+    filter(!(STATUSCD == 0 & RECONCILECD %in% c(5, 6, 9))) |>
     #then adjust STATUSCD & DECAYCD
+    group_by(tree_ID) |>
     mutate(
       STATUSCD = if_else(YEAR >= first_dead, 2, STATUSCD, missing = STATUSCD)
     ) |>
