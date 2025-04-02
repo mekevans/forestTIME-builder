@@ -6,7 +6,7 @@
 #' their first inventory marked dead because we want to extrapolate their growth
 #' from the last time they were inventoried alive to an estimated mortality
 #' year.
-#' 
+#'
 #' @param x numeric; an x variable, usually `YEAR` in forestTIME-builder
 #' @param y numeric; the variable to be interpolated/extrapolated
 #' @param extrapolate logical; perform extrapolation if possible?
@@ -19,13 +19,13 @@
 #' y <- c(2, NA, 5, 6, NA, NA, NA)
 #' inter_extra_polate(x = x, y = y)
 inter_extra_polate <- function(x, y, extrapolate = TRUE) {
-  if (sum(!is.na(y)) < 2){
+  if (sum(!is.na(y)) < 2) {
     return(y)
   } else {
     #first interpolate
     interpolated <- approx(x, y, xout = x)$y
   }
-  
+
   #then extrapolate trailing NAs if needed
   if (isFALSE(extrapolate)) {
     return(interpolatedd)
@@ -33,7 +33,7 @@ inter_extra_polate <- function(x, y, extrapolate = TRUE) {
     if (all(!is.na(interpolated))) {
       return(interpolated)
     } else {
-      extrapolated <- 
+      extrapolated <-
         Hmisc::approxExtrap(
           x = x[!is.na(interpolated)],
           y = interpolated[!is.na(interpolated)],

@@ -1,5 +1,9 @@
 # forestTIME-builder (development version)
 
+- Refactored to not use databases and instead to produce a single table of interpolated data
+- Added new "main" functions `get_fia_tables()`, `read_fia()`, `prep_data()`, `expand_data()`, `interpolate_data()`, `adjust_mortality()`, `prep_carbon()`, and `estimate_carbon()`
+- Outlined the process of creating annualized data in `docs/pop_scaling.qmd`
+- Added "null and length 0 coalescing operator" `%|||%` to `R/utils.R` which is used to suppress warnings that come from adjusting for mortality when a tree hasn't yet died.
 
 # forestTIME-builder v0.1.0
 
