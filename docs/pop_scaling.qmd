@@ -16,6 +16,7 @@ library(readr)
 library(here)
 library(purrr)
 library(dplyr)
+library(cli)
 
 source(here("R/get_fia_tables.R"))
 source(here("R/prep_data.R"))
@@ -103,7 +104,6 @@ I'm still unsure on how to interpolate some variables:\
 data_interpolated <- interpolate_data(data_expanded)
 data_interpolated
 ```
-
 
 How many trees and what kinds of trees get interpolated small or negative values?
 
