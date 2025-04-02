@@ -45,7 +45,7 @@ interpolate_data <- function(
     #join TPA_UNADJ
     left_join(
       tpa_rules,
-      by = join_by(DESIGNCD, between(DIA, min_DIA, max_DIA))
+      by = join_by(DESIGNCD, between(DIA, min_DIA, max_DIA, bounds = "[)"))
     ) |>
     select(-min_DIA, -max_DIA)
 }

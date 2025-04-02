@@ -104,19 +104,6 @@ data_interpolated <- interpolate_data(data_expanded)
 data_interpolated
 ```
 
-::: callout-important
-`TPA_UNADJ` is `NA` for quite a few trees.
-Some of these are due to how the "rules" are joined and there is a proposed fix: <https://github.com/mekevans/forestTIME-builder/issues/68>.
-Others are trees with DIA \< 1 (sometimes negative) which do not fit in one of these rules.
-We need to decide what to do with these trees: <https://github.com/mekevans/forestTIME-builder/issues/60>
-:::
-
-```{r}
-data_interpolated |> 
-  filter(is.na(TPA_UNADJ) & !is.na(DIA)) |> 
-  select(tree_ID, DIA, DESIGNCD, TPA_UNADJ) |> 
-  distinct()
-```
 
 How many trees and what kinds of trees get interpolated small or negative values?
 
