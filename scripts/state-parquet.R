@@ -15,11 +15,9 @@ library(cli)
 fs::dir_ls("R/") |> walk(source)
 
 # Data Download
-cli_progress_step("Downloading FIA data for {state}")
 get_fia_tables(states = state, keep_zip = FALSE)
 
 # Data prep
-cli_progress_step("Wrangling data")
 data <-
   read_fia(states = state) |>
   prep_data()
@@ -33,11 +31,9 @@ n <- data |>
 stopifnot(n == 0)
 
 # Expand to include all years between surveys and interpolate/extrapolate
-cli_progress_step("Interpolating between surveys")
 data_interpolated <- data |> expand_data() |> interpolate_data()
 
 # Adjust for mortality and estimate carbon.
-cli_progress_step("Adjusting for mortality and estimating carbon")
 # If any trees use the `MORTYR` variable, use both methods for adjusting for mortality
 do_both <- any(!is.na(data$MORTYR))
 

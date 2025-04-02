@@ -11,6 +11,7 @@ interpolate_data <- function(
   data_expanded,
   tpa_rules_path = here::here("data/DESIGNCD_TPA.csv")
 ) {
+  cli_progress_step("Interpolating between surveys")
   #variables to linearly interpolate/extrapolate
   cols_interpolate <- c("ACTUALHT", "DIA", "HT", "CULL", "CR", "CONDPROP_UNADJ")
   #variables that switch at the midpoint (rounded down) between surveys

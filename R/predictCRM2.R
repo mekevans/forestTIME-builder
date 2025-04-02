@@ -4,11 +4,13 @@
 predictCRM2 <- function(
   data,
   coef_dir,
-  forms, 
+  forms,
   var_names = c(DBH = "DBH", THT = "THT", CULL = "CULL"),
   gross.volume = FALSE,
   all.vars = TRUE
 ) {
+  msg <- "prepping data"
+  cli_progress_step("Estimating carbon: {msg}", spinner = TRUE)
   data <- as.data.frame(data)
 
   keepN <- names(data)
@@ -37,7 +39,8 @@ predictCRM2 <- function(
 
   # predict all volumes first
   # total wood volume
-  cat("predicting total stem wood volume\n")
+  msg <- "predicting total stem wood volume"
+  cli::cli_progress_update()
   all_volib <- lapply(
     levels,
     applyAllLevels,
@@ -52,7 +55,8 @@ predictCRM2 <- function(
   data <- merge(x = data, y = all_volib, by = "ID")
 
   # total bark volume
-  cat("predicting total stem wood and bark volume\n")
+  msg <- "predicting total stem wood and bark volume"
+  cli::cli_progress_update()
   all_volob <- lapply(
     levels,
     applyAllLevels,
@@ -70,7 +74,8 @@ predictCRM2 <- function(
   data$VTOTOB_GROSS <- data$VTOTIB_GROSS + data$VTOTBK_GROSS
 
   # merch height
-  cat("finding merchantable height\n")
+  msg <- "finding merchantable height"
+  cli::cli_progress_update()
   ht4 <- lapply(
     levels,
     applyAllLevels,
@@ -87,7 +92,8 @@ predictCRM2 <- function(
   data <- merge(x = data, y = ht4, by = "ID")
 
   # merch vol ib
-  cat("predicting merchantable stem wood volume\n")
+  msg <- "predicting merchantable stem wood volume"
+  cli::cli_progress_update()
   vmerib <- lapply(
     levels,
     applyAllLevels,
@@ -103,7 +109,8 @@ predictCRM2 <- function(
 
   # merch vol ob
   # use rcumib coefs to ensure positive bark vol
-  cat("predicting merchantable stem wood and bark volume\n")
+  msg <- "predicting merchantable stem wood and bark volume"
+  cli::cli_progress_update()
   vmerob <- lapply(
     levels,
     applyAllLevels,
@@ -120,7 +127,8 @@ predictCRM2 <- function(
   data$VMERBK_GROSS <- data$VMEROB_GROSS - data$VMERIB_GROSS
 
   # stump vol ib
-  cat("predicting stump wood volume\n")
+  msg <- "predicting stump wood volume"
+  cli::cli_progress_update()
   vstpib <- lapply(
     levels,
     applyAllLevels,
@@ -135,7 +143,8 @@ predictCRM2 <- function(
   data <- merge(x = data, y = vstpib, by = "ID")
 
   # stump vol ob
-  cat("predicting stump wood and bark volume\n")
+  msg <- "predicting stump wood and bark volume"
+  cli::cli_progress_update()
   vstpob <- lapply(
     levels,
     applyAllLevels,
@@ -162,7 +171,8 @@ predictCRM2 <- function(
   data$VTOPBK_GROSS <- data$VTOPOB_GROSS - data$VTOPIB_GROSS
 
   # sawlog vols
-  cat("finding sawlog height\n")
+  msg <- "finding sawlog height"
+  cli::cli_progress_update()
   htsaw <- lapply(
     levels,
     applyAllLevels,
@@ -179,7 +189,8 @@ predictCRM2 <- function(
   data <- merge(x = data, y = htsaw, by = "ID")
 
   # sawtimber vol ib
-  cat("predicting sawlog stem wood volume\n")
+  msg <- "predicting sawlog stem wood volume"
+  cli::cli_progress_update()
   vsawib <- lapply(
     levels,
     applyAllLevels,
@@ -195,7 +206,8 @@ predictCRM2 <- function(
 
   # sawtimber vol ob
   # use rcumib coefs to ensure positive bark vol
-  cat("predicting sawlog stem wood and bark volume\n")
+  msg <- "predicting sawlog stem wood and bark volume"
+  cli::cli_progress_update()
   vsawob <- lapply(
     levels,
     applyAllLevels,
@@ -341,7 +353,8 @@ predictCRM2 <- function(
   ] <- NA
 
   # total biomass
-  cat("predicting total biomass\n")
+  msg <- "predicting total biomass"
+  cli::cli_progress_update()
   totbio <- lapply(
     levels,
     applyAllLevels,
@@ -356,7 +369,8 @@ predictCRM2 <- function(
   data <- merge(x = data, y = totbio, by = "ID")
 
   # stem bark weight
-  cat("predicting total stem bark weight\n")
+  msg <- "predicting total stem bark weight"
+  cli::cli_progress_update()
   bark_weight <- lapply(
     levels,
     applyAllLevels,
@@ -371,7 +385,8 @@ predictCRM2 <- function(
   data <- merge(x = data, y = bark_weight, by = "ID")
 
   # branch weight
-  cat("predicting total branch weight\n")
+  msg <- "predicting total branch weight"
+  cli::cli_progress_update()
   branch_weight <- lapply(
     levels,
     applyAllLevels,
@@ -386,7 +401,8 @@ predictCRM2 <- function(
   data <- merge(x = data, y = branch_weight, by = "ID")
 
   # foliage weight
-  cat("predicting foliage weight\n")
+  msg <- "predicting foliage weight"
+  cli::cli_progress_update()
   foliage_weight <- lapply(
     levels,
     applyAllLevels,
@@ -462,7 +478,8 @@ predictCRM2 <- function(
 
   data$Total_Reduced <- data$Total * data$AGB_Reduction_Factor
 
-  cat("harmonizing components\n")
+  msg <- "harmonizing components"
+  cli::cli_progress_update()
 
   # total from comps
   data$TotalC <- data$Wood_Reduced + data$Bark_Reduced + data$Branch_Reduced

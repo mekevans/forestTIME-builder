@@ -10,6 +10,7 @@
 #' @param db a list of tables produced by [read_fia()]
 prep_data <- function(db) {
   # Select only the columns we need from each table, to keep things slim
+  cli_progress_step("Wrangling data")
   PLOTGEOM <-
     db$PLOTGEOM |>
     dplyr::filter(INVYR >= 2000L) |>

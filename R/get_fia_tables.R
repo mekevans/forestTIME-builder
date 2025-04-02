@@ -28,6 +28,7 @@ get_fia_tables <- function(
   keep_zip = FALSE
 ) {
   states <- match.arg(states, state.abb, several.ok = TRUE)
+  cli_progress_step("Downloading FIA data for {state}")
 
   base_url <- "https://apps.fs.usda.gov/fia/datamart/CSV/"
   files <- glue::glue("{states}_CSV.zip")

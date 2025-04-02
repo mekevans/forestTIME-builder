@@ -1,5 +1,7 @@
 expand_data <- function(data) {
+  cli_progress_step("Expanding years between surveys")
   #We do the expand() in chunks because it is computationally expensive otherwise
+  #TODO actually bench::mark() this.  I don't know why this doesn't work not chunked
   plot_chunks <-
     data |>
     dplyr::ungroup() |>
@@ -11,11 +13,14 @@ expand_data <- function(data) {
     dplyr::left_join(data, plot_chunks, by = join_by(plot_ID)) |>
     dplyr::group_by(plot_chunk) |>
     dplyr::group_split() |>
-    purrr::map(\(x) {
-      x |>
-        dplyr::group_by(tree_ID) |>
-        tidyr::expand(YEAR = tidyr::full_seq(INVYR, 1))
-    }) |>
+    purrr::map(
+      \(x) {
+        x |>
+          dplyr::group_by(tree_ID) |>
+          tidyr::expand(YEAR = tidyr::full_seq(INVYR, 1))
+      },
+      .progress = TRUE
+    ) |>
     purrr::list_rbind()
 
   tree_annual <-
