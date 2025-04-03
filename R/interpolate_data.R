@@ -1,12 +1,16 @@
 #' Interpolate expanded tree data
 #'
-#' Fills in `NA`s between survey years with either linear
-#' interpolation/extrapolation or by switching categorical variables at the
-#' midpoint (rounded down) between surveys.  Linear interpolation/extrapolation
-#' is accomplished with [inter_extra_polate()] and the categorical variables are
-#' handled with [step_interp()].
+#' Fills in `NA`s between survey years with either linear interpolation /
+#' extrapolation or by switching categorical variables at the midpoint (rounded
+#' down) between surveys. Linear interpolation/extrapolation is accomplished
+#' with [inter_extra_polate()] and the categorical variables are handled with
+#' [step_interp()]. Also converts temporary `999` values created by
+#' [expand_data()] back to `NA`s
 #'
 #' @param data_expanded tibble produced by [expand_data()]
+#' @param tpa_rules_path file path to `DESIGNCD_TPA.csv` which contains rules
+#'   on how to assign values for `TPA_UNADJ` based on design code and
+#'   (interpolated) tree diameter.
 interpolate_data <- function(
   data_expanded,
   tpa_rules_path = here::here("data/DESIGNCD_TPA.csv")
@@ -39,7 +43,7 @@ interpolate_data <- function(
         dplyr::all_of(cols_interpolate),
         \(var) inter_extra_polate(x = YEAR, y = var)
       ),
-      #interpolate to switch at midpoint (rounded up)
+      #interpolate to switch at midpoint
       dplyr::across(dplyr::all_of(cols_midpt_switch), step_interp)
     ) |>
     # convert 999 back to NA for some vars

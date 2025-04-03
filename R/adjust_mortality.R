@@ -17,6 +17,10 @@ source("R/utils.R") #for `%|||%` operator
 #' - Adjusts `DIA`, `HT`, `ACTUALHT`, `CULL`, and `CR` so that they only apply
 #'   to live or standing dead trees.
 #' - Removes the `MORTYR` column, as it is no longer needed
+#'
+#' @param data_interpolated tibble created by [interpolate_data()]
+#' @param use_mortyr logical; use `MORTYR` (if recorded) as the first year a
+#'   tree was dead?
 adjust_mortality <- function(data_interpolated, use_mortyr = TRUE) {
   cli::cli_progress_step("Adjusting for mortality")
 
