@@ -17,6 +17,7 @@ interpolate_data <- function(
   #variables that switch at the midpoint (rounded down) between surveys
   cols_midpt_switch <- c(
     "STATUSCD",
+    "RECONCILECD",
     "DECAYCD",
     "STANDING_DEAD_CD",
     "STDORGCD",
@@ -41,6 +42,11 @@ interpolate_data <- function(
       #interpolate to switch at midpoint (rounded up)
       dplyr::across(dplyr::all_of(cols_midpt_switch), step_interp)
     ) |>
+    # convert 999 back to NA for some vars
+    dplyr::mutate(dplyr::across(
+      dplyr::all_of(cols_midpt_switch),
+      \(x) if_else(x == 999, NA, x)
+    )) |>
     dplyr::ungroup() |>
     #join TPA_UNADJ
     left_join(

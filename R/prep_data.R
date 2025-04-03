@@ -65,6 +65,7 @@ prep_data <- function(db) {
       CONDID,
       MORTYR,
       STATUSCD,
+      RECONCILECD,
       DECAYCD,
       STANDING_DEAD_CD,
       DIA,
@@ -129,6 +130,9 @@ prep_data <- function(db) {
     ) |>
     #remove trees that change species
     filter(length(unique(SPCD)) == 1) |>
+
+    #remove trees that were measured in error (https://github.com/mekevans/forestTIME-builder/issues/59#issuecomment-2758575994)
+    filter(!any(RECONCILECD %in% c(7, 8))) |>
     ungroup() |>
     #coalesce ACTUALHT so it can be interpolated
     mutate(ACTUALHT = coalesce(ACTUALHT, HT)) |>

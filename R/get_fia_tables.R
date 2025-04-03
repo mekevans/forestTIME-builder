@@ -15,7 +15,7 @@ get_fia_tables <- function(
   keep_zip = FALSE
 ) {
   states <- match.arg(states, state.abb, several.ok = TRUE)
-  cli_progress_step("Downloading FIA data for {state}")
+  cli::cli_progress_step("Downloading FIA data for {states}")
 
   #these are the tables we need
   tables <- c(

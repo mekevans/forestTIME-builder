@@ -2,6 +2,24 @@ expand_data <- function(data) {
   cli_progress_step("Expanding years between surveys")
   #We do the expand() in chunks because it is computationally expensive otherwise
   #TODO actually bench::mark() this.  I don't know why this doesn't work not chunked
+
+  data <- data |>
+    # replace NAs for some categorical variables with 999 (temporarily) so
+    # they switch from NA correctly (https://github.com/mekevans/forestTIME-builder/issues/72)
+    dplyr::mutate(dplyr::across(
+      all_of(c(
+        "STATUSCD",
+        "RECONCILECD",
+        # Except these two which get handled differently, I think. (see adjust_mortality())
+        # "DECAYCD",
+        # "STANDING_DEAD_CD",
+        "STDORGCD",
+        "CONDID",
+        "COND_STATUS_CD"
+      )),
+      \(x) if_else(is.na(x), 999, x)
+    ))
+
   plot_chunks <-
     data |>
     dplyr::ungroup() |>

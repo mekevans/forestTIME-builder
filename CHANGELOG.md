@@ -5,6 +5,9 @@
 - Outlined the process of creating annualized data in `docs/pop_scaling.qmd`
 - Added "null and length 0 coalescing operator" `%|||%` to `R/utils.R` which is used to suppress warnings that come from adjusting for mortality when a tree hasn't yet died.
 - fixed bug where TPA_UNADJ wasn't getting joined for trees with DIA between 4.9 and 5 (#68)
+- fixed a bug where categorical vars weren't interpolated correctly when switching from `NA`s (#72)
+- trees that have had RECONCILECD 7 ("Cruiser error") or 8 ("Procedural change") at any inventory are now removed in `prep_data()` (#59)
+- interpolates trees with STATUSCD 0 and RECONCILECD 5, 6 or 9 at t2 to midpoint between t1 and t2 and then removes them from sample (#59)
 
 # forestTIME-builder v0.1.0
 
