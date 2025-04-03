@@ -1,16 +1,3 @@
-#these are the tables we need
-tables <- c(
-  "PLOT",
-  "COND",
-  "TREE",
-  "PLOTGEOM",
-  "POP_ESTN_UNIT",
-  "POP_EVAL",
-  "POP_EVAL_TYP",
-  "POP_PLOT_STRATUM_ASSGN",
-  "POP_STRATUM"
-)
-
 #' Download zip files from FIA datamart
 #'
 #' The zip files are smaller than just the *_TREE.csv, so this just downloads
@@ -29,6 +16,19 @@ get_fia_tables <- function(
 ) {
   states <- match.arg(states, state.abb, several.ok = TRUE)
   cli_progress_step("Downloading FIA data for {state}")
+
+  #these are the tables we need
+  tables <- c(
+    "PLOT",
+    "COND",
+    "TREE",
+    "PLOTGEOM",
+    "POP_ESTN_UNIT",
+    "POP_EVAL",
+    "POP_EVAL_TYP",
+    "POP_PLOT_STRATUM_ASSGN",
+    "POP_STRATUM"
+  )
 
   base_url <- "https://apps.fs.usda.gov/fia/datamart/CSV/"
   files <- glue::glue("{states}_CSV.zip")
@@ -115,6 +115,18 @@ unzip_csvs <- function(zips, rawdat_dir, keep_zip) {
 #' @inheritParams rFIA::readFIA()
 #'
 read_fia <- function(states, dir = here::here("data/rawdat/state/")) {
+  #these are the tables we need
+  tables <- c(
+    "PLOT",
+    "COND",
+    "TREE",
+    "PLOTGEOM",
+    "POP_ESTN_UNIT",
+    "POP_EVAL",
+    "POP_EVAL_TYP",
+    "POP_PLOT_STRATUM_ASSGN",
+    "POP_STRATUM"
+  )
   rFIA::readFIA(dir = dir, states = states, tables = tables) |>
     purrr::map(tibble::as_tibble)
 }
