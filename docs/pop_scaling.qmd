@@ -1,42 +1,43 @@
 ---
 title: "Population-level summaries of annualized FIA data"
 author: Eric Scott
-format: html
+date: today
+format: 
+  html:
+    df-print: paged
+    link-external-newwindow: true
+    link-external-icon: true
 ---
 
 My goal with this is to follow along with the 'rFIA demystified' [vignette](https://doserlab.com/files/rfia/articles/fiademystified#with-sampling-errors) on estimation at the population level with sampling errors, but using interpolated/extrapolated annual data as best as I can.
 
 Each "step" of the process has been turned into a function.
-In RStudio, you can find the definition of a function by typing {{< kbd mac=Ctrl-. >}}.
+In R Studio, you can find the definition of a function by typing `Ctrl` + `. [period]`.
 
 ```{r}
 #| label: setup
+#| message: false
 library(rFIA)
 library(readr)
 library(here)
 library(purrr)
 library(dplyr)
 library(cli)
+library(fs)
 
-source(here("R/get_fia_tables.R"))
-source(here("R/prep_data.R"))
-source(here("R/expand_data.R"))
-source(here("R/step_interp.R"))
-source(here("R/inter_extra_polate.R"))
-source(here("R/interpolate_data.R"))
-source(here("R/adjust_mortality.R"))
-source(here("R/prep_carbon.R"))
-source(here("R/estimate_carbon.R"))
+#load all the functions
+dir_ls(here("R")) |> walk(source)
 ```
 
 ## Data Download
 
-This downloads zip files of all CSVs and extracts the necessary ones.
+`get_fia_tables()` downloads zip files of all CSVs and extracts the necessary ones.
 It will skip downloading if the files already exist
 
 ```{r}
 get_fia_tables(
-  states = c("RI", "DE", "CO", "OR"),
+  states = c("RI", "DE", "CO", "ND", "OR"), 
+  rawdat_dir = here("data/rawdat/state"),
   keep_zip = TRUE
 )
 ```
@@ -45,28 +46,37 @@ get_fia_tables(
 
 I need to make sure I have all the columns for population estimation *and* all the columns for carbon estimation using the walker code (documented better in `annual_carbon_estimation.qmd`).
 
+`read_fia()` is a wrapper around `rFIA::readFIA()` and reads in all the required tables as a list of data frames.
+
 ```{r}
 db <- read_fia(states = "DE")
 names(db)
 ```
 
-Get the columns needed into a single table and create the unique plot and tree IDS, `plot_ID` and `tree_ID`
+`prep_data()` gets all the columns needed into a single table and create the unique plot and tree IDS, `plot_ID` and `tree_ID`
 
 ::: callout-note
 Note these unique ID columns have been renamed from `PLOT_COMPOSITE_ID` and `TREE_COMPOSITE_ID` to match the names used in `rFIA`, but they are constructed the same way still.
 :::
 
-::: callout-important
-Not all the columns necessary for population estimation are merged here because there is a "many-to-many" relationship with the `POP_PLOT_STRATUM_ASSGN` table.
-I believe this is because each plot can belong to multiple strata per year.
-Joining this table here would mess up interpolation because each tree would have multiple rows per year.
-See commented out code in `R/prep_data.R` for more detail
-:::
+`prep_data()` also removes trees that:
+
+-   have only 1 or 0 non-`NA` observations for `DIA`
+-   have more than one `SPCD` ([issue #53](https://github.com/mekevans/forestTIME-builder/issues/53))
+-   have `RECONCILECD` 7 or 8 at any point ([issue #59](https://github.com/mekevans/forestTIME-builder/issues/59))
 
 ```{r}
 data <- prep_data(db)
 data
 ```
+
+::: callout-important
+Not all the columns necessary for population estimation are merged here because there is a "many-to-many" relationship with the `POP_PLOT_STRATUM_ASSGN` table.
+This may be because each plot belongs to multiple evaluation types or strata per year.
+Joining this table here would mess up interpolation because each tree would have multiple rows per year.
+See commented out code in `R/prep_data.R` for more detail.
+I'm still trying to figure this out ([issue #71](https://github.com/mekevans/forestTIME-builder/issues/71){.uri})
+:::
 
 Check that each tree has only 1 entry per year
 
@@ -81,8 +91,8 @@ stopifnot(n == 0)
 
 ## Expand
 
-Here's where I'll expand to include all years and then fill-down any time-invariant columns.
-Time-invariant columns include `plot_ID`, `SPCD`, `ECOSUBCD`, `DESIGNCD`, and `PROP_BASIS`.
+`expand_data()` expands the table to include all years between inventories.
+Time-invariant columns including `plot_ID`, `SPCD`, `ECOSUBCD`, `DESIGNCD`, and `PROP_BASIS` are filled down.
 
 ```{r}
 data_expanded <- expand_data(data)
@@ -91,59 +101,25 @@ data_expanded
 
 ## Interpolate
 
-Then I'll apply the interpolation functions here.
+`interpolate_data()` then interpolates continuous and categorical variables between surveys.
 Continuous variables are interpolated with `inter_extra_polate()` and categorical variables are interpolated with `step_interp()`.
-`interpolate_data()` also joins in the `TPA_UNADJ` column based on "rules" from `DESIGNCD` that Dani compiled.
-
-::: callout-important
-I'm still unsure on how to interpolate some variables:\
-<https://github.com/mekevans/forestTIME-builder/issues/64>
-:::
+`interpolate_data()` also joins in the `TPA_UNADJ` column based on `DESIGNCD` and `DIA`.
 
 ```{r}
 data_interpolated <- interpolate_data(data_expanded)
 data_interpolated
 ```
 
-How many trees and what kinds of trees get interpolated small or negative values?
-
-```{r}
-neg_trees <- data_interpolated |> 
-  filter(ACTUALHT < 0) |> 
-  pull(tree_ID) |> unique()
-
-data |> filter(tree_ID %in% neg_trees) |> 
-  select(tree_ID, INVYR, DIA, HT, ACTUALHT, STATUSCD, STANDING_DEAD_CD) |>
-  arrange(tree_ID, INVYR)
-
-data_interpolated |> filter(tree_ID == "10_1_1_148_2_5")
-```
-
-Examples:
-
--   10_1_1_148_2_5: `ACTUALHT` = 65, 24, NA; `STATUSCD` = 1, 1, 0
-
--   10_1_1_104_3_4: `ACTUALHT` = 39, 60, NA; `STATUSCD` = 1, 2, 2; `STANDING_DEAD_CD` = NA, 1, 0
-
--   10_1_1_165_2_9: `ACTUALHT` = 21, 10, NA; `STATUCD` = 2, 2, 2; `STANDING_DEAD_CD` is 1, 1, 0
-
--   10_1_1_364_3_2: `ACTUALHT` = 98, 13, NA; `STATUSCD` = 1, 2, 0; `STANDING_DEAD_CD` = NA, 1, NA
+::: callout-important
+I'm still unsure if `CONDPROP_UNADJ` is interpolated correctly ([issue #64](https://github.com/mekevans/forestTIME-builder/issues/64){.uri})
+:::
 
 ## Adjust for mortality
 
-Then we'll adjust all columns related to mortality (`STATUSCD`, `STANDING_DEAD_CD`, `DECAYCD`, and dimensions like `DIA`, `HT`, etc.).
+`adjust_mortality()` adjusts all columns related to mortality (`STATUSCD`, `STANDING_DEAD_CD`, `DECAYCD`, and dimensions like `DIA`, `HT`, etc.).
 E.g.
 `DECAYCD` only applies to standing dead trees and `STANDING_DEAD_CD` only applies to trees with `STATUSCD` 2 (dead).
-
-::: callout-important
-I'm uncertain if I'm treating trees that have `STATUSCD` 0 correctly\
-<https://github.com/mekevans/forestTIME-builder/issues/59>
-:::
-
-::: callout-note
-I double-checked, and the warning this gives can be ignored safely.
-It happens when trees aren't ever marked as dead (`STATUSCD==2`) and results in a "first dead" year of `NA`, which *is* appropriate.
-:::
+Trees that switch to `STATUSCD` 0 and have `RECONCILECD` 5, 6, or 9 get dropped at the midpoint between surveys ([issue #59](https://github.com/mekevans/forestTIME-builder/issues/59)).
 
 ```{r}
 data_mortyr <- adjust_mortality(data_interpolated, use_mortyr = TRUE)
@@ -152,6 +128,26 @@ all.equal(data_mortyr, data_midpt)
 ```
 
 These tables will be identical in states like RI where `MORTYR` is never used, but in states like CO these tables will differ slightly for some subset of trees.
+In `scripts/state-parquet.R`, the table that uses `MORTYR` is only produced if `MORTYR` is recorded for trees in that state.
+
+::: callout-important
+Some trees end up being interpolated to have negative values for height or diameter!
+These will not work with carbon estimation, but there may be a different way of dealing with them (e.g. replace negative numbers with some minimum value) ([issue #60](https://github.com/mekevans/forestTIME-builder/issues/60){.uri}).
+
+```{r}
+#observations with negative values for HT, ACTUALHT, or DIA
+data_mortyr |> filter(HT <= 0) #none in DE
+data_mortyr |> filter(DIA <= 0) #none in DE
+data_mortyr |> filter(ACTUALHT <= 0) #60 rows in DE
+neg_trees <- data_mortyr |> filter(ACTUALHT <= 0) |> pull(tree_ID) |> unique() #35 trees with negative ACTUALHT
+
+#a few examples of the raw data that produces these negative numbers
+data |>
+   filter(tree_ID %in% neg_trees[1:3]) |>
+   select(tree_ID, INVYR, ACTUALHT, HT, STATUSCD, STANDING_DEAD_CD) |> 
+   arrange(tree_ID, INVYR)
+```
+:::
 
 ## Prep for Carbon Estimation
 
@@ -169,10 +165,8 @@ data_mortyr_prepped
 
 `estimate_carbon()` wraps some of the code David Walker provided into a function that returns a data frame.
 
-::: callout-important
-In particular, it uses the version of `predictCRM2.R` originally from `carbon_code/Decay_and_Dead/R/VT_CRM2_ApplyFuns.R`.
-There is another, slightly different, version of that function in `carbon_code/R/VT_CRM2_ApplyFuns.R`, but it was not being used by Renata's code, so I am assuming I also can ignore it.\
-<https://github.com/mekevans/forestTIME-builder/issues/66>
+::: callout-note
+In particular, it uses the version of `predictCRM2.R` originally from `carbon_code/Decay_and_Dead/R/VT_CRM2_ApplyFuns.R` ([issue #66](https://github.com/mekevans/forestTIME-builder/issues/66){.uri}).
 :::
 
 ```{r}
@@ -181,25 +175,21 @@ carbon_mortyr <- estimate_carbon(data_mortyr_prepped)
 carbon_midpt
 ```
 
-Carbon and biomass appear to be NA for many observations.
-Some are NA because they are not alive or standing dead trees.
-
-Some are when `ACTUALHT` is negative (<https://github.com/mekevans/forestTIME-builder/issues/60>), some are where `TPA_UNADJ` is missing (<https://github.com/mekevans/forestTIME-builder/issues/68>).
-Some have `NA` for cull ratio (`CR`) which *might* have something to do with interpolation.
+::: callout-important
+Carbon estimates are `NA` for quite a few observations (214 rows in DE).
+Some of these are due to negative numbers for `ACTUALHT` ([issue #60](https://github.com/mekevans/forestTIME-builder/issues/60)), some are due to `NA`s for cull ratio (`CR`, [issue #75](https://github.com/mekevans/forestTIME-builder/issues/75)), and others I'm not sure about ([issue #76](https://github.com/mekevans/forestTIME-builder/issues/76))
 
 ```{r}
-carbon_midpt |>
-  filter(is.na(CARBON_AG)) 
-
-carbon_midpt |> 
-  filter(is.na(CARBON_AG) & (STATUSCD == 1 | STANDING_DEAD_CD == 1)) |> 
-  filter(ACTUALHT > 0) |> 
-  filter(!is.na(TPA_UNADJ)) 
+carbon_mortyr |> filter(is.na(CARBON_AG))
 ```
+:::
 
-Ah, it looks like they all are standing dead trees without a `DECAYCD` (so nothing gets joined from the REF tables).
-Will need to look into that more.
-There's only one observation like that in the raw data, so this is some issue in interpolation or adjusting for mortality.
+::: callout-caution
+## Next steps:
+
+1.  figure out how to merge in information of population strata and evaluation types ([issue #71](https://github.com/mekevans/forestTIME-builder/issues/71))
+2.  try to get population level means by adapting the [`rFIA demystified` vignette](https://doserlab.com/files/rfia/articles/fiademystified#with-sampling-errors) code
+:::
 
 ## Plot level sums
 
@@ -212,6 +202,3 @@ Then summarize by stratum
 ## Population level
 
 Then sum attributes across estimation units for region of interest
-
-Why not just add up all the carbon of all the trees?
-(maybe after adjusting TPA_UNADJ?)

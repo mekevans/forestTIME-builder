@@ -1,0 +1,4 @@
+- source: pop_scaling.qmd
+  connect:
+    - id: 2fbcaeba-d3f4-47f2-a7cd-d4b00e92b1a2
+      url: https://viz.datascience.arizona.edu:443/content/2fbcaeba-d3f4-47f2-a7cd-d4b00e92b1a2/

@@ -1,4 +1,4 @@
-source("R/utils.R") #for `%|||%` operator
+source(here("R/utils.R")) #for `%|||%` operator
 
 #' Adjust interpolated tables for mortality
 #'
