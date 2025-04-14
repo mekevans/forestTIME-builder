@@ -48,8 +48,8 @@ keywords:
   - carbon estimation
   - biomass estimation
 license: GPL-3.0
-version: v0.1.
-date-released: 2025-02-06
+version: v1.0.0
+date-released: 2025-04-14
 references:
   - type: report
     title: A national-scale tree volume, biomass, and carbon modeling system for the

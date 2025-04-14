@@ -1,4 +1,4 @@
-# forestTIME-builder (development version)
+# forestTIME-builder v1.0.0
 
 - Refactored to not use databases and instead to produce a single table of interpolated data
 - Added new "main" functions `get_fia_tables()`, `read_fia()`, `prep_data()`, `expand_data()`, `interpolate_data()`, `adjust_mortality()`, `prep_carbon()`, and `estimate_carbon()`
