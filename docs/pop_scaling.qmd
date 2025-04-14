@@ -1,9 +1,10 @@
 ---
-title: "Population-level summaries of annualized FIA data"
+title: "Toward population-level summaries of annualized FIA data"
 author: Eric Scott
 date: today
 format: 
   html:
+    toc: true
     df-print: paged
     link-external-newwindow: true
     link-external-icon: true
