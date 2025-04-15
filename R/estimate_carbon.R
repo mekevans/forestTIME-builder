@@ -121,6 +121,7 @@ estimate_carbon <- function(data, carbon_dir = here::here("carbon_code")) {
       CULL,
       PLT_CN,
       CONDID,
+      PROP_BASIS,
       STATUSCD,
       RECONCILECD, #might be done with this column?
       DECAYCD,
