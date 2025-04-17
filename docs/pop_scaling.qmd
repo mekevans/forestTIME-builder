@@ -12,8 +12,10 @@ format:
 
 My goal with this is to follow along with the 'rFIA demystified' [vignette](https://doserlab.com/files/rfia/articles/fiademystified#with-sampling-errors) on estimation at the population level with sampling errors, but using interpolated/extrapolated annual data as best as I can.
 
+This is generated from [pop_scaling.qmd](https://github.com/mekevans/forestTIME-builder/blob/main/docs/pop_scaling.qmd) in the [forestTIME-builder repo](https://github.com/mekevans/forestTIME-builder).
+
 Each "step" of the process has been turned into a function.
-In R Studio, you can find the definition of a function by typing `Ctrl` + `. [period]`.
+In R Studio, you can find the definition of a function by typing `Ctrl` + `. [period]`.  You can also search for them in the project [repository](https://github.com/mekevans/forestTIME-builder) on GitHub.
 
 ```{r}
 #| label: setup
@@ -177,29 +179,74 @@ carbon_midpt
 ```
 
 ::: callout-important
+
 Carbon estimates are `NA` for quite a few observations (214 rows in DE).
-Some of these are due to negative numbers for `ACTUALHT` ([issue #60](https://github.com/mekevans/forestTIME-builder/issues/60)), some are due to `NA`s for cull ratio (`CR`, [issue #75](https://github.com/mekevans/forestTIME-builder/issues/75)), and others I'm not sure about ([issue #76](https://github.com/mekevans/forestTIME-builder/issues/76))
+Some of these are due to negative numbers for `ACTUALHT` ([issue #60](https://github.com/mekevans/forestTIME-builder/issues/60)), and others I'm not sure about ([issue #76](https://github.com/mekevans/forestTIME-builder/issues/76))
 
 ```{r}
 carbon_mortyr |> filter(is.na(CARBON_AG))
 ```
+
 :::
 
-::: callout-caution
-## Next steps:
+## Population estimates
 
-1.  figure out how to merge in information of population strata and evaluation types ([issue #71](https://github.com/mekevans/forestTIME-builder/issues/71))
-2.  try to get population level means by adapting the [`rFIA demystified` vignette](https://doserlab.com/files/rfia/articles/fiademystified#with-sampling-errors) code
+Get tree and area attributes as outlined in rFIA vignette.
+
+::: callout-important
+I don't know how to proceede here.  The only examples I have for getting population estimates use stratified estimation and involve joining to the `POP_*` tables.  However, these have a "many-to-many" relationship with the tree/plot data where a single plot in a single year can apparently belong to multiple strata each corresponding to a different evaluation and potentially with different values for variables like `P1POINTCNT`, `P2POINTCNT`, etc. that are needed for calculating population level estimates.  In the `rFIA` vignette they sidestep these problems by using only rows where `END_INVYR` is equal to `INVYR` (and they only use one year as an example). If this is valid, I'd love to know why!
+
+All the paths to getting population level estimates I have seen involve some columns from `POP` tables, so this is a real barrier for moving forward.  We either need guidance on which set of POP variables to use in the calculations (assuming these calculations are even appropriate for non-panel data), a different approach not using any `POP` tables, or a better understanding of the variables so we can calculate them on our own if possible.
+
+Below is an example showing that there is a "many-to-many" relationship in the join which means things won't work nicely with interpolation (i.e. each tree has *multiple* values for some of the POP attributes in a single year even after filtering to just one `EVAL_TYP`).
+
 :::
 
-## Plot level sums
+```{r}
+#| column: page
+POP_ESTN_UNIT <-
+  db$POP_ESTN_UNIT |>
+  select(CN, EVAL_CN, AREA_USED, P1PNTCNT_EU)
 
-Get tree and area attributes as outlined in rFIA vignette
+POP_EVAL <-
+  db$POP_EVAL |>
+  select(EVALID, EVAL_GRP_CN, ESTN_METHOD, CN, END_INVYR, REPORT_YEAR_NM)
 
-## Strata level
+POP_EVAL_TYP <-
+  db$POP_EVAL_TYP |>
+  select(EVAL_TYP, EVAL_CN)
 
-Then summarize by stratum
+POP_PLOT_STRATUM_ASSGN <-
+  db$POP_PLOT_STRATUM_ASSGN |>
+  filter(INVYR >= 2000L) |>
+  select(STRATUM_CN, PLT_CN, INVYR)
 
-## Population level
+POP_STRATUM <-
+  db$POP_STRATUM |>
+  select(
+    ESTN_UNIT_CN,
+    EXPNS,
+    P2POINTCNT,
+    ADJ_FACTOR_MICR,
+    ADJ_FACTOR_SUBP,
+    ADJ_FACTOR_MACR,
+    CN,
+    P1POINTCNT
+  )
 
-Then sum attributes across estimation units for region of interest
+pop <- 
+  POP_PLOT_STRATUM_ASSGN |> 
+  left_join(POP_STRATUM, by = c('STRATUM_CN' = 'CN')) |> 
+  left_join(POP_ESTN_UNIT, by = c('ESTN_UNIT_CN' = 'CN')) |> 
+  left_join(POP_EVAL, by = c('EVAL_CN' = 'CN')) |>
+  left_join(POP_EVAL_TYP)
+
+left_join(data, pop) |> 
+  filter(EVAL_TYP == "EXPVOL") |> #single EVAL_TYP
+  filter(INVYR == 2006) |> #single year
+  filter(tree_ID == first(tree_ID)) |> #single tree
+  mutate(across(ends_with("CN"), as.character)) #for better printing of CNs
+
+```
+
+
