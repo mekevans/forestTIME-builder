@@ -1,0 +1,10 @@
+Package: forestTIME.builder
+Title: Create Annualized Forest Inventory Analysis Data
+Version: 0.0.0.9000
+Authors@R: 
+    person("Eric R.", "Scott", , "ericrscott@arizona.edu", role = c("aut", "cre"))
+Description: Uses interpolation and extrapolation to create annualized versions of Forest Inventory Analysis (FIA).
+License: GPL (>= 3)
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2

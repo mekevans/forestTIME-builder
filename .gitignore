@@ -27,3 +27,4 @@ data/rawdat/*
 data/db/*
 *.duckdb
 nohup.out
+.Rproj.user
