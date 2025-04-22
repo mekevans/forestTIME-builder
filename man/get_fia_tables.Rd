@@ -4,17 +4,12 @@
 \alias{get_fia_tables}
 \title{Download zip files from FIA datamart}
 \usage{
-get_fia_tables(
-  states,
-  rawdat_dir = here::here("data/rawdat/state/"),
-  extract = TRUE,
-  keep_zip = FALSE
-)
+get_fia_tables(states, download_dir = "fia", extract = TRUE, keep_zip = FALSE)
 }
 \arguments{
 \item{states}{vector of state abbreviations; for all states use \code{state.abb}.}
 
-\item{rawdat_dir}{where to save the zip files.}
+\item{download_dir}{where to save the zip files.}
 
 \item{extract}{logical; extract the TREE and PLOT csv files?}
 

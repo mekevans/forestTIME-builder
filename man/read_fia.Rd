@@ -4,7 +4,7 @@
 \alias{read_fia}
 \title{Read in needed tables}
 \usage{
-read_fia(states, dir = here::here("data/rawdat/state/"))
+read_fia(states, dir = "fia")
 }
 \arguments{
 \item{states}{character; state/ US territory abbreviations (e.g. 'AL', 'MI', etc.) indicating which state subsets to read. Data for each state must be in \code{dir}. Choose to read multiple states by passing character vector of state abbreviations (e.g. \code{states = c('RI', 'CT', 'MA')}). If \code{states = NULL}, data for all states within \code{dir} will be read in and merged into a regional database.}

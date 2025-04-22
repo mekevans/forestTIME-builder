@@ -37,7 +37,7 @@ get_fia_tables <- function(
   base_url <- "https://apps.fs.usda.gov/fia/datamart/CSV/"
   files <- glue::glue("{states}_CSV.zip")
   out_paths <- fs::path(download_dir, files)
-  urls <- URLencode(paste0(base_url, files))
+  urls <- utils::URLencode(paste0(base_url, files))
 
   #check if .zip is already downloaded
   zip_check <- fs::path(download_dir, files) |> fs::file_exists()
@@ -103,7 +103,7 @@ unzip_csvs <- function(zips, dir, keep_zip) {
       "CSV.zip",
       glue::glue("{tables}.csv")
     )
-    unzip(zip, files = csvs, exdir = dir)
+    utils::unzip(zip, files = csvs, exdir = dir)
     if (isFALSE(keep_zip)) {
       cli::cli_alert_info("Removing .zip file")
       fs::file_delete(zip)

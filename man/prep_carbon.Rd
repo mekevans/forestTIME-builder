@@ -4,14 +4,11 @@
 \alias{prep_carbon}
 \title{Prepare data for carbon estimation}
 \usage{
-prep_carbon(data_mortyr, ref_dir = here::here("data/rawdat/"))
+prep_carbon(data_mortyr)
 }
 \arguments{
 \item{data_mortyr}{annualized tree table already adjusted for mortality by
 \code{\link[=adjust_mortality]{adjust_mortality()}}.}
-
-\item{ref_dir}{absolute path to directory containing \code{REF_SPECIES.csv},
-\code{REF_TREE_DECAY_PROP.csv}, and \code{REF_TREE_CARBON_RATIO_DEAD.csv.}}
 }
 \value{
 a tibble

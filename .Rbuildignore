@@ -5,3 +5,5 @@
 ^\.Rproj\.user$
 ^forestTIME\.builder\.Rproj$
 ^data-raw$
+^fia$
+^docs$
