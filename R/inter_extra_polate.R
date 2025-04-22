@@ -14,6 +14,7 @@
 #' @author Eric R. Scott
 #' @export
 #'
+#' @returns a numeric vector
 #' @examples
 #' x <- 1:7
 #' y <- c(2, NA, 5, 6, NA, NA, NA)

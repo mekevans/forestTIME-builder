@@ -13,6 +13,9 @@ prep_carbon(data_mortyr, ref_dir = here::here("data/rawdat/"))
 \item{ref_dir}{absolute path to directory containing \code{REF_SPECIES.csv},
 \code{REF_TREE_DECAY_PROP.csv}, and \code{REF_TREE_CARBON_RATIO_DEAD.csv.}}
 }
+\value{
+a tibble
+}
 \description{
 Adds columns from reference tables and re-names variables to work with carbon
 estimtion code provided by David Walker. Some of this simply has to do with

@@ -8,6 +8,9 @@
 #' @param rawdat_dir where to save the zip files.
 #' @param extract logical; extract the TREE and PLOT csv files?
 #' @param keep_zip logical; keep the .zip file after CSVs are extracted?
+#'
+#' @export
+#' @returns returns nothing
 get_fia_tables <- function(
   states,
   rawdat_dir = here::here("data/rawdat/state/"),
@@ -114,6 +117,8 @@ unzip_csvs <- function(zips, rawdat_dir, keep_zip) {
 #' Wrapper for [rFIA::readFIA] that reads in the necessary tables
 #' @inheritParams rFIA::readFIA
 #'
+#' @export
+#' @returns a list of data frames
 read_fia <- function(states, dir = here::here("data/rawdat/state/")) {
   #these are the tables we need
   tables <- c(

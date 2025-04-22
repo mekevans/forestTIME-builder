@@ -9,11 +9,14 @@ expand_data(data)
 \arguments{
 \item{data}{tibble produced by \code{\link[=read_fia]{read_fia()}}.}
 }
+\value{
+a tibble
+}
 \description{
 This expands the data frame in preparation for interpolation of now "missing"
 values between inventory years. Time-invariant variables \code{tree_ID},
 \code{plot_ID}, \code{SPCD}, \code{ECOSUBCD}, \code{DESIGNCD}, and \code{PROP_BASIS} are simply filled
-in with \code{tidyr::fill()}. Categorical variables \code{STATUDSCD}, \code{RECONCILECD},
+in with \code{\link[tidyr:fill]{tidyr::fill()}}. Categorical variables \code{STATUDSCD}, \code{RECONCILECD},
 \code{STDORGCD}, \code{CONDID}, and \code{COND_STATUS_CD} are modified to replace \code{NA}s with
 \code{999} so that they are properly interpolated by \code{\link[=interpolate_data]{interpolate_data()}} (which
 converts them back to \code{NA}s).

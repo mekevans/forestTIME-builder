@@ -12,6 +12,9 @@ adjust_mortality(data_interpolated, use_mortyr = TRUE)
 \item{use_mortyr}{logical; use \code{MORTYR} (if recorded) as the first year a
 tree was dead?}
 }
+\value{
+a tibble
+}
 \description{
 Trees in the input \code{data_interpolated} already have had their switch to
 \code{STATUSCD} 2 (i.e. death) interpolated to the midpoint (rounded down) between

@@ -11,6 +11,8 @@
 #' @param tpa_rules_path file path to `DESIGNCD_TPA.csv` which contains rules
 #'   on how to assign values for `TPA_UNADJ` based on design code and
 #'   (interpolated) tree diameter.
+#' @export
+#' @returns a tibble
 interpolate_data <- function(
   data_expanded,
   tpa_rules_path = here::here("data/DESIGNCD_TPA.csv")

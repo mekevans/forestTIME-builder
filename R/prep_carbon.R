@@ -8,7 +8,8 @@
 #'   [adjust_mortality()].
 #' @param ref_dir absolute path to directory containing `REF_SPECIES.csv`,
 #'   `REF_TREE_DECAY_PROP.csv`, and `REF_TREE_CARBON_RATIO_DEAD.csv.`
-#'
+#' @export
+#' @returns a tibble
 prep_carbon <- function(data_mortyr, ref_dir = here::here("data/rawdat/")) {
   cli_progress_step("Prepping for estimating carbon")
   #read in ref tables

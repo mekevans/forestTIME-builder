@@ -9,6 +9,9 @@ prep_data(db)
 \arguments{
 \item{db}{a list of tables produced by \code{\link[=read_fia]{read_fia()}}}
 }
+\value{
+a tibble
+}
 \description{
 Reads in all the tables needed for carbon estimation and population scaling
 and joins them into a single table.  Also creates unique tree an plot

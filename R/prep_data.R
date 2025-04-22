@@ -8,6 +8,8 @@
 #' `HT` to prepare for interpolation.
 #'
 #' @param db a list of tables produced by [read_fia()]
+#' @export
+#' @returns a tibble
 prep_data <- function(db) {
   # Select only the columns we need from each table, to keep things slim
   cli_progress_step("Wrangling data")

@@ -15,6 +15,8 @@ inter_extra_polate(x, y, extrapolate = TRUE)
 }
 \value{
 numeric vector
+
+a numeric vector
 }
 \description{
 Performs linear interpolation and, optionally, extrapolation.  Interpolation

@@ -7,6 +7,8 @@
 #' @param carbon_dir absolute path to directory where some files are
 #'
 #' @references TODO: add ref to the paper this code is from
+#' @export
+#' @returns a tibble
 estimate_carbon <- function(data, carbon_dir = here::here("carbon_code")) {
   med_cr_prop <-
     readr::read_csv(

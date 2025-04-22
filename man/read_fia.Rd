@@ -11,6 +11,9 @@ read_fia(states, dir = here::here("data/rawdat/state/"))
 
 \item{dir}{directory where .csv files of FIA tables are stored.}
 }
+\value{
+a list of data frames
+}
 \description{
 Wrapper for \link[rFIA:readFIA]{rFIA::readFIA} that reads in the necessary tables
 }

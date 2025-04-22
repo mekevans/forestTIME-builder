@@ -16,6 +16,9 @@ interpolate_data(
 on how to assign values for \code{TPA_UNADJ} based on design code and
 (interpolated) tree diameter.}
 }
+\value{
+a tibble
+}
 \description{
 Fills in \code{NA}s between survey years with either linear interpolation /
 extrapolation or by switching categorical variables at the midpoint (rounded

@@ -11,6 +11,9 @@ estimate_carbon(data, carbon_dir = here::here("carbon_code"))
 
 \item{carbon_dir}{absolute path to directory where some files are}
 }
+\value{
+a tibble
+}
 \description{
 Estimates carbon using code provided by David Walker
 }

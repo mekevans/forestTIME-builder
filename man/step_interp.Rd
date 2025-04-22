@@ -11,6 +11,8 @@ step_interp(x)
 }
 \value{
 a vector with no \code{NA}s
+
+a vector
 }
 \description{
 Categorical variables like \code{DECAYCD} can't be linearly interpolated between

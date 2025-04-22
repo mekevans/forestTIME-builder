@@ -20,6 +20,9 @@ get_fia_tables(
 
 \item{keep_zip}{logical; keep the .zip file after CSVs are extracted?}
 }
+\value{
+returns nothing
+}
 \description{
 The zip files are smaller than just the *_TREE.csv, so this just downloads
 the whole zip and extracts the required CSV files (TREE, PLOT, and COND). Uses
