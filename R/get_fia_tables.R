@@ -112,7 +112,7 @@ unzip_csvs <- function(zips, rawdat_dir, keep_zip) {
 #' Read in needed tables
 #'
 #' Wrapper for [rFIA::readFIA] that reads in the necessary tables
-#' @inheritParams rFIA::readFIA()
+#' @inheritParams rFIA::readFIA
 #'
 read_fia <- function(states, dir = here::here("data/rawdat/state/")) {
   #these are the tables we need

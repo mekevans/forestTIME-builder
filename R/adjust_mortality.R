@@ -1,5 +1,3 @@
-source(here("R/utils.R")) #for `%|||%` operator
-
 #' Adjust interpolated tables for mortality
 #'
 #' Trees in the input `data_interpolated` already have had their switch to
