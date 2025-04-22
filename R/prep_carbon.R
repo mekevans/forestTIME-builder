@@ -6,11 +6,9 @@
 #'
 #' @param data_mortyr annualized tree table already adjusted for mortality by
 #'   [adjust_mortality()].
-#' @param ref_dir absolute path to directory containing `REF_SPECIES.csv`,
-#'   `REF_TREE_DECAY_PROP.csv`, and `REF_TREE_CARBON_RATIO_DEAD.csv.`
 #' @export
 #' @returns a tibble
-prep_carbon <- function(data_mortyr, ref_dir = here::here("data/rawdat/")) {
+prep_carbon <- function(data_mortyr) {
   cli::cli_progress_step("Prepping for estimating carbon")
   #read in ref tables
   ref_species <-
@@ -39,14 +37,14 @@ prep_carbon <- function(data_mortyr, ref_dir = here::here("data/rawdat/")) {
 
   #remove trees with non positive values for HT and warn if there were any
   weird_obs <- data_mortyr |>
-    filter(HT <= 0 | is.na(HT))
+    dplyr::filter(HT <= 0 | is.na(HT))
   if (nrow(weird_obs) > 0) {
     warning(
       nrow(weird_obs),
       " observations removed due to negative or missing HT values"
     )
     data_mortyr <- data_mortyr |>
-      filter(HT > 0 & !is.na(HT))
+      dplyr::filter(HT > 0 & !is.na(HT))
   }
 
   data_mortyr |>

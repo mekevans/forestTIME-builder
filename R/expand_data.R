@@ -30,7 +30,7 @@ expand_data <- function(data) {
         "CONDID",
         "COND_STATUS_CD"
       )),
-      \(x) if_else(is.na(x), 999, x)
+      \(x) dplyr::if_else(is.na(x), 999, x)
     ))
 
   plot_chunks <-
@@ -38,10 +38,10 @@ expand_data <- function(data) {
     dplyr::ungroup() |>
     dplyr::select(plot_ID) |>
     dplyr::distinct() |>
-    dplyr::mutate(plot_chunk = ntile(plot_ID, n = 10))
+    dplyr::mutate(plot_chunk = dplyr::ntile(plot_ID, n = 10))
 
   all_yrs <-
-    dplyr::left_join(data, plot_chunks, by = join_by(plot_ID)) |>
+    dplyr::left_join(data, plot_chunks, by = dplyr::join_by(plot_ID)) |>
     dplyr::group_by(plot_chunk) |>
     dplyr::group_split() |>
     purrr::map(

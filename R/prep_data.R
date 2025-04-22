@@ -144,7 +144,7 @@ prep_data <- function(db) {
     dplyr::filter(!any(RECONCILECD %in% c(7, 8))) |>
     dplyr::ungroup() |>
     #coalesce ACTUALHT so it can be interpolated
-    dplyr::mutate(ACTUALHT = coalesce(ACTUALHT, HT)) |>
+    dplyr::mutate(ACTUALHT = dplyr::coalesce(ACTUALHT, HT)) |>
     dplyr::select(ACTUALHT, HT, dplyr::everything())
   #return:
   data

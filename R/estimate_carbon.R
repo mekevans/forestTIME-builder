@@ -11,13 +11,7 @@
 #' @returns a tibble
 estimate_carbon <- function(data, carbon_dir = here::here("carbon_code")) {
   med_cr_prop <-
-    readr::read_csv(
-      fs::path(
-        carbon_dir,
-        "Decay_and_Dead/nsvb/median_crprop.csv"
-      ),
-      show_col_types = FALSE
-    ) |>
+    median_crprop_csv |>
     dplyr::mutate(SFTWD_HRDWD = dplyr::if_else(hwd_yn == 'N', 'S', 'H'))
 
   #seems like should go in prep_carbon() maybe?
@@ -80,11 +74,7 @@ estimate_carbon <- function(data, carbon_dir = here::here("carbon_code")) {
   #applyAllLevels() I think
 
   # equation numbers and forms are stored in ref file
-  forms <- read.csv(fs::path(
-    carbon_dir,
-    "Files",
-    "equation_forms_and_calls.csv"
-  ))
+  forms <- equation_forms_and_calls_csv
   add_me <- data.frame(
     equation = c(3.1, 6.1),
     rhs = c(
@@ -101,8 +91,8 @@ estimate_carbon <- function(data, carbon_dir = here::here("carbon_code")) {
   # apply over fiadb
   fiadb2 <- predictCRM2(
     data = fiadb,
-    # directory where the coefficient files are
-    coef_dir = fs::path(carbon_dir, "Coefs", "combined"),
+    # # directory where the coefficient files are
+    # coef_dir = fs::path(carbon_dir, "Coefs", "combined"),
     forms = forms,
     # what are the variable names for dbh/total height/cull
     # should probably update this for c_frac, actual_ht, etc

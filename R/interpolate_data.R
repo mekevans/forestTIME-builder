@@ -51,7 +51,7 @@ interpolate_data <- function(
     # convert 999 back to NA for some vars
     dplyr::mutate(dplyr::across(
       dplyr::all_of(cols_midpt_switch),
-      \(x) if_else(x == 999, NA, x)
+      \(x) dplyr::if_else(x == 999, NA, x)
     )) |>
     dplyr::ungroup() |>
     #join TPA_UNADJ
