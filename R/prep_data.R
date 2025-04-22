@@ -12,11 +12,11 @@
 #' @returns a tibble
 prep_data <- function(db) {
   # Select only the columns we need from each table, to keep things slim
-  cli_progress_step("Wrangling data")
+  cli::cli_progress_step("Wrangling data")
   PLOTGEOM <-
     db$PLOTGEOM |>
     dplyr::filter(INVYR >= 2000L) |>
-    select(CN, INVYR, ECOSUBCD)
+    dplyr::select(CN, INVYR, ECOSUBCD)
 
   PLOT <-
     db$PLOT |>
@@ -35,12 +35,12 @@ prep_data <- function(db) {
 
   COND <-
     db$COND |>
-    filter(INVYR >= 2000L) |>
-    mutate(
+    dplyr::filter(INVYR >= 2000L) |>
+    dplyr::mutate(
       plot_ID = paste(STATECD, UNITCD, COUNTYCD, PLOT, sep = "_"),
       .before = 1
     ) |>
-    select(
+    dplyr::select(
       plot_ID,
       PLT_CN,
       INVYR,
@@ -53,13 +53,13 @@ prep_data <- function(db) {
 
   TREE <-
     db$TREE |>
-    filter(INVYR >= 2000L) |>
-    mutate(
+    dplyr::filter(INVYR >= 2000L) |>
+    dplyr::mutate(
       plot_ID = paste(STATECD, UNITCD, COUNTYCD, PLOT, sep = "_"),
       tree_ID = paste(STATECD, UNITCD, COUNTYCD, PLOT, SUBP, TREE, sep = "_"),
       .before = 1
     ) |>
-    select(
+    dplyr::select(
       plot_ID,
       tree_ID,
       INVYR,
@@ -80,24 +80,31 @@ prep_data <- function(db) {
 
   POP_ESTN_UNIT <-
     db$POP_ESTN_UNIT |>
-    select(CN, EVAL_CN, AREA_USED, P1PNTCNT_EU)
+    dplyr::select(CN, EVAL_CN, AREA_USED, P1PNTCNT_EU)
 
   POP_EVAL <-
     db$POP_EVAL |>
-    select(EVALID, EVAL_GRP_CN, ESTN_METHOD, CN, END_INVYR, REPORT_YEAR_NM)
+    dplyr::select(
+      EVALID,
+      EVAL_GRP_CN,
+      ESTN_METHOD,
+      CN,
+      END_INVYR,
+      REPORT_YEAR_NM
+    )
 
   POP_EVAL_TYP <-
     db$POP_EVAL_TYP |>
-    select(EVAL_TYP, EVAL_CN)
+    dplyr::select(EVAL_TYP, EVAL_CN)
 
   POP_PLOT_STRATUM_ASSGN <-
     db$POP_PLOT_STRATUM_ASSGN |>
-    filter(INVYR >= 2000L) |>
-    select(STRATUM_CN, PLT_CN, INVYR)
+    dplyr::filter(INVYR >= 2000L) |>
+    dplyr::select(STRATUM_CN, PLT_CN, INVYR)
 
   POP_STRATUM <-
     db$POP_STRATUM |>
-    select(
+    dplyr::select(
       ESTN_UNIT_CN,
       EXPNS,
       P2POINTCNT,
@@ -111,10 +118,10 @@ prep_data <- function(db) {
   # Join the tables
   data <-
     TREE |> #13,963
-    as_tibble() |>
-    left_join(PLOT, by = join_by(plot_ID, INVYR)) |>
-    left_join(PLOTGEOM, by = join_by(INVYR, CN)) |>
-    left_join(COND, by = join_by(plot_ID, INVYR, PLT_CN, CONDID))
+    dplyr::as_tibble() |>
+    dplyr::left_join(PLOT, by = dplyr::join_by(plot_ID, INVYR)) |>
+    dplyr::left_join(PLOTGEOM, by = dplyr::join_by(INVYR, CN)) |>
+    dplyr::left_join(COND, by = dplyr::join_by(plot_ID, INVYR, PLT_CN, CONDID))
 
   #TODO These population tables are needed for pop scaling, but the 'many-to-many' relationship messes up the interpolation.  I think this is because plots can belong to multiple strata? Probably can't use this with interpolated data anyways?
 
@@ -126,19 +133,19 @@ prep_data <- function(db) {
 
   #remove trees that have only 0 or 1 non-NA measurment (we can't interpolate these)
   data <- data |>
-    group_by(tree_ID) |>
-    filter(
+    dplyr::group_by(tree_ID) |>
+    dplyr::filter(
       sum(!is.na(DIA)) > 1 & sum(!is.na(HT)) > 1
     ) |>
     #remove trees that change species
-    filter(length(unique(SPCD)) == 1) |>
+    dplyr::filter(length(unique(SPCD)) == 1) |>
 
     #remove trees that were measured in error (https://github.com/mekevans/forestTIME-builder/issues/59#issuecomment-2758575994)
-    filter(!any(RECONCILECD %in% c(7, 8))) |>
-    ungroup() |>
+    dplyr::filter(!any(RECONCILECD %in% c(7, 8))) |>
+    dplyr::ungroup() |>
     #coalesce ACTUALHT so it can be interpolated
-    mutate(ACTUALHT = coalesce(ACTUALHT, HT)) |>
-    select(ACTUALHT, HT, everything())
+    dplyr::mutate(ACTUALHT = coalesce(ACTUALHT, HT)) |>
+    dplyr::select(ACTUALHT, HT, dplyr::everything())
   #return:
   data
 }

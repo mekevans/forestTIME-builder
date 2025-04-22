@@ -12,7 +12,7 @@
 #' @export
 #' @returns a tibble
 expand_data <- function(data) {
-  cli_progress_step("Expanding years between surveys")
+  cli::cli_progress_step("Expanding years between surveys")
   #We do the expand() in chunks because it is computationally expensive otherwise
   #TODO actually bench::mark() this.  I don't know why this doesn't work not chunked
 

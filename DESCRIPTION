@@ -3,11 +3,11 @@ Title: Create Annualized Forest Inventory Analysis Data
 Version: 0.0.0.9000
 Authors@R: 
     person("Eric R.", "Scott", , "ericrscott@arizona.edu", role = c("aut", "cre"))
-Description: Uses interpolation and extrapolation to create annualized versions of Forest Inventory Analysis (FIA).
+Description: Uses interpolation and extrapolation to create annualized
+    versions of Forest Inventory Analysis (FIA).
 License: GPL (>= 3)
-Encoding: UTF-8
-Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
+Depends: 
+    R (>= 4.2.0)
 Imports: 
     cli (>= 3.6.4),
     curl (>= 6.2.1),
@@ -21,3 +21,6 @@ Imports:
     rFIA (>= 1.1.0),
     rlang (>= 1.1.5),
     tidyr (>= 1.3.1)
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2

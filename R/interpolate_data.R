@@ -17,7 +17,7 @@ interpolate_data <- function(
   data_expanded,
   tpa_rules_path = here::here("data/DESIGNCD_TPA.csv")
 ) {
-  cli_progress_step("Interpolating between surveys")
+  cli::cli_progress_step("Interpolating between surveys")
   #variables to linearly interpolate/extrapolate
   cols_interpolate <- c("ACTUALHT", "DIA", "HT", "CULL", "CR", "CONDPROP_UNADJ")
   #variables that switch at the midpoint (rounded down) between surveys
@@ -55,9 +55,12 @@ interpolate_data <- function(
     )) |>
     dplyr::ungroup() |>
     #join TPA_UNADJ
-    left_join(
+    dplyr::left_join(
       tpa_rules,
-      by = join_by(DESIGNCD, between(DIA, min_DIA, max_DIA, bounds = "[)"))
+      by = dplyr::join_by(
+        DESIGNCD,
+        dplyr::between(DIA, min_DIA, max_DIA, bounds = "[)")
+      )
     ) |>
-    select(-min_DIA, -max_DIA)
+    dplyr::select(-min_DIA, -max_DIA)
 }
