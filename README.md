@@ -3,7 +3,7 @@
 <!-- badges: start -->
 
 [![Project Status: WIP – Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip) [![.github/workflows/create_db.yml](https://github.com/mekevans/forestTIME-builder/actions/workflows/create_db.yml/badge.svg)](https://github.com/mekevans/forestTIME-builder/actions/workflows/create_db.yml)
-
+[![R-CMD-check](https://github.com/mekevans/forestTIME-builder/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/mekevans/forestTIME-builder/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
 Scripts to generate a forestTIME database.
