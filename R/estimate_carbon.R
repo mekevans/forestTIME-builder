@@ -1,6 +1,3 @@
-source(here::here("R/getDivision.R"))
-source(here::here("R/predictCRM2.R"))
-
 #' Estimate carbon
 #'
 #' Estimates carbon using code provided by David Walker
