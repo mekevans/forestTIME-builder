@@ -748,7 +748,7 @@ findHT <- function(data, dbh = "DBH", tht = "THT", dlim = 4) {
       )
       abs(pd - d)
     }
-    optimise(kz, lower = 0, upper = H)$minimum
+    stats::optimise(kz, lower = 0, upper = H)$minimum
   }
 
   mapply(

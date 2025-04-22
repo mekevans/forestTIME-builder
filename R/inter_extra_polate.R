@@ -24,7 +24,7 @@ inter_extra_polate <- function(x, y, extrapolate = TRUE) {
     return(y)
   } else {
     #first interpolate
-    interpolated <- approx(x, y, xout = x)$y
+    interpolated <- stats::approx(x, y, xout = x)$y
   }
 
   #then extrapolate trailing NAs if needed

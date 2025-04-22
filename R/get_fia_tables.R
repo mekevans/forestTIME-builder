@@ -31,7 +31,7 @@ get_fia_tables <- function(
   keep_zip = FALSE
 ) {
   fs::dir_create(download_dir)
-  states <- match.arg(states, state.abb, several.ok = TRUE)
+  states <- match.arg(states, datasets::state.abb, several.ok = TRUE)
   cli::cli_progress_step("Downloading FIA data for {states}")
 
   base_url <- "https://apps.fs.usda.gov/fia/datamart/CSV/"
@@ -122,5 +122,5 @@ unzip_csvs <- function(zips, dir, keep_zip) {
 #' @returns a list of data frames
 read_fia <- function(states, dir = "fia") {
   rFIA::readFIA(dir = dir, states = states, tables = tables) |>
-    purrr::map(tibble::as_tibble)
+    purrr::map(dplyr::as_tibble)
 }
