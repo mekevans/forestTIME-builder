@@ -28,3 +28,4 @@ data/db/*
 *.duckdb
 nohup.out
 .Rproj.user
+data_not_yet_part_of_package/
