@@ -18,7 +18,7 @@ estimate_carbon <- function(data, carbon_dir = here::here("carbon_code")) {
       ),
       show_col_types = FALSE
     ) |>
-    dplyr::mutate(SFTWD_HRDWD = rlang::if_else(hwd_yn == 'N', 'S', 'H'))
+    dplyr::mutate(SFTWD_HRDWD = dplyr::if_else(hwd_yn == 'N', 'S', 'H'))
 
   #seems like should go in prep_carbon() maybe?
   data_prepped <-
@@ -33,7 +33,7 @@ estimate_carbon <- function(data, carbon_dir = here::here("carbon_code")) {
     dplyr::mutate(
       dplyr::across(
         c(DECAYCD, STANDING_DEAD_CD),
-        \(x) rlang::if_else(STATUSCD == 1, 0, x)
+        \(x) dplyr::if_else(STATUSCD == 1, 0, x)
       ),
       CULL = ifelse(is.na(CULL), 0, CULL)
     )

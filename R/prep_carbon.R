@@ -14,10 +14,7 @@ prep_carbon <- function(data_mortyr, ref_dir = here::here("data/rawdat/")) {
   cli::cli_progress_step("Prepping for estimating carbon")
   #read in ref tables
   ref_species <-
-    readr::read_csv(
-      fs::path(ref_dir, "REF_SPECIES.csv"),
-      show_col_types = FALSE
-    ) |>
+    REF_SPECIES |>
     dplyr::select(
       SPCD,
       JENKINS_SPGRPCD,
@@ -27,10 +24,7 @@ prep_carbon <- function(data_mortyr, ref_dir = here::here("data/rawdat/")) {
     ) #TODO change this in walker code, not here
 
   ref_tree_decay_prop <-
-    dplyr::read_csv(
-      fs::path(ref_dir, "REF_TREE_DECAY_PROP.csv"),
-      show_col_types = FALSE
-    ) |>
+    REF_TREE_DECAY_PROP |>
     dplyr::select(
       SFTWD_HRDWD,
       DECAYCD,
@@ -40,10 +34,7 @@ prep_carbon <- function(data_mortyr, ref_dir = here::here("data/rawdat/")) {
     )
 
   ref_tree_carbon_ratio_dead <-
-    readr::read_csv(
-      fs::path(ref_dir, "REF_TREE_CARBON_RATIO_DEAD.csv"),
-      show_col_types = FALSE
-    ) |>
+    REF_TREE_CARBON_RATIO_DEAD |>
     dplyr::select(SFTWD_HRDWD, DECAYCD, CARBON_RATIO)
 
   #remove trees with non positive values for HT and warn if there were any
@@ -89,11 +80,11 @@ prep_carbon <- function(data_mortyr, ref_dir = here::here("data/rawdat/")) {
       #TODO shouldn't DECAYCD actually get ajusted based on STANDING_DEAD_CD?
       # DECAYCD = if_else(STATUSCD == 1, 0, DECAYCD),
       #additional variables for walker code only
-      DECAY_WD = rlang::if_else(STATUSCD == 1, 1, DENSITY_PROP),
-      DECAY_BK = rlang::if_else(STATUSCD == 1, 1, BARK_LOSS_PROP),
-      DECAY_BR = rlang::if_else(STATUSCD == 1, 1, BRANCH_LOSS_PROP),
+      DECAY_WD = dplyr::if_else(STATUSCD == 1, 1, DENSITY_PROP),
+      DECAY_BK = dplyr::if_else(STATUSCD == 1, 1, BARK_LOSS_PROP),
+      DECAY_BR = dplyr::if_else(STATUSCD == 1, 1, BRANCH_LOSS_PROP),
       #TODO: why is this called C_FRAC if it is a percentage?
-      C_FRAC = rlang::if_else(
+      C_FRAC = dplyr::if_else(
         STATUSCD == 1,
         CARBON_RATIO_LIVE * 100,
         CARBON_RATIO * 100

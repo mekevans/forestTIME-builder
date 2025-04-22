@@ -29,7 +29,8 @@ library(cli)
 library(fs)
 
 #load all the functions
-dir_ls(here("R")) |> walk(source)
+# dir_ls(here("R")) |> walk(source)
+load_all()
 ```
 
 ## Data Download
@@ -39,8 +40,8 @@ It will skip downloading if the files already exist
 
 ```{r}
 get_fia_tables(
-  states = c("RI", "DE", "CO", "ND", "OR"), 
-  rawdat_dir = here("data/rawdat/state"),
+  states = c("RI", "DE", "CO"), 
+  download_dir = "fia",
   keep_zip = TRUE
 )
 ```

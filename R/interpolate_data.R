@@ -31,11 +31,11 @@ interpolate_data <- function(
     "COND_STATUS_CD"
   )
 
-  #read in TPA_UNADJ joining rules
-  tpa_rules <- readr::read_csv(
-    here::here("data/DESIGNCD_TPA.csv"),
-    show_col_types = FALSE
-  )
+  # #read in TPA_UNADJ joining rules
+  # tpa_rules <- readr::read_csv(
+  #   here::here("data/DESIGNCD_TPA.csv"),
+  #   show_col_types = FALSE
+  # )
 
   data_expanded |>
     dplyr::group_by(tree_ID) |>
