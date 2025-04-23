@@ -4,17 +4,10 @@
 \alias{interpolate_data}
 \title{Interpolate expanded tree data}
 \usage{
-interpolate_data(
-  data_expanded,
-  tpa_rules_path = here::here("data/DESIGNCD_TPA.csv")
-)
+interpolate_data(data_expanded)
 }
 \arguments{
 \item{data_expanded}{tibble produced by \code{\link[=expand_data]{expand_data()}}}
-
-\item{tpa_rules_path}{file path to \code{DESIGNCD_TPA.csv} which contains rules
-on how to assign values for \code{TPA_UNADJ} based on design code and
-(interpolated) tree diameter.}
 }
 \value{
 a tibble

@@ -4,12 +4,10 @@
 \alias{estimate_carbon}
 \title{Estimate carbon}
 \usage{
-estimate_carbon(data, carbon_dir = here::here("carbon_code"))
+estimate_carbon(data)
 }
 \arguments{
 \item{data}{prepped data produced by \code{\link[=prep_carbon]{prep_carbon()}}.}
-
-\item{carbon_dir}{absolute path to directory where some files are}
 }
 \value{
 a tibble

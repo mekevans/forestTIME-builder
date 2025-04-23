@@ -8,15 +8,9 @@
 #' [expand_data()] back to `NA`s
 #'
 #' @param data_expanded tibble produced by [expand_data()]
-#' @param tpa_rules_path file path to `DESIGNCD_TPA.csv` which contains rules
-#'   on how to assign values for `TPA_UNADJ` based on design code and
-#'   (interpolated) tree diameter.
 #' @export
 #' @returns a tibble
-interpolate_data <- function(
-  data_expanded,
-  tpa_rules_path = here::here("data/DESIGNCD_TPA.csv")
-) {
+interpolate_data <- function(data_expanded) {
   cli::cli_progress_step("Interpolating between surveys")
   #variables to linearly interpolate/extrapolate
   cols_interpolate <- c("ACTUALHT", "DIA", "HT", "CULL", "CR", "CONDPROP_UNADJ")
@@ -30,12 +24,6 @@ interpolate_data <- function(
     "CONDID",
     "COND_STATUS_CD"
   )
-
-  # #read in TPA_UNADJ joining rules
-  # tpa_rules <- readr::read_csv(
-  #   here::here("data/DESIGNCD_TPA.csv"),
-  #   show_col_types = FALSE
-  # )
 
   data_expanded |>
     dplyr::group_by(tree_ID) |>

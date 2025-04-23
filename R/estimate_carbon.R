@@ -4,12 +4,11 @@
 #'
 #'
 #' @param data prepped data produced by [prep_carbon()].
-#' @param carbon_dir absolute path to directory where some files are
 #'
 #' @references TODO: add ref to the paper this code is from
 #' @export
 #' @returns a tibble
-estimate_carbon <- function(data, carbon_dir = here::here("carbon_code")) {
+estimate_carbon <- function(data) {
   med_cr_prop <-
     median_crprop_csv |>
     dplyr::mutate(SFTWD_HRDWD = dplyr::if_else(hwd_yn == 'N', 'S', 'H'))
@@ -92,7 +91,6 @@ estimate_carbon <- function(data, carbon_dir = here::here("carbon_code")) {
   fiadb2 <- predictCRM2(
     data = fiadb,
     # # directory where the coefficient files are
-    # coef_dir = fs::path(carbon_dir, "Coefs", "combined"),
     forms = forms,
     # what are the variable names for dbh/total height/cull
     # should probably update this for c_frac, actual_ht, etc
