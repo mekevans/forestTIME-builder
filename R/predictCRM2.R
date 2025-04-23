@@ -3,14 +3,14 @@
 #I do not know why.  This seems to be the only version that is actually used in Renata's code
 predictCRM2 <- function(
   data,
-  coef_dir,
+  # coef_dir,
   forms,
   var_names = c(DBH = "DBH", THT = "THT", CULL = "CULL"),
   gross.volume = FALSE,
   all.vars = TRUE
 ) {
   msg <- "prepping data"
-  cli_progress_step("Estimating carbon: {msg}", spinner = TRUE)
+  cli::cli_progress_step("Estimating carbon: {msg}", spinner = TRUE)
   data <- as.data.frame(data)
 
   keepN <- names(data)
@@ -27,13 +27,13 @@ predictCRM2 <- function(
   # adjust var names
   data[, names(var_names)] <- data[, var_names]
 
-  # all needed coefs
-  coef_files <- list.files(coef_dir, pattern = "_coefs.csv")
-  all_coefs <- lapply(
-    coef_files,
-    function(x) read.csv(file.path(coef_dir, x), as.is = TRUE)
-  )
-  names(all_coefs) <- gsub("_coefs.csv", "", coef_files)
+  # all needed coefs are stored as internal package data.  See prep_internal_data.R
+  # coef_files <- list.files(coef_dir, pattern = "_coefs.csv")
+  # all_coefs <- lapply(
+  #   coef_files,
+  #   function(x) read.csv(file.path(coef_dir, x), as.is = TRUE)
+  # )
+  # names(all_coefs) <- gsub("_coefs.csv", "", coef_files)
 
   levels <- c("SPCD_DIVISION", "SPCD", "JENKINS_SPGRPCD")
 
@@ -748,7 +748,7 @@ findHT <- function(data, dbh = "DBH", tht = "THT", dlim = 4) {
       )
       abs(pd - d)
     }
-    optimise(kz, lower = 0, upper = H)$minimum
+    stats::optimise(kz, lower = 0, upper = H)$minimum
   }
 
   mapply(

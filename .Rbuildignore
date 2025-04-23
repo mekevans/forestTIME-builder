@@ -3,3 +3,12 @@
 ^LICENSE\.md$
 ^.*\.Rproj$
 ^\.Rproj\.user$
+^forestTIME\.builder\.Rproj$
+^data-raw$
+^fia$
+^docs$
+^\.github$
+^doc$
+^Meta$
+^vignettes/\.quarto$
+^vignettes/*_files$

@@ -1,47 +1,39 @@
 ---
-title: "Toward population-level summaries of annualized FIA data"
-author: Eric Scott
-date: today
-format: 
+title: "forestTIME-builder"
+vignette: >
+  %\VignetteIndexEntry{test2}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+format:
   html:
     toc: true
     df-print: paged
     link-external-newwindow: true
     link-external-icon: true
+knitr:
+  opts_chunk:
+    collapse: true
+    comment: '#>'
 ---
-
-My goal with this is to follow along with the 'rFIA demystified' [vignette](https://doserlab.com/files/rfia/articles/fiademystified#with-sampling-errors) on estimation at the population level with sampling errors, but using interpolated/extrapolated annual data as best as I can.
-
-This is generated from [pop_scaling.qmd](https://github.com/mekevans/forestTIME-builder/blob/main/docs/pop_scaling.qmd) in the [forestTIME-builder repo](https://github.com/mekevans/forestTIME-builder).
-
-Each "step" of the process has been turned into a function.
-In R Studio, you can find the definition of a function by typing `Ctrl` + `. [period]`.  You can also search for them in the project [repository](https://github.com/mekevans/forestTIME-builder) on GitHub.
 
 ```{r}
 #| label: setup
-#| message: false
-library(rFIA)
-library(readr)
-library(here)
-library(purrr)
-library(dplyr)
-library(cli)
-library(fs)
-
-#load all the functions
-# dir_ls(here("R")) |> walk(source)
-load_all()
+library("forestTIME.builder")
+library("dplyr")
 ```
 
 ## Data Download
 
 `get_fia_tables()` downloads zip files of all CSVs and extracts the necessary ones.
-It will skip downloading if the files already exist
+It will skip downloading if the files already exist.
+Ordinarily, you would *not* want to use a temporary directory, this is just for reproducibility of the vignette.
 
 ```{r}
+#| label: download-data
+tmp <- tempdir()
 get_fia_tables(
-  states = c("RI", "DE", "CO"), 
-  download_dir = "fia",
+  states = "DE", 
+  download_dir = tmp,
   keep_zip = TRUE
 )
 ```
@@ -53,7 +45,8 @@ I need to make sure I have all the columns for population estimation *and* all t
 `read_fia()` is a wrapper around `rFIA::readFIA()` and reads in all the required tables as a list of data frames.
 
 ```{r}
-db <- read_fia(states = "DE")
+#| label: read-data
+db <- read_fia(states = "DE", dir = tmp)
 names(db)
 ```
 
@@ -70,6 +63,7 @@ Note these unique ID columns have been renamed from `PLOT_COMPOSITE_ID` and `TRE
 -   have `RECONCILECD` 7 or 8 at any point ([issue #59](https://github.com/mekevans/forestTIME-builder/issues/59))
 
 ```{r}
+#| label: prep-data
 data <- prep_data(db)
 data
 ```
@@ -85,6 +79,7 @@ I'm still trying to figure this out ([issue #71](https://github.com/mekevans/for
 Check that each tree has only 1 entry per year
 
 ```{r}
+#| label: check-data
 n <- data |> 
   group_by(tree_ID, INVYR) |> 
   summarise(n = n(), .groups = "drop") |>
@@ -99,6 +94,7 @@ stopifnot(n == 0)
 Time-invariant columns including `plot_ID`, `SPCD`, `ECOSUBCD`, `DESIGNCD`, and `PROP_BASIS` are filled down.
 
 ```{r}
+#| label: expand-data
 data_expanded <- expand_data(data)
 data_expanded
 ```
@@ -110,6 +106,7 @@ Continuous variables are interpolated with `inter_extra_polate()` and categorica
 `interpolate_data()` also joins in the `TPA_UNADJ` column based on `DESIGNCD` and `DIA`.
 
 ```{r}
+#| label: interpolate-data
 data_interpolated <- interpolate_data(data_expanded)
 data_interpolated
 ```
@@ -126,6 +123,7 @@ E.g.
 Trees that switch to `STATUSCD` 0 and have `RECONCILECD` 5, 6, or 9 get dropped at the midpoint between surveys ([issue #59](https://github.com/mekevans/forestTIME-builder/issues/59)).
 
 ```{r}
+#| label: adjust-mort
 data_mortyr <- adjust_mortality(data_interpolated, use_mortyr = TRUE)
 data_midpt <- adjust_mortality(data_interpolated, use_mortyr = FALSE)
 all.equal(data_mortyr, data_midpt)
@@ -139,6 +137,7 @@ Some trees end up being interpolated to have negative values for height or diame
 These will not work with carbon estimation, but there may be a different way of dealing with them (e.g. replace negative numbers with some minimum value) ([issue #60](https://github.com/mekevans/forestTIME-builder/issues/60){.uri}).
 
 ```{r}
+#| label: explore-mort
 #observations with negative values for HT, ACTUALHT, or DIA
 data_mortyr |> filter(HT <= 0) #none in DE
 data_mortyr |> filter(DIA <= 0) #none in DE
@@ -160,6 +159,7 @@ These variables are needed by the carbon estimation functions.
 It also converts some `NA`s because the functions provided by David Walker are not set up to handle indexing with `NA`s.
 
 ```{r}
+#| label: prep-carbon
 data_mortyr_prepped <- prep_carbon(data_mortyr)
 data_midpt_prepped <- prep_carbon(data_midpt)
 data_mortyr_prepped
@@ -174,20 +174,19 @@ In particular, it uses the version of `predictCRM2.R` originally from `carbon_co
 :::
 
 ```{r}
+#| label: estimate-carbon
 carbon_midpt <- estimate_carbon(data_midpt_prepped)
 carbon_mortyr <- estimate_carbon(data_mortyr_prepped)
 carbon_midpt
 ```
 
 ::: callout-important
-
 Carbon estimates are `NA` for quite a few observations (214 rows in DE).
 Some of these are due to negative numbers for `ACTUALHT` ([issue #60](https://github.com/mekevans/forestTIME-builder/issues/60)), and others I'm not sure about ([issue #76](https://github.com/mekevans/forestTIME-builder/issues/76))
 
 ```{r}
 carbon_mortyr |> filter(is.na(CARBON_AG))
 ```
-
 :::
 
 ## Population estimates
@@ -195,16 +194,21 @@ carbon_mortyr |> filter(is.na(CARBON_AG))
 Get tree and area attributes as outlined in rFIA vignette.
 
 ::: callout-important
-I don't know how to proceede here.  The only examples I have for getting population estimates use stratified estimation and involve joining to the `POP_*` tables.  However, these have a "many-to-many" relationship with the tree/plot data where a single plot in a single year can apparently belong to multiple strata each corresponding to a different evaluation and potentially with different values for variables like `P1POINTCNT`, `P2POINTCNT`, etc. that are needed for calculating population level estimates.  In the `rFIA` vignette they sidestep these problems by using only rows where `END_INVYR` is equal to `INVYR` (and they only use one year as an example). If this is valid, I'd love to know why!
+I don't know how to proceede here.
+The only examples I have for getting population estimates use stratified estimation and involve joining to the `POP_*` tables.
+However, these have a "many-to-many" relationship with the tree/plot data where a single plot in a single year can apparently belong to multiple strata each corresponding to a different evaluation and potentially with different values for variables like `P1POINTCNT`, `P2POINTCNT`, etc. that are needed for calculating population level estimates.
+In the `rFIA` vignette they sidestep these problems by using only rows where `END_INVYR` is equal to `INVYR` (and they only use one year as an example).
+If this is valid, I'd love to know why!
 
-All the paths to getting population level estimates I have seen involve some columns from `POP` tables, so this is a real barrier for moving forward.  We either need guidance on which set of POP variables to use in the calculations (assuming these calculations are even appropriate for non-panel data), a different approach not using any `POP` tables, or a better understanding of the variables so we can calculate them on our own if possible.
+All the paths to getting population level estimates I have seen involve some columns from `POP` tables, so this is a real barrier for moving forward.
+We either need guidance on which set of POP variables to use in the calculations (assuming these calculations are even appropriate for non-panel data), a different approach not using any `POP` tables, or a better understanding of the variables so we can calculate them on our own if possible.
 
 Below is an example showing that there is a "many-to-many" relationship in the join which means things won't work nicely with interpolation (i.e. each tree has *multiple* values for some of the POP attributes in a single year even after filtering to just one `EVAL_TYP`).
-
 :::
 
 ```{r}
-#| column: page
+#| label: pop-explore
+#| eval: false
 POP_ESTN_UNIT <-
   db$POP_ESTN_UNIT |>
   select(CN, EVAL_CN, AREA_USED, P1PNTCNT_EU)
@@ -249,5 +253,3 @@ left_join(data, pop) |>
   mutate(across(ends_with("CN"), as.character)) #for better printing of CNs
 
 ```
-
-

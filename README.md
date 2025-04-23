@@ -3,56 +3,38 @@
 <!-- badges: start -->
 
 [![Project Status: WIP – Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip) [![.github/workflows/create_db.yml](https://github.com/mekevans/forestTIME-builder/actions/workflows/create_db.yml/badge.svg)](https://github.com/mekevans/forestTIME-builder/actions/workflows/create_db.yml)
-
+[![R-CMD-check](https://github.com/mekevans/forestTIME-builder/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/mekevans/forestTIME-builder/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
-Scripts to generate a forestTIME database.
-Ancestral code is in forestTIME and automatic-trees, which has a bloated git history.
+This R package contains functions to create annualized versions of FIA data. It can download raw FIA data from DataMart, merge required tables, interpolate between surveys, and re-estimate biomass and carbon from interpolated values.  The output is a single dataframe with values for every tree in every year rather than the original panel design.
 
-The code in this repo will download raw FIA data from DataMart, process it to create forestTIME tables, and store these tables as (currently) parquet files.
-This section of the workflow can be run in parallel broken out by state.
-These tables are then stacked to create one database with forestTIME tables for the whole country.
-This database can then be uploaded and shared, e.g. via Zenodo or Box.
+## Installation
 
-I anticipate that *most* users of forestTIME will not run this code.
-Instead it will run automatically via GitHub Actions and push the finished database someplace accessible to users, who will then download it and query it.
-Functions to query an already-generated database can be found in <https://github.com/mekevans/forestTIME/>.
-However, anyone who wants to can download this repo and run the scripts to create a database locally.
+`forestTIME.builder` is not on CRAN.  To install from GitHub use:
 
-This is a work in progress.
-Find additional notes and documentation in .md files in the `docs/` folder.
+```r
+#install.packages("pak")
+pak::pak("mekevans/forestTIME-builder")
+```
+<!-- TODO: add r-universe install instructions -->
 
-## The `pre_carbon` branch
+## Contributing
 
-The `pre_carbon` contains the stable version of forestTIME prior to the addition of NSVB carbon estimation.
+If you'd like to make modifications to the functions in this package, you are welcome to do so.  However, it would be ideal if those modifications could be incorporated into this package to benefit everyone using it and to keep a single "source of truth" for this workflow. 
 
-## Organization
-
--   `R/` contains functions to download data, create tables, and add them to the database. These functions hardly ever change.
--   `scripts/` contains a workflow to run the functions in `R` to generate a database and push it to Zenodo. These workflows have undergone a lot of recent change to navigate trade-offs in terms of local vs. automated, all at once vs. state by state, etc. To generate a forestTIME .duckdb, run the scripts in `scripts` in order/following the instructions in the comments.
--   `carbon_code/` contains code and data from David Walker for estimating carbon
--   `docs/` contains Quarto documents explaining and exploring various aspects of this codebase.
--   `renv/` is set up by the `renv` package (see [Reproducibility](#reproducibility))
-
-## Reproducibility {#reproducibility}
-
-This project uses [`renv`](https://rstudio.github.io/renv/articles/renv.html) to manage R package dependencies.
-Run `renv::restore()` to install all the required packages with the correct versions to run the code.
-If you install or update a package, run `renv::snapshot()` to update the `renv.lock` file.
-
-To generate the database, run the code in `scripts/` in order starting with `01-run_locally.R`.
-Currently the `03-upload_parquet_db_zenodo.R` script will not work.
+If you are brand new to R package development or using GitHub, I recommend you start by opening an issue to make a suggestion or report a bug.  If you have some familiarity with R code and feel comfortable, feel free to make a pull request. I recommend using `usethis` to handle this process if you are not familiar with git and GitHub.  Start by [setting up your GitHub credentials](https://usethis.r-lib.org/articles/git-credentials.html) and then use `usethis::create_from_github("mekevans/forestTIME-builder")` to (possibly fork) and clone this repository. The `usethis` package has some [nice documentation](https://usethis.r-lib.org/articles/pr-functions.html) on how to create pull requests using it's `pr_*()` functions, namely `pr_init()` to create a new branch, `pr_push()` to actually open the pull request on GitHub, and `pr_finish()` to clean things up after yoru pull request is merged.
 
 ## Automation
 
-The GitHub action to generate the database is currently disabled until we figure out how to shrink the database size significantly.
+Eventually, this repository will contain a GitHub workflow to automate the interpolation and carbon estimation for all states and provide the resulting annualized dataset(s).
 
 ## Citation
 
 To cite this work, please use:
 
-> Diaz R, Scott E, Steinberg D, Riemer K, Evans M (2025).
-> “forestTIME-builder: generating annualized carbon and biomass estimates from FIA data.” <https://github.com/mekevans/forestTIME-builder>.
+> Scott E.R., Diaz R., Steinberg D., Riemer K., Evans M. (2025).
+> “forestTIME.builder: Generate Annualized Carbon and Biomass Estimates From FIA
+  Data” <https://github.com/mekevans/forestTIME-builder>.
 
 Please also cite Westfall et al. (2024):
 
@@ -60,14 +42,6 @@ Please also cite Westfall et al. (2024):
 > A national-scale tree volume, biomass, and carbon modeling system for the United States.
 > U.S. Department of Agriculture, Forest Service.
 > <https://doi.org/10.2737/wo-gtr-104>
-
-<!--
-## Automation and Zenodo push
-
--   These scripts run automatically via GitHub actions, currently on a push to this branch. This can be updated to a scheduled job.
--   One workflow runs for each state, generating state-level database tables which are stored as .parquet files. The .parquet files are stored as GitHub artifacts. A final workflow runs to stack all of the state-level tables into one database, which is uploaded to a Zenodo archive. This is currently private, located at: <https://zenodo.org/records/13377070>. This can be updated to a public archive when we are ready.
--   To set up a push to Zenodo from GitHub actions, generate a Zenodo token in your Zenodo account and supply this as an environment variable as an Actions secret in the GitHub repository.
--->
 
 ------------------------------------------------------------------------
 

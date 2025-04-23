@@ -14,6 +14,7 @@
 #' @author Eric R. Scott
 #' @export
 #'
+#' @returns a numeric vector
 #' @examples
 #' x <- 1:7
 #' y <- c(2, NA, 5, 6, NA, NA, NA)
@@ -23,7 +24,7 @@ inter_extra_polate <- function(x, y, extrapolate = TRUE) {
     return(y)
   } else {
     #first interpolate
-    interpolated <- approx(x, y, xout = x)$y
+    interpolated <- stats::approx(x, y, xout = x)$y
   }
 
   #then extrapolate trailing NAs if needed

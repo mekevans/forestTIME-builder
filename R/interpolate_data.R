@@ -8,14 +8,10 @@
 #' [expand_data()] back to `NA`s
 #'
 #' @param data_expanded tibble produced by [expand_data()]
-#' @param tpa_rules_path file path to `DESIGNCD_TPA.csv` which contains rules
-#'   on how to assign values for `TPA_UNADJ` based on design code and
-#'   (interpolated) tree diameter.
-interpolate_data <- function(
-  data_expanded,
-  tpa_rules_path = here::here("data/DESIGNCD_TPA.csv")
-) {
-  cli_progress_step("Interpolating between surveys")
+#' @export
+#' @returns a tibble
+interpolate_data <- function(data_expanded) {
+  cli::cli_progress_step("Interpolating between surveys")
   #variables to linearly interpolate/extrapolate
   cols_interpolate <- c("ACTUALHT", "DIA", "HT", "CULL", "CR", "CONDPROP_UNADJ")
   #variables that switch at the midpoint (rounded down) between surveys
@@ -27,12 +23,6 @@ interpolate_data <- function(
     "STDORGCD",
     "CONDID",
     "COND_STATUS_CD"
-  )
-
-  #read in TPA_UNADJ joining rules
-  tpa_rules <- readr::read_csv(
-    here::here("data/DESIGNCD_TPA.csv"),
-    show_col_types = FALSE
   )
 
   data_expanded |>
@@ -49,13 +39,16 @@ interpolate_data <- function(
     # convert 999 back to NA for some vars
     dplyr::mutate(dplyr::across(
       dplyr::all_of(cols_midpt_switch),
-      \(x) if_else(x == 999, NA, x)
+      \(x) dplyr::if_else(x == 999, NA, x)
     )) |>
     dplyr::ungroup() |>
     #join TPA_UNADJ
-    left_join(
+    dplyr::left_join(
       tpa_rules,
-      by = join_by(DESIGNCD, between(DIA, min_DIA, max_DIA, bounds = "[)"))
+      by = dplyr::join_by(
+        DESIGNCD,
+        dplyr::between(DIA, min_DIA, max_DIA, bounds = "[)")
+      )
     ) |>
-    select(-min_DIA, -max_DIA)
+    dplyr::select(-min_DIA, -max_DIA)
 }

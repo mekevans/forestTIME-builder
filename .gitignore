@@ -27,3 +27,9 @@ data/rawdat/*
 data/db/*
 *.duckdb
 nohup.out
+.Rproj.user
+fia/
+inst/doc
+/doc/
+/Meta/
+**/.quarto/

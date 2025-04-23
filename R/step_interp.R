@@ -9,7 +9,7 @@
 #'
 #' @returns a vector with no `NA`s
 #' @export
-#'
+#' @returns a vector
 #' @examples
 #' step_interp(c(NA, NA, "A", NA, NA, NA, "B", NA, NA, NA, NA, "C", NA))
 step_interp <- function(x) {
@@ -45,10 +45,3 @@ step_interp <- function(x) {
   #add back leading NAs
   c(rep(NA, leading_NAs), x_interp)
 }
-
-
-x <- c("A", NA, NA, NA, NA, NA, "B")
-step_interp(c("B", NA, NA, "C"))
-step_interp(c("A", NA, "B", NA, NA, "C", NA, NA, NA, "D", NA, NA))
-
-all(step_interp(x) == c("A", "A", "A", "B", "B", "B", "B"))

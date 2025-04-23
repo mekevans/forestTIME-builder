@@ -1,5 +1,3 @@
-source(here("R/utils.R")) #for `%|||%` operator
-
 #' Adjust interpolated tables for mortality
 #'
 #' Trees in the input `data_interpolated` already have had their switch to
@@ -21,6 +19,8 @@ source(here("R/utils.R")) #for `%|||%` operator
 #' @param data_interpolated tibble created by [interpolate_data()]
 #' @param use_mortyr logical; use `MORTYR` (if recorded) as the first year a
 #'   tree was dead?
+#' @export
+#' @returns a tibble
 adjust_mortality <- function(data_interpolated, use_mortyr = TRUE) {
   cli::cli_progress_step("Adjusting for mortality")
 
@@ -52,23 +52,28 @@ adjust_mortality <- function(data_interpolated, use_mortyr = TRUE) {
     #then adjust STATUSCD & DECAYCD
     dplyr::group_by(tree_ID) |>
     dplyr::mutate(
-      STATUSCD = if_else(YEAR >= first_dead, 2, STATUSCD, missing = STATUSCD)
+      STATUSCD = dplyr::if_else(
+        YEAR >= first_dead,
+        2,
+        STATUSCD,
+        missing = STATUSCD
+      )
     ) |>
     #MORTYR might be earlier than the midpoint, so backfill NAs for DECAYCD and STANDING_DEAD_CD
     tidyr::fill(DECAYCD, STANDING_DEAD_CD, .direction = "up") |>
     #But, STANDING_DEAD_CD only applies to dead trees
     dplyr::mutate(
-      STANDING_DEAD_CD = if_else(STATUSCD == 2, STANDING_DEAD_CD, NA)
+      STANDING_DEAD_CD = dplyr::if_else(STATUSCD == 2, STANDING_DEAD_CD, NA)
     ) |>
     #and DECAYCD only applies to standing dead trees > 4.9 DIA
     dplyr::mutate(
-      DECAYCD = if_else(STANDING_DEAD_CD == 1 & DIA > 4.9, DECAYCD, NA)
+      DECAYCD = dplyr::if_else(STANDING_DEAD_CD == 1 & DIA > 4.9, DECAYCD, NA)
     ) |>
     #fallen trees shouldn't have measurements for anything
     dplyr::mutate(
       dplyr::across(
         c(DIA, HT, ACTUALHT, CULL, CR),
-        \(x) if_else(STANDING_DEAD_CD == 0, NA, x, missing = x)
+        \(x) dplyr::if_else(STANDING_DEAD_CD == 0, NA, x, missing = x)
       )
     ) |>
     dplyr::select(-MORTYR, -first_dead) #don't need this anymore?
