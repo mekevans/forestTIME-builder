@@ -65,9 +65,9 @@ adjust_mortality <- function(data_interpolated, use_mortyr = TRUE) {
     dplyr::mutate(
       STANDING_DEAD_CD = dplyr::if_else(STATUSCD == 2, STANDING_DEAD_CD, NA)
     ) |>
-    #and DECAYCD only applies to standing dead trees > 4.9 DIA
+    #and DECAYCD only applies to standing dead trees
     dplyr::mutate(
-      DECAYCD = dplyr::if_else(STANDING_DEAD_CD == 1 & DIA > 4.9, DECAYCD, NA)
+      DECAYCD = dplyr::if_else(STANDING_DEAD_CD == 1, DECAYCD, NA)
     ) |>
     #fallen trees shouldn't have measurements for anything
     dplyr::mutate(
