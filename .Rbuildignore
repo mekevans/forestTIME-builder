@@ -12,4 +12,3 @@
 ^Meta$
 ^vignettes/\.quarto$
 ^vignettes/*_files$
-^vignettes/forestTIME-builder.qmd$
