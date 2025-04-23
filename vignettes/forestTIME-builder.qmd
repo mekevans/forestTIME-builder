@@ -1,0 +1,253 @@
+---
+title: "forestTIME-builder"
+vignette: >
+  %\VignetteIndexEntry{test2}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+format:
+  html:
+    toc: true
+    df-print: paged
+    link-external-newwindow: true
+    link-external-icon: true
+knitr:
+  opts_chunk:
+    collapse: true
+    comment: '#>'
+---
+
+```{r}
+#| label: setup
+library(forestTIME.builder)
+library(dplyr)
+```
+
+## Data Download
+
+`get_fia_tables()` downloads zip files of all CSVs and extracts the necessary ones.
+It will skip downloading if the files already exist.
+
+```{r}
+#| label: download-data
+get_fia_tables(
+  states = "DE", 
+  download_dir = "fia",
+  keep_zip = TRUE
+)
+```
+
+## Data Preparation
+
+I need to make sure I have all the columns for population estimation *and* all the columns for carbon estimation using the walker code (documented better in `annual_carbon_estimation.qmd`).
+
+`read_fia()` is a wrapper around `rFIA::readFIA()` and reads in all the required tables as a list of data frames.
+
+```{r}
+#| label: read-data
+db <- read_fia(states = "DE")
+names(db)
+```
+
+`prep_data()` gets all the columns needed into a single table and create the unique plot and tree IDS, `plot_ID` and `tree_ID`
+
+::: callout-note
+Note these unique ID columns have been renamed from `PLOT_COMPOSITE_ID` and `TREE_COMPOSITE_ID` to match the names used in `rFIA`, but they are constructed the same way still.
+:::
+
+`prep_data()` also removes trees that:
+
+-   have only 1 or 0 non-`NA` observations for `DIA`
+-   have more than one `SPCD` ([issue #53](https://github.com/mekevans/forestTIME-builder/issues/53))
+-   have `RECONCILECD` 7 or 8 at any point ([issue #59](https://github.com/mekevans/forestTIME-builder/issues/59))
+
+```{r}
+#| label: prep-data
+data <- prep_data(db)
+data
+```
+
+::: callout-important
+Not all the columns necessary for population estimation are merged here because there is a "many-to-many" relationship with the `POP_PLOT_STRATUM_ASSGN` table.
+This may be because each plot belongs to multiple evaluation types or strata per year.
+Joining this table here would mess up interpolation because each tree would have multiple rows per year.
+See commented out code in `R/prep_data.R` for more detail.
+I'm still trying to figure this out ([issue #71](https://github.com/mekevans/forestTIME-builder/issues/71){.uri})
+:::
+
+Check that each tree has only 1 entry per year
+
+```{r}
+#| label: check-data
+n <- data |> 
+  group_by(tree_ID, INVYR) |> 
+  summarise(n = n(), .groups = "drop") |>
+  filter(n > 1) |> 
+  nrow()
+stopifnot(n == 0)
+```
+
+## Expand
+
+`expand_data()` expands the table to include all years between inventories.
+Time-invariant columns including `plot_ID`, `SPCD`, `ECOSUBCD`, `DESIGNCD`, and `PROP_BASIS` are filled down.
+
+```{r}
+#| label: expand-data
+data_expanded <- expand_data(data)
+data_expanded
+```
+
+## Interpolate
+
+`interpolate_data()` then interpolates continuous and categorical variables between surveys.
+Continuous variables are interpolated with `inter_extra_polate()` and categorical variables are interpolated with `step_interp()`.
+`interpolate_data()` also joins in the `TPA_UNADJ` column based on `DESIGNCD` and `DIA`.
+
+```{r}
+#| label: interpolate-data
+data_interpolated <- interpolate_data(data_expanded)
+data_interpolated
+```
+
+::: callout-important
+I'm still unsure if `CONDPROP_UNADJ` is interpolated correctly ([issue #64](https://github.com/mekevans/forestTIME-builder/issues/64){.uri})
+:::
+
+## Adjust for mortality
+
+`adjust_mortality()` adjusts all columns related to mortality (`STATUSCD`, `STANDING_DEAD_CD`, `DECAYCD`, and dimensions like `DIA`, `HT`, etc.).
+E.g.
+`DECAYCD` only applies to standing dead trees and `STANDING_DEAD_CD` only applies to trees with `STATUSCD` 2 (dead).
+Trees that switch to `STATUSCD` 0 and have `RECONCILECD` 5, 6, or 9 get dropped at the midpoint between surveys ([issue #59](https://github.com/mekevans/forestTIME-builder/issues/59)).
+
+```{r}
+#| label: adjust-mort
+data_mortyr <- adjust_mortality(data_interpolated, use_mortyr = TRUE)
+data_midpt <- adjust_mortality(data_interpolated, use_mortyr = FALSE)
+all.equal(data_mortyr, data_midpt)
+```
+
+These tables will be identical in states like RI where `MORTYR` is never used, but in states like CO these tables will differ slightly for some subset of trees.
+In `scripts/state-parquet.R`, the table that uses `MORTYR` is only produced if `MORTYR` is recorded for trees in that state.
+
+::: callout-important
+Some trees end up being interpolated to have negative values for height or diameter!
+These will not work with carbon estimation, but there may be a different way of dealing with them (e.g. replace negative numbers with some minimum value) ([issue #60](https://github.com/mekevans/forestTIME-builder/issues/60){.uri}).
+
+```{r}
+#| label: explore-mort
+#observations with negative values for HT, ACTUALHT, or DIA
+data_mortyr |> filter(HT <= 0) #none in DE
+data_mortyr |> filter(DIA <= 0) #none in DE
+data_mortyr |> filter(ACTUALHT <= 0) #60 rows in DE
+neg_trees <- data_mortyr |> filter(ACTUALHT <= 0) |> pull(tree_ID) |> unique() #35 trees with negative ACTUALHT
+
+#a few examples of the raw data that produces these negative numbers
+data |>
+   filter(tree_ID %in% neg_trees[1:3]) |>
+   select(tree_ID, INVYR, ACTUALHT, HT, STATUSCD, STANDING_DEAD_CD) |> 
+   arrange(tree_ID, INVYR)
+```
+:::
+
+## Prep for Carbon Estimation
+
+`prep_carbon()` joins in reference tables based on species code.
+These variables are needed by the carbon estimation functions.
+It also converts some `NA`s because the functions provided by David Walker are not set up to handle indexing with `NA`s.
+
+```{r}
+#| label: prep-carbon
+data_mortyr_prepped <- prep_carbon(data_mortyr)
+data_midpt_prepped <- prep_carbon(data_midpt)
+data_mortyr_prepped
+```
+
+## Estimate carbon
+
+`estimate_carbon()` wraps some of the code David Walker provided into a function that returns a data frame.
+
+::: callout-note
+In particular, it uses the version of `predictCRM2.R` originally from `carbon_code/Decay_and_Dead/R/VT_CRM2_ApplyFuns.R` ([issue #66](https://github.com/mekevans/forestTIME-builder/issues/66){.uri}).
+:::
+
+```{r}
+#| label: estimate-carbon
+carbon_midpt <- estimate_carbon(data_midpt_prepped)
+carbon_mortyr <- estimate_carbon(data_mortyr_prepped)
+carbon_midpt
+```
+
+::: callout-important
+Carbon estimates are `NA` for quite a few observations (214 rows in DE).
+Some of these are due to negative numbers for `ACTUALHT` ([issue #60](https://github.com/mekevans/forestTIME-builder/issues/60)), and others I'm not sure about ([issue #76](https://github.com/mekevans/forestTIME-builder/issues/76))
+
+```{r}
+carbon_mortyr |> filter(is.na(CARBON_AG))
+```
+:::
+
+## Population estimates
+
+Get tree and area attributes as outlined in rFIA vignette.
+
+::: callout-important
+I don't know how to proceede here.
+The only examples I have for getting population estimates use stratified estimation and involve joining to the `POP_*` tables.
+However, these have a "many-to-many" relationship with the tree/plot data where a single plot in a single year can apparently belong to multiple strata each corresponding to a different evaluation and potentially with different values for variables like `P1POINTCNT`, `P2POINTCNT`, etc. that are needed for calculating population level estimates.
+In the `rFIA` vignette they sidestep these problems by using only rows where `END_INVYR` is equal to `INVYR` (and they only use one year as an example).
+If this is valid, I'd love to know why!
+
+All the paths to getting population level estimates I have seen involve some columns from `POP` tables, so this is a real barrier for moving forward.
+We either need guidance on which set of POP variables to use in the calculations (assuming these calculations are even appropriate for non-panel data), a different approach not using any `POP` tables, or a better understanding of the variables so we can calculate them on our own if possible.
+
+Below is an example showing that there is a "many-to-many" relationship in the join which means things won't work nicely with interpolation (i.e. each tree has *multiple* values for some of the POP attributes in a single year even after filtering to just one `EVAL_TYP`).
+:::
+
+```{r}
+#| label: pop-explore
+#| eval: false
+POP_ESTN_UNIT <-
+  db$POP_ESTN_UNIT |>
+  select(CN, EVAL_CN, AREA_USED, P1PNTCNT_EU)
+
+POP_EVAL <-
+  db$POP_EVAL |>
+  select(EVALID, EVAL_GRP_CN, ESTN_METHOD, CN, END_INVYR, REPORT_YEAR_NM)
+
+POP_EVAL_TYP <-
+  db$POP_EVAL_TYP |>
+  select(EVAL_TYP, EVAL_CN)
+
+POP_PLOT_STRATUM_ASSGN <-
+  db$POP_PLOT_STRATUM_ASSGN |>
+  filter(INVYR >= 2000L) |>
+  select(STRATUM_CN, PLT_CN, INVYR)
+
+POP_STRATUM <-
+  db$POP_STRATUM |>
+  select(
+    ESTN_UNIT_CN,
+    EXPNS,
+    P2POINTCNT,
+    ADJ_FACTOR_MICR,
+    ADJ_FACTOR_SUBP,
+    ADJ_FACTOR_MACR,
+    CN,
+    P1POINTCNT
+  )
+
+pop <- 
+  POP_PLOT_STRATUM_ASSGN |> 
+  left_join(POP_STRATUM, by = c('STRATUM_CN' = 'CN')) |> 
+  left_join(POP_ESTN_UNIT, by = c('ESTN_UNIT_CN' = 'CN')) |> 
+  left_join(POP_EVAL, by = c('EVAL_CN' = 'CN')) |>
+  left_join(POP_EVAL_TYP)
+
+left_join(data, pop) |> 
+  filter(EVAL_TYP == "EXPVOL") |> #single EVAL_TYP
+  filter(INVYR == 2006) |> #single year
+  filter(tree_ID == first(tree_ID)) |> #single tree
+  mutate(across(ends_with("CN"), as.character)) #for better printing of CNs
+
+```

@@ -29,3 +29,7 @@ data/db/*
 nohup.out
 .Rproj.user
 fia/
+inst/doc
+/doc/
+/Meta/
+**/.quarto/

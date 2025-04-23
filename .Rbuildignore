@@ -8,3 +8,7 @@
 ^fia$
 ^docs$
 ^\.github$
+^doc$
+^Meta$
+^vignettes/\.quarto$
+^vignettes/*_files$
