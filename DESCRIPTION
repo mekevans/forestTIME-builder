@@ -1,8 +1,17 @@
 Package: forestTIME.builder
-Title: Create Annualized Forest Inventory Analysis Data
+Title: Generate Annualized Carbon and Biomass Estimates From FIA Data
 Version: 0.0.0.9000
-Authors@R: 
-    person("Eric R.", "Scott", , "ericrscott@arizona.edu", role = c("aut", "cre"))
+Authors@R: c(
+    person("Eric R.", "Scott", , "ericrscott@arizona.edu", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-7430-7879")),
+    person("Renata", "Diaz", role = "aut",
+           comment = c(ORCID = "0000-0003-0803-4734")),
+    person("Dani", "Steinberg", role = "ctb",
+           comment = c(ORCID = "0000-0002-3695-3837")),
+    person("Kristina", "Riemer", role = "ctb",
+           comment = c(ORCID = "0000-0003-3802-3331")),
+    person("Margaret", "Evans", role = "ctb")
+  )
 Description: Uses interpolation and extrapolation to create annualized
     versions of Forest Inventory Analysis (FIA).
 License: GPL (>= 3) + file LICENSE
@@ -31,3 +40,5 @@ Suggests:
     readr,
     rmarkdown
 VignetteBuilder: knitr, quarto
+URL: https://github.com/mekevans/forestTIME-builder
+BugReports: https://github.com/mekevans/forestTIME-builder/issues
