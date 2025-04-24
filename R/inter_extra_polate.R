@@ -29,7 +29,7 @@ inter_extra_polate <- function(x, y, extrapolate = TRUE) {
 
   #then extrapolate trailing NAs if needed
   if (isFALSE(extrapolate)) {
-    return(interpolatedd)
+    return(interpolated)
   } else {
     if (all(!is.na(interpolated))) {
       return(interpolated)
