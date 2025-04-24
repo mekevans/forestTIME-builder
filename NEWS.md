@@ -1,5 +1,7 @@
 # forestTIME-builder (development version)
 
+- `forestTIME.builder` is now an R package
+- Added functions `add_composite_ids()` and `split_composite_ids()` to deal with the composite ID columns `tree_ID` and `plot_ID`.  This should make it easier to join to other FIA tables.
 
 # forestTIME-builder v1.0.0
 
