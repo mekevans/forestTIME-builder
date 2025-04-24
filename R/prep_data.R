@@ -21,10 +21,7 @@ prep_data <- function(db) {
   PLOT <-
     db$PLOT |>
     dplyr::filter(INVYR >= 2000L) |>
-    dplyr::mutate(
-      plot_ID = paste(STATECD, UNITCD, COUNTYCD, PLOT, sep = "_"),
-      .before = 1
-    ) |>
+    add_composite_ids() |>
     dplyr::select(
       plot_ID,
       CN,
@@ -36,10 +33,7 @@ prep_data <- function(db) {
   COND <-
     db$COND |>
     dplyr::filter(INVYR >= 2000L) |>
-    dplyr::mutate(
-      plot_ID = paste(STATECD, UNITCD, COUNTYCD, PLOT, sep = "_"),
-      .before = 1
-    ) |>
+    add_composite_ids() |>
     dplyr::select(
       plot_ID,
       PLT_CN,
@@ -54,11 +48,7 @@ prep_data <- function(db) {
   TREE <-
     db$TREE |>
     dplyr::filter(INVYR >= 2000L) |>
-    dplyr::mutate(
-      plot_ID = paste(STATECD, UNITCD, COUNTYCD, PLOT, sep = "_"),
-      tree_ID = paste(STATECD, UNITCD, COUNTYCD, PLOT, SUBP, TREE, sep = "_"),
-      .before = 1
-    ) |>
+    add_composite_ids() |>
     dplyr::select(
       plot_ID,
       tree_ID,
@@ -78,42 +68,42 @@ prep_data <- function(db) {
       SPCD
     )
 
-  POP_ESTN_UNIT <-
-    db$POP_ESTN_UNIT |>
-    dplyr::select(CN, EVAL_CN, AREA_USED, P1PNTCNT_EU)
+  # POP_ESTN_UNIT <-
+  #   db$POP_ESTN_UNIT |>
+  #   dplyr::select(CN, EVAL_CN, AREA_USED, P1PNTCNT_EU)
 
-  POP_EVAL <-
-    db$POP_EVAL |>
-    dplyr::select(
-      EVALID,
-      EVAL_GRP_CN,
-      ESTN_METHOD,
-      CN,
-      END_INVYR,
-      REPORT_YEAR_NM
-    )
+  # POP_EVAL <-
+  #   db$POP_EVAL |>
+  #   dplyr::select(
+  #     EVALID,
+  #     EVAL_GRP_CN,
+  #     ESTN_METHOD,
+  #     CN,
+  #     END_INVYR,
+  #     REPORT_YEAR_NM
+  #   )
 
-  POP_EVAL_TYP <-
-    db$POP_EVAL_TYP |>
-    dplyr::select(EVAL_TYP, EVAL_CN)
+  # POP_EVAL_TYP <-
+  #   db$POP_EVAL_TYP |>
+  #   dplyr::select(EVAL_TYP, EVAL_CN)
 
-  POP_PLOT_STRATUM_ASSGN <-
-    db$POP_PLOT_STRATUM_ASSGN |>
-    dplyr::filter(INVYR >= 2000L) |>
-    dplyr::select(STRATUM_CN, PLT_CN, INVYR)
+  # POP_PLOT_STRATUM_ASSGN <-
+  #   db$POP_PLOT_STRATUM_ASSGN |>
+  #   dplyr::filter(INVYR >= 2000L) |>
+  #   dplyr::select(STRATUM_CN, PLT_CN, INVYR)
 
-  POP_STRATUM <-
-    db$POP_STRATUM |>
-    dplyr::select(
-      ESTN_UNIT_CN,
-      EXPNS,
-      P2POINTCNT,
-      ADJ_FACTOR_MICR,
-      ADJ_FACTOR_SUBP,
-      ADJ_FACTOR_MACR,
-      CN,
-      P1POINTCNT
-    )
+  # POP_STRATUM <-
+  #   db$POP_STRATUM |>
+  #   dplyr::select(
+  #     ESTN_UNIT_CN,
+  #     EXPNS,
+  #     P2POINTCNT,
+  #     ADJ_FACTOR_MICR,
+  #     ADJ_FACTOR_SUBP,
+  #     ADJ_FACTOR_MACR,
+  #     CN,
+  #     P1POINTCNT
+  #   )
 
   # Join the tables
   data <-
@@ -144,8 +134,84 @@ prep_data <- function(db) {
     dplyr::filter(!any(RECONCILECD %in% c(7, 8))) |>
     dplyr::ungroup() |>
     #coalesce ACTUALHT so it can be interpolated
-    dplyr::mutate(ACTUALHT = dplyr::coalesce(ACTUALHT, HT)) |>
-    dplyr::select(ACTUALHT, HT, dplyr::everything())
+    dplyr::mutate(ACTUALHT = dplyr::coalesce(ACTUALHT, HT))
   #return:
   data
+}
+
+#' Add composite ID columns to data
+#'
+#' Creates a `tree_ID` and/or a `plot_ID` column that contain unique tree and
+#' plot identifiers, respectively.  These are created by pasting together the
+#' values for `STATECD`, `UNITCD`, `COUNTYCD`, `PLOT` and in the case of trees
+#' `SUBP` and `TREE`.
+#'
+#' @param data A tibble or data frame with at least the `STATECD`, `UNITCD`,
+#'   `COUNTYCD` and `PLOT` columns
+#'
+#' @seealso See [split_composite_ids()] for "undoing" this.
+#' @returns The input tibble with a `plot_ID` and possibly also a `tree_ID`
+#'   column added
+add_composite_ids <- function(data) {
+  cols <- colnames(data)
+  if (
+    all(c("STATECD", "UNITCD", "COUNTYCD", "PLOT", "SUBP", "TREE") %in% cols)
+  ) {
+    data <-
+      data |>
+      dplyr::mutate(
+        plot_ID = paste(STATECD, UNITCD, COUNTYCD, PLOT, sep = "_"),
+        tree_ID = paste(STATECD, UNITCD, COUNTYCD, PLOT, SUBP, TREE, sep = "_"),
+        .before = 1
+      )
+  } else if (all(c("STATECD", "UNITCD", "COUNTYCD", "PLOT") %in% cols)) {
+    data <-
+      data |>
+      dplyr::mutate(
+        plot_ID = paste(STATECD, UNITCD, COUNTYCD, PLOT, sep = "_"),
+        .before = 1
+      )
+  } else {
+    stop("Not all required columns are present")
+  }
+  data
+}
+
+#' Split composite ID columns
+#'
+#' Splits the composite ID columns `tree_ID` and/or `plot_ID` into their
+#' original component columns
+#'
+#' @param data A tibble with the `tree_ID` and/or `plot_ID` columns
+#' @returns The input tibble with additional columns `STATECD`, `UNITCD`,
+#'   `COUNTYCD`, `PLOT` and possibly `SUBP` and `TREE`.
+#' @seealso [add_composite_ids()]
+split_composite_ids <- function(data) {
+  cols <- colnames(data)
+  if (!any(c("plot_ID", "tree_ID") %in% cols)) {
+    stop("No composite ID columns found")
+  }
+
+  #tree_ID contains all the information in plot_ID, so if tree_ID exists, it's enough to just split that one
+  if ("tree_ID" %in% cols) {
+    data <- data |>
+      separate_wider_delim(
+        tree_ID,
+        delim = "_",
+        names = c("STATECD", "UNITCD", "COUNTYCD", "PLOT", "SUBP", "TREE"),
+        cols_remove = FALSE
+      )
+    return(data)
+  }
+
+  if ("plot_ID" %in% cols) {
+    data <- data |>
+      separate_wider_delim(
+        plot_ID,
+        delim = "_",
+        names = c("STATECD", "UNITCD", "COUNTYCD", "PLOT"),
+        cols_remove = FALSE
+      )
+    return(data)
+  }
 }
