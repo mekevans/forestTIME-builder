@@ -1,18 +1,19 @@
 state = Sys.getenv("STATE", unset = "RI") #use RI for testing because it is small
 #TODO set delete downloads arg of create_all_tables based on whether local or on GH Actions?
 
-library(rFIA)
-library(readr)
-library(here)
-library(purrr)
-library(dplyr)
-library(fs)
-library(nanoparquet)
-library(glue)
-library(cli)
+# library(rFIA)
+# library(readr)
+# library(here)
+# library(purrr)
+# library(dplyr)
+# library(fs)
+# library(nanoparquet)
+# library(glue)
+# library(cli)
 
 #load all functions needed
-fs::dir_ls("R/") |> walk(source)
+# fs::dir_ls("R/") |> walk(source)
+load_all()
 
 # Data Download
 get_fia_tables(states = state, keep_zip = FALSE)
@@ -54,17 +55,33 @@ data_midpt <-
 # TODO: pop scaling???
 
 # Write out to parquet
-cli_progress_step("Writing results")
+cli::cli_progress_step("Writing results")
 
-fs::dir_create("data/parquet")
+# fs::dir_create("fia/parquet")
+# if (do_both) {
+#   nanoparquet::write_parquet(
+#     data_mortyr,
+#     file = here::here(glue::glue("fia/parquet/{state}_mortyr.parquet"))
+#   )
+# }
+
+# nanoparquet::write_parquet(
+#   data_midpt,
+#   here::here(glue::glue("fia/parquet/{state}_midpt.parquet"))
+# )
+
+#write to CSV
+fs::dir_create("fia/out")
 if (do_both) {
-  nanoparquet::write_parquet(
-    data_mortyr,
-    file = here(glue("data/parquet/{state}_mortyr.parquet"))
+  readr::write_csv(
+    data_mortyr |>
+      split_composite_ids(),
+    file = here::here(glue::glue("fia/out/{state}_mortyr.CSV"))
   )
 }
 
-nanoparquet::write_parquet(
-  data_midpt,
-  here(glue("data/parquet/{state}_midpt.parquet"))
+readr::write_csv(
+  data_midpt |>
+    split_composite_ids(),
+  here::here(glue::glue("fia/out/{state}_midpt.CSV"))
 )
