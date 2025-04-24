@@ -37,7 +37,9 @@ Suggests:
     knitr,
     quarto,
     readr,
-    rmarkdown
+    rmarkdown,
+    testthat (>= 3.0.0)
 VignetteBuilder: knitr, quarto
 URL: https://github.com/mekevans/forestTIME-builder
 BugReports: https://github.com/mekevans/forestTIME-builder/issues
+Config/testthat/edition: 3
