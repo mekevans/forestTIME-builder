@@ -10,12 +10,27 @@ on:
 name: run_workflow.yml
 
 jobs:
-  states:
-    strategy:
-      #on pull requests, just test the workflow with RI and CO.
-      matrix:
-        state: [AL, AK, AZ, AR, CA, CO, CT, DE, FL, GA, ID, IL, IN, IA, KS, KY, LA, ME, MD, MA, MI, MN, MS, MO, MT, NE, NV, NH, NJ, NM, NY, NC, ND, OH, OK, OR, PA, RI, SC, SD, TN, TX, UT, VT, VA, WA, WV, WI, WY]
+  define-matrix:
     runs-on: ubuntu-latest
+    outputs:
+      states: ${{ steps.set-matrix.outputs.states }}
+    steps:
+      - name: Define states
+        id: set-matrix
+        run: |
+          isPR=$(echo '${{ github.event_name == 'pull_request'}}')
+          if [[ $isPR ]]
+          then
+            echo 'states=["RI", "DE"]' >> "$GITHUB_OUTPUT"
+          else
+            echo 'states=["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"]' >> "$GITHUB_OUTPUT"
+          fi
+  states:
+    runs-on: ubuntu-latest
+    needs: define-matrix
+    strategy:
+      matrix:
+        state: ${{ fromJSON(needs.define-matrix.outputs.states) }}
     steps:
       - uses: actions/checkout@v4
 
