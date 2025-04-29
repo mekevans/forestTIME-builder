@@ -14,12 +14,7 @@ jobs:
     strategy:
       #on pull requests, just test the workflow with RI and CO.
       matrix:
-        isPR: 
-          - ${{ github.event_name == 'pull_request' }}
-        state: [RI, CO]
-        include:
-          - isPR: false
-            state: [AL, AK, AZ, AR, CA, CO, CT, DE, FL, GA, ID, IL, IN, IA, KS, KY, LA, ME, MD, MA, MI, MN, MS, MO, MT, NE, NV, NH, NJ, NM, NY, NC, ND, OH, OK, OR, PA, RI, SC, SD, TN, TX, UT, VT, VA, WA, WV, WI, WY]
+        state: [AL, AK, AZ, AR, CA, CO, CT, DE, FL, GA, ID, IL, IN, IA, KS, KY, LA, ME, MD, MA, MI, MN, MS, MO, MT, NE, NV, NH, NJ, NM, NY, NC, ND, OH, OK, OR, PA, RI, SC, SD, TN, TX, UT, VT, VA, WA, WV, WI, WY]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
