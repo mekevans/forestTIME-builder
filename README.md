@@ -10,13 +10,20 @@ This R package contains functions to create annualized versions of FIA data. It 
 
 ## Installation
 
-`forestTIME.builder` is not on CRAN.  To install from GitHub use:
+`forestTIME.builder` is not on CRAN.
+
+To install from r-universe:
+
+```r
+install.packages("forestTIME.builder", repos = c("https://cct-datascience.r-universe.dev", getOption("repos")))
+```
+
+To install from GitHub:
 
 ```r
 #install.packages("pak")
 pak::pak("mekevans/forestTIME-builder")
 ```
-<!-- TODO: add r-universe install instructions -->
 
 ## Contributing
 
