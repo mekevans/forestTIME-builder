@@ -35,7 +35,7 @@ jobs:
         id: set-matrix
         run: |
           isPR=$(echo '${{ github.event_name == 'pull_request'}}')
-          if [[ $isPR ]]
+          if [ "$isPR" = true ]
           then
             echo 'states=["RI", "DE"]' >> "$GITHUB_OUTPUT"
           else
