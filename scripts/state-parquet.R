@@ -49,13 +49,13 @@ fs::dir_create("fia/parquet")
 if (do_both) {
   nanoparquet::write_parquet(
     data_mortyr,
-    file = here::here(glue::glue("fia/parquet/{state}_mortyr.parquet"))
+    file = glue::glue("fia/parquet/{state}_mortyr.parquet")
   )
 }
 
 nanoparquet::write_parquet(
   data_midpt,
-  here::here(glue::glue("fia/parquet/{state}_midpt.parquet"))
+  glue::glue("fia/parquet/{state}_midpt.parquet")
 )
 
 #write to CSV
@@ -63,11 +63,11 @@ nanoparquet::write_parquet(
 # if (do_both) {
 #   readr::write_csv(
 #     data_mortyr,
-#     file = here::here(glue::glue("fia/csv/{state}_mortyr.CSV"))
+#     file = glue::glue("fia/csv/{state}_mortyr.CSV")
 #   )
 # }
 
 # readr::write_csv(
 #   data_midpt,
-#   here::here(glue::glue("fia/csv/{state}_midpt.CSV"))
+#   glue::glue("fia/csv/{state}_midpt.CSV")
 # )
