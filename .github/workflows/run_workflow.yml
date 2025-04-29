@@ -1,7 +1,23 @@
 on:
   push:
     branches: [main, master]
+    #don't re-run if changes are just "cosmetic"
+    paths-ignore:
+      - 'README*'
+      - 'LICENSE*'
+      - 'docs/**'
+      - 'man/**'
+      - 'CITATION.cff'
+      - 'NEWS.md'
   pull_request:  
+    #don't re-run if changes are just "cosmetic"
+    paths-ignore:
+      - 'README*'
+      - 'LICENSE*'
+      - 'docs/**'
+      - 'man/**'
+      - 'CITATION.cff'
+      - 'NEWS.md'
   workflow_dispatch:
   #   # TODO eventually add schedule?
   # schedule:
