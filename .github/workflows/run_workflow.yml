@@ -14,7 +14,8 @@ jobs:
     strategy:
       #on pull requests, just test the workflow with RI and CO.
       matrix:
-        notPR: ${{ github.event_name == 'pull_request' }}
+        notPR: 
+          - ${{ github.event_name == 'pull_request' }}
         state: [RI, CO]
         include:
           - notPR: true
