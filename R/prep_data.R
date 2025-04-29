@@ -195,7 +195,7 @@ split_composite_ids <- function(data) {
   #tree_ID contains all the information in plot_ID, so if tree_ID exists, it's enough to just split that one
   if ("tree_ID" %in% cols) {
     data <- data |>
-      separate_wider_delim(
+      tidyr::separate_wider_delim(
         tree_ID,
         delim = "_",
         names = c("STATECD", "UNITCD", "COUNTYCD", "PLOT", "SUBP", "TREE"),
@@ -206,7 +206,7 @@ split_composite_ids <- function(data) {
 
   if ("plot_ID" %in% cols) {
     data <- data |>
-      separate_wider_delim(
+      tidyr::separate_wider_delim(
         plot_ID,
         delim = "_",
         names = c("STATECD", "UNITCD", "COUNTYCD", "PLOT"),
