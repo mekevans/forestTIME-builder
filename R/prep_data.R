@@ -152,6 +152,7 @@ prep_data <- function(db) {
 #' @seealso See [split_composite_ids()] for "undoing" this.
 #' @returns The input tibble with a `plot_ID` and possibly also a `tree_ID`
 #'   column added
+#' @export
 add_composite_ids <- function(data) {
   cols <- colnames(data)
   if (
@@ -186,6 +187,7 @@ add_composite_ids <- function(data) {
 #' @returns The input tibble with additional columns `STATECD`, `UNITCD`,
 #'   `COUNTYCD`, `PLOT` and possibly `SUBP` and `TREE`.
 #' @seealso [add_composite_ids()]
+#' @export
 split_composite_ids <- function(data) {
   cols <- colnames(data)
   if (!any(c("plot_ID", "tree_ID") %in% cols)) {

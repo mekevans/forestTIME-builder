@@ -18,22 +18,33 @@ knitr:
 
 ```{r}
 #| label: setup
-library("forestTIME.builder")
-library("dplyr")
+library(forestTIME.builder)
+library(dplyr)
 ```
 
 ## Data Download
 
 `get_fia_tables()` downloads zip files of all CSVs and extracts the necessary ones.
 It will skip downloading if the files already exist.
-Ordinarily, you would *not* want to use a temporary directory, this is just for reproducibility of the vignette.
 
 ```{r}
 #| label: download-data
-tmp <- tempdir()
+#| eval: false
 get_fia_tables(
   states = "DE", 
-  download_dir = tmp,
+  download_dir = "fia",
+  keep_zip = TRUE
+)
+```
+
+```{r}
+#| echo: false
+#| eval: false
+
+#only re-run if you need to re-generate the example data for the package
+get_fia_tables(
+  states = "DE", 
+  download_dir = "inst/exdata",
   keep_zip = TRUE
 )
 ```
@@ -46,7 +57,16 @@ I need to make sure I have all the columns for population estimation *and* all t
 
 ```{r}
 #| label: read-data
-db <- read_fia(states = "DE", dir = tmp)
+#| eval: false
+db <- read_fia(states = "DE", dir = "fia")
+names(db)
+```
+
+```{r}
+#| echo: false
+
+#actually just read in the example data included in the package
+db <- read_fia(states = "DE", dir = system.file("exdata", package = "forestTIME.builder"))
 names(db)
 ```
 

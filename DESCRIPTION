@@ -35,6 +35,7 @@ RoxygenNote: 7.3.2
 LazyData: true
 Suggests: 
     knitr,
+    nanoparquet,
     quarto,
     readr,
     rmarkdown,
