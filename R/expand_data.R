@@ -33,26 +33,10 @@ expand_data <- function(data) {
       \(x) dplyr::if_else(is.na(x), 999, x)
     ))
 
-  plot_chunks <-
-    data |>
-    dplyr::ungroup() |>
-    dplyr::select(plot_ID) |>
-    dplyr::distinct() |>
-    dplyr::mutate(plot_chunk = dplyr::ntile(plot_ID, n = 10))
-
   all_yrs <-
     dplyr::left_join(data, plot_chunks, by = dplyr::join_by(plot_ID)) |>
-    dplyr::group_by(plot_chunk) |>
-    dplyr::group_split() |>
-    purrr::map(
-      \(x) {
-        x |>
-          dplyr::group_by(tree_ID) |>
-          tidyr::expand(YEAR = tidyr::full_seq(INVYR, 1))
-      },
-      .progress = TRUE
-    ) |>
-    purrr::list_rbind()
+    dplyr::group_by(tree_ID) |>
+    tidyr::expand(YEAR = tidyr::full_seq(INVYR, 1))
 
   tree_annual <-
     dplyr::right_join(
