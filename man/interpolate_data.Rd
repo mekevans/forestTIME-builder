@@ -18,5 +18,7 @@ extrapolation or by switching categorical variables at the midpoint (rounded
 down) between surveys. Linear interpolation/extrapolation is accomplished
 with \code{\link[=inter_extra_polate]{inter_extra_polate()}} and the categorical variables are handled with
 \code{\link[=step_interp]{step_interp()}}. Also converts temporary \code{999} values created by
-\code{\link[=expand_data]{expand_data()}} back to \code{NA}s
+\code{\link[=expand_data]{expand_data()}} back to \code{NA}s.  This also assigns a value for \code{TPA_UNADJ}
+based on \code{DESIGNCD} and interpolated values of \code{DIA} according to Appendix G
+of the FIA user manual.
 }

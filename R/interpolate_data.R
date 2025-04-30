@@ -5,7 +5,9 @@
 #' down) between surveys. Linear interpolation/extrapolation is accomplished
 #' with [inter_extra_polate()] and the categorical variables are handled with
 #' [step_interp()]. Also converts temporary `999` values created by
-#' [expand_data()] back to `NA`s
+#' [expand_data()] back to `NA`s.  This also assigns a value for `TPA_UNADJ`
+#' based on `DESIGNCD` and interpolated values of `DIA` according to Appendix G
+#' of the FIA user manual.
 #'
 #' @param data_expanded tibble produced by [expand_data()]
 #' @export
