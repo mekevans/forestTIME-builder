@@ -7,7 +7,13 @@
 #' [step_interp()]. Also converts temporary `999` values created by
 #' [expand_data()] back to `NA`s.  This also assigns a value for `TPA_UNADJ`
 #' based on `DESIGNCD` and interpolated values of `DIA` according to Appendix G
-#' of the FIA user manual.
+#' of the FIADB user guide.
+#'
+#' @references
+#' Burrill, E.A., Christensen, G.A., Conkling, B.L., DiTommaso, A.M.,
+#' Kralicek, K.M., Lepine, L.C., Perry, C.J., Pugh, S.A., Turner, J.A.,
+#' Walker, D.M., 2024. The Forest Inventory and Analysis Database User Guide
+#' (NFI). USDA Forest Service. <https://research.fs.usda.gov/understory/forest-inventory-and-analysis-database-user-guide-nfi>
 #'
 #' @param data_expanded tibble produced by [expand_data()]
 #' @export

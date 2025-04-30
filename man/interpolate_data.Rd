@@ -20,5 +20,11 @@ with \code{\link[=inter_extra_polate]{inter_extra_polate()}} and the categorical
 \code{\link[=step_interp]{step_interp()}}. Also converts temporary \code{999} values created by
 \code{\link[=expand_data]{expand_data()}} back to \code{NA}s.  This also assigns a value for \code{TPA_UNADJ}
 based on \code{DESIGNCD} and interpolated values of \code{DIA} according to Appendix G
-of the FIA user manual.
+of the FIADB user guide.
+}
+\references{
+Burrill, E.A., Christensen, G.A., Conkling, B.L., DiTommaso, A.M.,
+Kralicek, K.M., Lepine, L.C., Perry, C.J., Pugh, S.A., Turner, J.A.,
+Walker, D.M., 2024. The Forest Inventory and Analysis Database User Guide
+(NFI). USDA Forest Service. \url{https://research.fs.usda.gov/understory/forest-inventory-and-analysis-database-user-guide-nfi}
 }
