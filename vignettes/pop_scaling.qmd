@@ -1,0 +1,164 @@
+---
+title: "Population scaling"
+vignette: >
+  %\VignetteIndexEntry{Population scaling}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+format:
+  html:
+    toc: true
+    df-print: paged
+    link-external-newwindow: true
+    link-external-icon: true
+knitr:
+  opts_chunk:
+    collapse: true
+    comment: '#>'
+---
+
+How can we use the interpolated data produced by `forestTIME.builder` to get popluation-level (i.e. state-level) per-area estimates?  This "is the science" according to Grant, so we need to explore different options for getting these etsimamtes.
+
+## Example data
+
+I'll use RI as an example state because it is small.  We'll use the standard basic workflow to get estimated aboveground carbon for each tree in each year.
+
+```{r}
+state <- "RI"
+library(forestTIME.builder)
+library(dplyr)
+
+# Data Download
+get_fia_tables(states = state, keep_zip = FALSE)
+
+# Data prep
+db <- read_fia(states = state) #list of data frames
+
+data <- prep_data(db) #single tibble
+
+# Expand to include all years between surveys and interpolate/extrapolate
+# Adjust for mortality and estimate carbon.
+data_midpt <-
+  data |> 
+  expand_data() |>
+  interpolate_data() |>
+  adjust_mortality(use_mortyr = FALSE) |>
+  prep_carbon() |>
+  estimate_carbon()
+```
+
+```{r}
+#| label: sem
+
+#function for standard error of the mean
+sem <- function(x) {
+    sd(x) / sqrt(length(x))
+}
+```
+
+## Naive algerbra
+
+If I was just given this interpolated dataset with little knowlege of FIA and asked to get mean carbon per acre in RI, this is probably what I'd do.
+
+Fist, I'll figure out the area of a standard subplot and macroplot.
+
+```{r}
+library(units)
+# Calculate plot areas using plot radii from FIA manual
+plot_areas <- 
+    tibble(
+        PROP_BASIS = c("SUBP", "MACR"),
+        radius_ft = c(24, 58.9) |> set_units("ft")
+    ) |> 
+    mutate(area_ft2 = pi*radius_ft^2) |> 
+    mutate(area_acre = set_units(area_ft2, "acre")) |> 
+    select(PROP_BASIS, area_acre)
+```
+
+Then, I'll calculate the total carbon per area for each plot.
+
+```{r}
+data_plot_total <- data_midpt |> 
+    #get total carbon in each plot
+    group_by(plot_ID, PROP_BASIS) |> 
+    summarize(carbon_total = sum(CARBON_AG, na.rm = TRUE), .groups = "drop") |> 
+    #convert from lbs to tons
+    mutate(carbon_total = set_units(carbon_total, "lb") |> set_units("ton")) |> 
+    left_join(plot_areas) 
+data_plot_total
+```
+
+
+Then, I can summarize these data to get a mean, standard deviation, and other desired summary statistics for the state.
+
+```{r}
+data_plot_total |> 
+    #calculate carbon/area for each plot
+    mutate(carbon_ton_acre = as.numeric(carbon_total / area_acre)) |> 
+    #get summary stats
+    summarize(
+        mean_carbon_ton_acre = mean(carbon_ton_acre),
+        sd_carbon_ton_acre = sd(carbon_ton_acre),
+        sem_carbon_ton_acre = sem(carbon_ton_acre)
+    )
+```
+
+## Algerbra using `TPA_UNADJ`
+
+Rather than using the plot area to convert tons of carbon to tons/acre, I could use the `TPA_UNADJ` column (which I do not quite understand, but am fairly certain is in units of acres ^-1^).
+
+```{r}
+data_carbon_lb_acre <- data_midpt |>
+  #set units
+  mutate(
+    CARBON_AG = set_units(CARBON_AG, "lb"),
+    TPA_UNADJ = set_units(TPA_UNADJ, "acre ^-1")
+  ) |> 
+    mutate(carbon_lb_acre = CARBON_AG * TPA_UNADJ) 
+```
+
+Now, I guess there are two possibilities depending on what you count as the fundamental sampling unit.  We *could* just get summary statistics treating each tree as a sample, but from what I've gleaned from the FIA manual and publications on FIA data, the plot is the sample unit.  So, I'll first summarize by plot, then calculate summary stats using plots as the samples.
+
+```{r}
+data_carbon_lb_acre |>
+  group_by(plot_ID) |>
+  summarize(
+    carbon_lb_acre = mean(carbon_lb_acre, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  #unit conversion
+  mutate(carbon_ton_acre = set_units(carbon_lb_acre, "ton/acre")) |> 
+  #get summary stats
+  summarize(
+    mean_carbon_ton_acre = mean(carbon_ton_acre),
+    sd_carbon_ton_acre = sd(carbon_ton_acre),
+    sem_carbon_ton_acre = sem(carbon_ton_acre)
+  )
+```
+
+So, these are obviously **COMPLETELY** different numbers, by several orders of magnitude.
+
+## Naive intercept-only model
+
+I might also consider just fitting an intercept-only model (this should be nearly identical).  It works out that a log-normal distribution seems to be a better fit, so I can use the offset(log(area_acre)) trick to model carbon_total but get results in tons/acre
+
+```{r}
+model_data <- data_plot_total |> 
+    #strip units for lm()
+    mutate(across(c(carbon_total, area_acre), as.numeric))
+
+m <- glm(carbon_total ~ 1, offset = log(area_acre), family = gaussian(link = "log"), data = model_data)
+
+#mean
+exp(coef(m))
+
+#95% confidence interval
+exp(confint(m))
+```
+
+## Using POP tables w/ EXPNS
+
+Another possiblity is to follow the [rFIA demystified](https://doserlab.com/files/rfia/articles/fiademystified#without-sampling-errors) vignette as closely as possible to apply the (panel) design-based estimators to our now simple random sample design.
+
+```{r}
+
+```
