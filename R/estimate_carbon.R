@@ -111,6 +111,7 @@ estimate_carbon <- function(data) {
       CULL,
       PLT_CN,
       CONDID,
+      COND_STATUS_CD,
       PROP_BASIS,
       CONDPROP_UNADJ,
       STATUSCD,

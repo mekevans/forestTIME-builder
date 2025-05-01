@@ -24,6 +24,7 @@ interpolate_data <- function(data_expanded) {
   cols_interpolate <- c("ACTUALHT", "DIA", "HT", "CULL", "CR", "CONDPROP_UNADJ")
   #variables that switch at the midpoint (rounded down) between surveys
   cols_midpt_switch <- c(
+    "PLT_CN", #used to join to POP tables.  Possibly a better way...
     "STATUSCD",
     "RECONCILECD",
     "DECAYCD",
