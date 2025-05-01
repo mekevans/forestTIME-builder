@@ -38,12 +38,16 @@ data <- prep_data(db) #single tibble
 # Expand to include all years between surveys and interpolate/extrapolate
 # Adjust for mortality and estimate carbon.
 data_midpt <-
-  data |> 
+  data |>
   expand_data() |>
   interpolate_data() |>
   adjust_mortality(use_mortyr = FALSE) |>
   prep_carbon() |>
-  estimate_carbon()
+  estimate_carbon() 
+  
+  data_midpt <- data_midpt |>
+  #just pick one year for example
+  filter(YEAR == 2005)
 ```
 
 ```{r}
@@ -102,6 +106,25 @@ data_plot_total |>
     )
 ```
 
+Now, these numbers are quite a bit larger than using `TPA_UNADJ` (as shown below).  I found this tidbit in the "Green Book" that may explain it:
+
+>ao = total area normally used to observe the attribute of interest on a plot (i.e., ***four times the microplot, subplot, or macroplot area***)
+> --pg 53, describing eq 4.8, emphasis mine
+
+If I multiply the plot area by 4, I get a number much closer to the one in the next section.  But this begs the question: **why is four times the plto area normally used?**
+
+```{r}
+data_plot_total |> 
+    #calculate carbon/area for each plot
+    mutate(carbon_ton_acre = as.numeric(carbon_total / (area_acre * 4))) |> #use area * 4 as denominator
+    #get summary stats
+    summarize(
+        mean_carbon_ton_acre = mean(carbon_ton_acre),
+        sd_carbon_ton_acre = sd(carbon_ton_acre),
+        sem_carbon_ton_acre = sem(carbon_ton_acre)
+    )
+```
+
 ## Algerbra using `TPA_UNADJ`
 
 Rather than using the plot area to convert tons of carbon to tons/acre, I could use the `TPA_UNADJ` column (which I do not quite understand, but am fairly certain is in units of acres ^-1^).
@@ -122,7 +145,7 @@ Now, I guess there are two possibilities depending on what you count as the fund
 data_carbon_lb_acre |>
   group_by(plot_ID) |>
   summarize(
-    carbon_lb_acre = mean(carbon_lb_acre, na.rm = TRUE),
+    carbon_lb_acre = sum(carbon_lb_acre, na.rm = TRUE),
     .groups = "drop"
   ) |>
   #unit conversion
@@ -135,7 +158,7 @@ data_carbon_lb_acre |>
   )
 ```
 
-So, these are obviously **COMPLETELY** different numbers, by several orders of magnitude.
+So, these are obviously **COMPLETELY** different numbers, by several orders of magnitude. I think it would be important to know why!
 
 ## Naive intercept-only model
 
