@@ -25,7 +25,7 @@ I'll use RI as an example state because it is small.  We'll use the standard bas
 ::: callout-important
 
 `rFIA` produces estimates of carbon from 33 -- 40.7 tons/acre using design-based estimators.
-"Correct" estimates should be in this ballpark
+"Correct" estimates should be in this ballpark.  They will not be exact because **many trees are dropped from the sample by `forestTIME.builder`** either due to changing species or due to only having 1 non-`NA` observation (unable to interpolate).  **This could very well account for the differences observed below!**
 
 ```{r}
 library(rFIA)
@@ -271,4 +271,4 @@ Possible reasons:
 
 1. Incorrect implementation of the design-based estimate (someone check my work please!)
 2. Design based estimates are not appropriate for our (non-panel design) interpolated data
-3. Something went wrong in the interpolation (e.g. differences are due to `NA`s in the `CARBON_AG` column ([#76](https://github.com/mekevans/forestTIME-builder/issues/76)))
+3. Something went wrong in the interpolation (e.g. differences are due to `NA`s in the `CARBON_AG` column ([#76](https://github.com/mekevans/forestTIME-builder/issues/76) or the fact that many trees are dropped either because they change species or only have 1 non-NA observation))
