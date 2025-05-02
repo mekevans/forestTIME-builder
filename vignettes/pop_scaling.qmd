@@ -32,11 +32,6 @@ library(rFIA)
 biomass(fiaRI, method = "annual", treeType = "live", areaDomain = COND_STATUS_CD == 1)
 ```
 
-If estimates are not in this ballpark, it could be due to either:
-
-1. Incorrect matching of the outputs from David Walker's carbon estimation code to FIA variables ([#67](https://github.com/mekevans/forestTIME-builder/issues/67))
-2. Incorrect summarizing (i.e. a particular methdod below is incorrect)
-
 :::
 
 ```{r}
@@ -50,6 +45,7 @@ get_fia_tables(states = state, keep_zip = FALSE)
 
 # Data prep
 db <- read_fia(states = state) #list of data frames
+
 
 data <- prep_data(db) #single tibble
 
@@ -104,7 +100,7 @@ My intuition would be to calculate total carbon/area on a per-plot basis and the
 
 ```{r}
 #| label: algerbra-plot-total
-data_plot_total <- data_midpt |>
+data_total <- data_midpt |>
   left_join(plot_areas, by = join_by(PROP_BASIS)) |>
   #set units
   mutate(
@@ -118,7 +114,7 @@ data_plot_total <- data_midpt |>
     .groups = "drop"
   ) |>
   mutate(carbon_ton_acre = set_units(carbon_total / area_total, "ton/acre"))
-data_plot_total
+data_total
 ```
 
 These results are about an order of magnitude smaller than what we'd expect.
@@ -135,7 +131,7 @@ Carbon/tree is just the mean (live tree) carbon in each plot, right?  I think I 
 ```{r}
 #make a "tree" unit
 install_unit('tree', "unitless")
-tree_per_plot <- data_midpt |>
+data_total2 <- data_midpt |>
   mutate(
     TPA_UNADJ = set_units(TPA_UNADJ, "tree/acre"),
     CARBON_AG = set_units(CARBON_AG, "lb")
@@ -157,13 +153,14 @@ tree_per_plot <- data_midpt |>
     carbon_ton_acre = mean(plot_carbon_acre, na.rm = TRUE) |> set_units("ton/acre")
   )
 remove_unit("tree")
+data_total2
 ```
 
+These numbers are even smaller than above.
 
+## Using design-based estimators (POP tables & EXPNS)
 
-## Using POP tables w/ EXPNS
-
-Another possiblity is to follow the [rFIA demystified](https://doserlab.com/files/rfia/articles/fiademystified#without-sampling-errors) vignette as closely as possible to apply the (panel) design-based estimators to our now simple random sample design.
+We'd like to be able to follow the [rFIA demystified](https://doserlab.com/files/rfia/articles/fiademystified#without-sampling-errors) vignette as closely as possible to apply the (panel) design-based estimators to our now simple random sample design.
 
 For this, we'll need the `POP_*` tables joined in. 
 
@@ -208,8 +205,7 @@ pop <-
   mutate(across(ends_with("CN"), as.character))
 ```
 
-I'm not sure why, but I'll just pick rows where `EVAL_TYP == "EXPVOL"`.  This is used in `rFIA` to "estimate tree totals", and is identical to the values from `EVAL_TYPE == "EXPCURR"`, which is used to "estimate area totals", at least in RI.
-
+To get a 1:1 join, I'll just pick rows where `EVAL_TYP == "EXPVOL"`.  This is used in `rFIA` to "estimate tree totals", and is identical (at least in RI) to the values from `EVAL_TYPE == "EXPCURR"`, which is used to "estimate area totals".
 
 ```{r}
 pop_expvol <- pop |>
@@ -223,7 +219,7 @@ waldo::compare(
 )
 ```
 
-Even for a single year and a single plot, there are multiple rows with different values, so I'll need to choose which one to merge with the interpolated data ([#79](https://github.com/mekevans/forestTIME-builder/issues/79)).
+Even for a single year, a single plot, and a single `EVAL_TYP` there are multiple rows with different values, so I'll need to choose which one to merge with the interpolated data ([#79](https://github.com/mekevans/forestTIME-builder/issues/79)).
 
 ```{r}
 pop_expvol |> 
@@ -243,6 +239,12 @@ data_pop <- left_join(
 
 Cool, now we can multiply by expansion factors and all the rest of the steps
 
+::: callout-note
+
+In the `rFIA` vignette, `carbPlot` and `forArea` are calculated in separate datasets, but as far as I can tell, these two datasets are identical (at least for RI) so I have skipped that complication here.
+
+:::
+
 ```{r}
 data_pop |>
   group_by(
@@ -250,20 +252,23 @@ data_pop |>
     YEAR
   ) |>
   summarize(
-    # purposefully omits ajustment factor `aAdj` and domain indicator `aDI` 
-    # because they are assumed to be vectors of 1s
+    # purposefully omits ajustment factor `aAdj` because it is assumed to be 1
     carbPlot = sum(CARBON_AG * TPA_UNADJ * EXPNS * tDI / 2000, na.rm = TRUE),
     forArea = sum(CONDPROP_UNADJ * EXPNS * aDI, na.rm = TRUE)
   ) |>
   group_by(YEAR) |>
   summarize(
-    CARB_AG_TOTAL = sum(carbPlot, na.rm = TRUE),
+    CARB_AG_TOTAL = sum(carbPlot, na.rm = TRUE), #Aren't the units here are actually tons/acre??
     AREA_TOTAL = sum(forArea, na.rm = TRUE) #How is a sum of proportions equal to area? What are the units?
   ) |>
-  #ratio estimates
-  #CARB_AG_TOTAL is in units of tons/acre?????
-  #AREA_TOTAL is unitless?????
-  mutate(carbon_ton_acre = CARB_AG_TOTAL / AREA_TOTAL)
+# the units work out to still be tons(live carbon)/acre(forested land) even if the variable names are misleading
+  mutate(carbon_ton_acre = CARB_AG_TOTAL / AREA_TOTAL) 
 ```
 
-Ok, these numbers are *very* different.  I do not know why!  It isn't related to `EXPNS`, since that essentially cancels out (it is used in both the total carbon and total area calculations and removing it from the code above does not appreciably change the results). I suspect it is related to `AREA_TOTAL` above, which is the **sum** of all `CONDPROP_UNADJ` values in a year.  In a panel design where only some plots are measured each year, this number would naturally be *smaller* than it is with our interpolated data making the resulting estimates of carbon in tons/acre larger.
+Ok, these numbers are also too small and different from the other two methods.
+
+Possible reasons:
+
+1. Incorrect implementation of the design-based estimate (someone check my work please!)
+2. Design based estimates are not appropriate for our (non-panel design) interpolated data
+3. Something went wrong in the interpolation (e.g. differences are due to `NA`s in the `CARBON_AG` column ([#76](https://github.com/mekevans/forestTIME-builder/issues/76)))
