@@ -43,9 +43,11 @@ semi_join(data_prepped, problems, by = join_by(tree_ID, YEAR == INVYR))
 # - SPCD changed
 # - only one non-NA observation (can't extrapolate to midpt, so just removed)
 
-#this has a pretty big effect on total carbon, just about halving it
+#this has a pretty big effect on total carbon—dropped trees account for up to a third of the carbon
 
 test |>
+  filter(INVYR >= 2000) |>
+  group_by(INVYR) |>
   summarize(across(
     c(CARBON_AG, DRYBIO_AG, CARBON_AG_est, DRYBIO_AG_est),
     \(x) sum(x, na.rm = TRUE)
@@ -53,4 +55,8 @@ test |>
   mutate(
     CARBON_AG_diff = CARBON_AG - CARBON_AG_est,
     DRYBIO_AG_diff = DRYBIO_AG - DRYBIO_AG_est
+  ) |>
+  mutate(
+    CARBON_AG_prop = CARBON_AG_diff / CARBON_AG,
+    DRYBIO_AG_prop = DRYBIO_AG_diff / DRYBIO_AG
   )
