@@ -26,6 +26,7 @@ data/rawdat/*
 .secrets/
 data/db/*
 *.duckdb
+*.db
 nohup.out
 .Rproj.user
 fia/
@@ -36,3 +37,4 @@ inst/doc
 *.zip
 docs/.posit/publish/Investigating dropped trees-OEJ2.toml
 docs/.posit/publish/deployments/deployment-E1MC.toml
+
