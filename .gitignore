@@ -34,3 +34,5 @@ inst/doc
 /Meta/
 **/.quarto/
 *.zip
+docs/.posit/publish/Investigating dropped trees-OEJ2.toml
+docs/.posit/publish/deployments/deployment-E1MC.toml
