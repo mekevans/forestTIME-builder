@@ -1,5 +1,6 @@
 # forestTIME-builder (development version)
 
+- Fixed a bug causing failed downloads when multiple states were passed to `get_fia_tables()`.  Unfortunately, the fix limits downloads to 6 zip files at a time now.
 - Additional columns `PLT_CN`, `COND_STATUS_CD` are kept for the interpolated data.
 - Added a vignette (WIP) on how to use outputs of `forestTIME.builder` to get population level estimates.
 - `forestTIME.builder` is now an R package

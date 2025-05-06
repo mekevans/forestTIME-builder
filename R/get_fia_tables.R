@@ -79,11 +79,13 @@ get_fia_tables <- function(
     destfiles = out_paths,
     resume = TRUE,
     progress = TRUE,
+    multiplex = FALSE, #when true, seems like all but one download fails.  6 at a time is better than 1 at a time!
     useragent = "forestTIME-builder (https://github.com/mekevans/forestTIME-builder)",
-    ssl_verifypeer = 0L #not sure why, but was getting SSL verification errors from datamart starting 2025-03-17
+    # ssl_verifypeer = 0L #not sure why, but was getting SSL verification errors from datamart starting 2025-03-17.  Seems to no longer be an issue as of 2025-05-05
   )
 
-  #TODO: check response for issues, retries, whatever
+  # TODO: check response for issues, retries, whatever
+  # https://github.com/mekevans/forestTIME-builder/issues/91
 
   zips <- resp$destfile
   if (isFALSE(extract)) {
