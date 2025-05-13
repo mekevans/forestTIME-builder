@@ -6,3 +6,7 @@
   connect:
     - id: c4671b1e-d63c-481e-88b2-8475bbe13daa
       url: https://viz.datascience.arizona.edu:443/content/c4671b1e-d63c-481e-88b2-8475bbe13daa/
+- source: dropped_trees.qmd
+  connect:
+    - id: 77a37eb8-8eed-40ba-8078-5ab5e9845709
+      url: https://viz.datascience.arizona.edu:443/content/77a37eb8-8eed-40ba-8078-5ab5e9845709/

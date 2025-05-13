@@ -177,7 +177,7 @@ names(tree_csvs) <- stringr::str_extract(tree_csvs, pattern = "\\w{2}(?=_)")
 
 #let's just pick like 4 states for this data vis since I'm going to have to `collect()` the data before summarizing I think
 
-tree_csvs <- tree_csvs[c("DE", "AZ", "AK", "IL", "ID", "OR")]
+tree_csvs <- tree_csvs[c("DE", "AZ", "AK", "IL", "ID", "OR", "CO")]
 
 tree_db <- duckdb::duckdb_read_csv(
   conn = con_duckdb,
@@ -313,3 +313,78 @@ db_AK$TREE |>
 ```
 
 Is it really the case that all `r length(unique(plot_sample))` plots inventoried in Alaska in 2014 have only been surveyed *once*?  Why isn't that the case for any other inventory year?
+
+Let's explore what some of these trees histories look like
+
+
+```{r}
+AK_tree <- db_AK$TREE |> 
+  add_composite_ids()
+AK_dropped <-  AK_tree |> 
+  filter(INVYR >= 2000) |> 
+  group_by(tree_ID) |> 
+  filter(sum(!is.na(HT)) <= 1 | sum(!is.na(DIA)) <= 1) |> 
+  pull(tree_ID)
+set.seed(1243)
+AK_dropped_sample <- sample(AK_dropped, 10)
+
+AK_tree |> 
+  filter(tree_ID %in% AK_dropped_sample) |> 
+  select(plot_ID, tree_ID, INVYR, HT, DIA, STATUSCD, STANDING_DEAD_CD)
+```
+
+So in this sample, all of the trees were only in one survey, most in 2016.
+
+
+```{r}
+ID_tree <- db_ID$TREE |> 
+  add_composite_ids()
+ID_dropped <-  ID_tree |> 
+  filter(INVYR >= 2000) |> 
+  group_by(tree_ID) |> 
+  filter(sum(!is.na(HT)) <= 1 | sum(!is.na(DIA)) <= 1) 
+
+set.seed(1243)
+ID_dropped_sample <- sample(ID_dropped |> pull(tree_ID), 10)
+
+ID_tree |> 
+  filter(tree_ID %in% ID_dropped_sample) |> 
+  arrange(tree_ID, INVYR) |> 
+  select(plot_ID, tree_ID, INVYR, HT, DIA, STATUSCD, STANDING_DEAD_CD)
+```
+
+In Idaho, some trees are recorded in multiple inventories, but marked with STATUSCD 0 or 2 in a subsequent inventory
+
+What about the trees from 2012 and 2013 where 100% were dropped?
+
+
+```{r}
+set.seed(12357)
+ID_dropped_2012_2013 <- ID_dropped |> 
+  filter(INVYR %in% c(2012, 2013)) |> 
+  pull(tree_ID) |> sample(10)
+
+ID_tree |> 
+  filter(tree_ID %in% ID_dropped_2012_2013) |> 
+  arrange(tree_ID, INVYR) |> 
+  select(plot_ID, tree_ID, INVYR, HT, DIA, STATUSCD, STANDING_DEAD_CD)
+```
+
+These all only appear once, and most are alive.  They are never re-visited and never recorded as dead.
+
+
+## Reasons a tree would only have one measurement
+
+1. It died and fell down after the first time it was measured
+  - Inventory 1: number for HT and DIA, STATUSCD = 1, STANDING_DEAD_CD = NA
+  - Inventory 2: NA for HT and DIA, STATUSCD = 2, STANDING_DEAD_CD = 0 (lying on the ground, not measured)
+  - For these, we *could* just "interpolate" the HT and DIA as constant
+  
+2. The plot the tree is in has only been visited once
+  - The `plot_ID` should only show up once in the dataset
+  - The `tree_ID` only appears in one inventory
+  - Solution: only analyze data after the first cycle (after all plots have been visited at least twice)
+
+3. Ingrowth
+  - Small trees w/ DIA slightly larger than 5 (the cut-off for trees to be included in subplots)
+  - The `tree_ID` only appears once, but `plot_ID` shows up more than once (to distinguis from 2)
