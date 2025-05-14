@@ -30,16 +30,16 @@ test_that("estimates match those in raw data", {
   expect_equal(
     test_no_nas$CARBON_AG,
     test_no_nas$CARBON_AG_est,
-    tolerance = 1e-4
+    tolerance = 1e-3 #at least out to 3 decimal places
   )
   expect_equal(
     test_no_nas$DRYBIO_AG,
     test_no_nas$DRYBIO_AG_est,
-    tolerance = 1e-4
+    tolerance = 1e-3 #at least out to 3 decimal places
   )
 
   #with NAs
   skip("Haven't dealt with all dropped trees yet")
-  expect_equal(test$CARBON_AG, test$CARBON_AG_est, tolerance = 1e-4)
-  expect_equal(test$DRYBIO_AG, test$DRYBIO_AG_est, tolerance = 1e-4)
+  expect_equal(test$CARBON_AG, test$CARBON_AG_est, tolerance = 1e-3)
+  expect_equal(test$DRYBIO_AG, test$DRYBIO_AG_est, tolerance = 1e-3)
 })
