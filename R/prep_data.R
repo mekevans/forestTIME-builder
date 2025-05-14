@@ -28,6 +28,7 @@ prep_data <- function(db) {
       INVYR,
       DESIGNCD, #for joining TPA_UNADJ based on rules later
       # MACRO_BREAKPOINT_DIA #unclear if this is really needed
+      INTENSITY
     )
 
   COND <-
@@ -121,14 +122,14 @@ prep_data <- function(db) {
   # left_join(POP_EVAL, by = c('EVAL_CN' = 'CN')) %>%
   # left_join(POP_EVAL_TYP, by = 'EVAL_CN', relationship = 'many-to-many') |>
 
-  #remove trees that have only 0 or 1 non-NA measurment (we can't interpolate these)
   data <- data |>
     dplyr::group_by(tree_ID) |>
-    dplyr::filter(
-      sum(!is.na(DIA)) > 1 & sum(!is.na(HT)) > 1
-    ) |>
+    dplyr::filter(INTENSITY == 1) |> # use only base intensity plots
+    # dplyr::filter(
+    #   sum(!is.na(DIA)) > 1 & sum(!is.na(HT)) > 1
+    # ) |>
     #remove trees that change species
-    dplyr::filter(length(unique(SPCD)) == 1) |>
+    # dplyr::filter(length(unique(SPCD)) == 1) |>
 
     #remove trees that were measured in error (https://github.com/mekevans/forestTIME-builder/issues/59#issuecomment-2758575994)
     dplyr::filter(!any(RECONCILECD %in% c(7, 8))) |>

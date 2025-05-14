@@ -2,3 +2,6 @@
 *.webloc
 pop_scaling.html
 pop_scaling_files/
+dropped_trees.html
+dropped_trees_files/
+/.quarto/

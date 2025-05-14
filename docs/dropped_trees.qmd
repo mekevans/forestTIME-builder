@@ -1,0 +1,392 @@
+---
+title: "Un-interpolatable trees"
+date: today
+format: 
+  html:
+    toc: true
+code-fold: true
+execute:
+  warning: false
+  message: false
+knitr:
+  opts_chunk: 
+    out-width: 90%
+    fig-width: 10
+---
+
+We currently drop trees from the dataset before interpolation for three main reasons:
+
+1.  The tree changes `SPCD` at some point in it's life
+2.  It was included by error---`RECONCILECD` is 7 or 8 at some point in it's life.  Trees that have `STATUSCD` 0 and an `NA` for `RECONCILECD` *might* also be included in this category.
+3.  It only has one measurment for `HT` or `DIA` (even if it appears in multiple surveys)
+
+1 and 2 are choices we've made (and could make differently), but 3 is due to a limitation—you can't "connect the dots" with interpolation if there's only one dot!
+
+There are several (legit) reasons a tree might only have one measurement, each with different signals in the data.
+We might approach these trees in different ways.
+
+## Reasons a tree would only have one measurement
+
+In rough order of "we know how to deal with this" to "🤷‍♂️"
+
+1.  It was always fallen (I'm not sure if this is something that actually shows up in the data)
+    -   Signal:
+        -   Only `NA`s for `HT` and `DIA`
+        -   `STANDING_DEAD_CD = 0`
+    -   Solution: we would drop these anyway!
+2.  It was alive or standing dead and then fell down before being measured again
+    -   Signal:
+        -   In one inventory, numbers for `HT` and `DIA`
+        -   In the next inventory, `NA` for `HT` and `DIA`, `STATUSCD  = 2`, `STANDING_DEAD_CD = 0`
+    -   Possible solution: Cary the last (only) measurements forward until interpolated death year
+3.  The plot the tree is in has only been visited once
+    -   Signal:
+        -   The `plot_ID` and `tree_ID` should only show up in one year in the dataset
+        -   `STATUSCD = 1` or `STANDING_DEAD_CD = 1` (alive or standing dead)
+    -   Possible solutions:
+        -   Only use base inensity plots (✅)
+        -   Some trees may have a second measurement pre-2000---we could use the pre-2000 data for interpolation and filter it out after.
+4.  Ingrowth
+    -   Signal:
+        -   The `tree_ID` only appears once, but `plot_ID` shows up more than once
+        -   `DIA` < 10 or explicitly marked as ingrowth (`RECONCILECD` 1)
+5.  Deforestation
+    -   Signal:
+        -   An observation with `COND_STATUS_CD` 2.
+6.  Condition change (only one measrement in a sampled condition)
+    -   Signal:
+        -   More than one observation
+        -   At least one `RECONCILECD` 9 
+7.  Other (everthing left, there are sometimes a lot of trees that fit this category)
+    -   Signal:
+        - Only one measurement
+        - Tree appears in only one inventory, but plot has been resampled
+        - No indication of weirdness with `STATUSCD` 0 or a non-`NA` `RECONCILECD`.
+        - Doesn't fit the definition of ingrowth above
+
+## The data
+
+I'll read in raw data for a few states, add our `tree_ID` and `plot_ID` composite ID columns, and select columns of interest.  I'll also filter to **only include base intensity plots**
+
+```{r}
+#| label: setup
+#| include: false
+
+library(forestTIME.builder)
+library(tidyverse)
+library(rFIA)
+
+theme_set(theme_dark())
+
+# states <- c("OR", "CA", "AZ", "DE", "RI", "ID", "AK", "MA", "CT")
+states <-c("DE", "RI")
+
+get_fia_tables(states = states, download_dir = here::here("fia"), keep_zip = TRUE)
+```
+
+```{r}
+#| label: get-data
+db <- readFIA(dir = here::here("fia"), states = states, tables = c("TREE", "COND", "PLOT"))
+TREE <- db$TREE |>
+  as_tibble() |>
+  filter(INVYR >= 2000) |>
+  add_composite_ids() |>
+  left_join(state_codes, by = join_by(STATECD)) |>
+  select(
+    state_abb,
+    plot_ID,
+    tree_ID,
+    CONDID,
+    INVYR,
+    HT,
+    DIA,
+    SPCD,
+    STATUSCD,
+    STANDING_DEAD_CD,
+    RECONCILECD,
+    CARBON_AG
+  ) 
+
+PLOT <-
+    db$PLOT |>
+    dplyr::filter(INVYR >= 2000L) |>
+    add_composite_ids() |>
+    dplyr::select(
+      plot_ID,
+      CN,
+      INVYR,
+      DESIGNCD, #for joining TPA_UNADJ based on rules later
+      # MACRO_BREAKPOINT_DIA #unclear if this is really needed
+      INTENSITY
+    )
+
+COND <-
+    db$COND |>
+    dplyr::filter(INVYR >= 2000L) |>
+    add_composite_ids() |>
+    dplyr::select(
+      plot_ID,
+      CONDID,
+      INVYR,
+      COND_STATUS_CD,
+      COND_NONSAMPLE_REASN_CD
+    )
+
+tree <- left_join(TREE, COND) |>
+  left_join(PLOT) |> 
+  dplyr::filter(INTENSITY == 1) |> #only keep base intenstiy plots
+  arrange(state_abb, tree_ID, INVYR)
+```
+
+I'll do my best to programatically assign trees to each of these categories
+
+First, a quick question: are there trees with measurments for `HT` but not `DIA` or vice versa?
+
+```{r}
+bind_rows(
+  tree |>
+    filter(!is.na(HT) & is.na(DIA)),
+  tree |>
+    filter(!is.na(DIA) & is.na(HT))
+)
+```
+
+Quite a few!
+I'm working under the assumption that we need *both* `HT` and `DIA` to estimate carbon, so we would need to drop a tree that meets the "only one measurement" condition for *either* of these variables.
+
+## Status Quo
+
+Currently, this is how our "rules" exclude trees from the sample before interpolation & extrapolation
+
+```{r}
+#| label: functions
+
+reasons_fct <-
+  c(
+    "Included by error" = "error",
+    "Never observed standing" = "always_fallen",
+    "Recorded species changes" = "spcd",
+    "One or fewer measurements" = "only_one",
+    "Plot hasn't been revisited" = "only_visit",
+    "Fell after first inventory" = "fell",
+    "Ingrowth" = "ingrowth",
+    "Condition change" = "nonsampled",
+    "Deforestation" = "deforestation",
+    "Other" = "other"
+  )
+
+wrangle_dropped <- function(.data) {
+  data_summary <- .data |>
+    group_by(state_abb, INVYR, reason) |>
+    summarize(
+      n_dropped = length(unique(tree_ID)),
+      carbon_dropped = sum(CARBON_AG, na.rm = TRUE),
+    ) |>
+    group_by(state_abb, INVYR) |>
+    mutate(trees_total = sum(n_dropped), carbon_total = sum(carbon_dropped)) |>
+    filter(!is.na(reason))
+
+  reasons_fct <- reasons_fct[reasons_fct %in% unique(data_summary$reason)]
+
+  data_summary |>
+    ungroup() |> 
+    mutate(reason = fct_relevel(reason, !!!unname(reasons_fct))) |> 
+    mutate(reason_long = fct_recode(reason, !!!reasons_fct))
+}
+
+
+colors <- c(
+  "One or fewer measurements" = "#88CCEE",
+  "Never observed standing" = "#72190E",
+  "Fell after first inventory" = "#DDCC77",
+  "Plot hasn't been revisited" = "#117733",
+  "Recorded species changes" = "#332288",
+  "Included by error" = "#AA4499",
+  "Ingrowth" = "#44AA99",
+  "Condition change" = "#999933",
+  "Deforestation" = "#882255",
+  "Other" = "gray"
+)
+
+plot_dropped <- function(.data, y_var = c("n", "carbon")) {
+  y_var <- match.arg(y_var)
+
+  if (y_var == "n") {
+    p <-
+      ggplot(
+        .data,
+        aes(x = INVYR, y = n_dropped / trees_total, fill = reason_long)
+      ) +
+      labs(y = "Proportion of trees dropped")
+  }
+
+  if (y_var == "carbon") {
+    p <-
+      ggplot(
+        .data,
+        aes(x = INVYR, y = carbon_dropped / carbon_total, fill = reason_long)
+      ) +
+      labs(y = "Proportion of carbon in dropped trees")
+  }
+  p +
+    facet_wrap(vars(state_abb)) +
+    geom_col() +
+    scale_fill_manual(values = colors) +
+    scale_x_continuous(breaks = seq(2000, 2024, by = 2), minor_breaks = NULL) +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      legend.title = element_blank()
+    )
+}
+```
+
+```{r}
+#| column: page
+trees_dropped_current <- tree |>
+  group_by(tree_ID) |>
+  mutate(
+    #case_when makes the reasons mutually-exclusive for plotting consistency
+    #the conditions may not actually be mutually exclusive (pretty sure they aren't)
+    #case_when evaluates in order, so conditions (try to be) most specific to most general
+    reason = case_when(
+      any(RECONCILECD %in% c(7, 8)) | all(STATUSCD == 0 & is.na(RECONCILECD)) ~ "error",
+      !(sum(!is.na(DIA) & !is.na(HT)) >1) ~ "only_one",
+      !(length(unique(SPCD)) == 1) ~ "spcd",
+    )
+  )
+
+dropped_current <- wrangle_dropped(trees_dropped_current)
+
+dropped_current |>
+  plot_dropped(y_var = "n")
+dropped_current |>
+  plot_dropped(y_var = "carbon")
+```
+
+::: callout-warning
+In some years, for some states, 100% of the trees would be excluded by our methods!
+:::
+
+::: callout-note
+The totals for a given year (total trees, total carbon) are only for the plots visited in that year
+:::
+
+## Detailed breakdown
+
+Let's see if we can break this down into the different reasons for having one or fewer measurements in the data.
+
+::: callout-note
+These categories are assigned in a mutually exclusive way---a tree can only belong to one of these categories.  I've taken care to assign them in an order that makes sense.  E.g. if a tree is recorded by error, it gets assigned that category regardless of whether it was also ingrowth or had a species change, because we would get rid of it anyways.
+:::
+
+```{r}
+#| label: filter-dropped
+
+# how many times does each plot_ID show up in the data?
+plot_inv_count <-
+  tree |>
+  select(plot_ID, INVYR) |>
+  distinct() |>
+  count(plot_ID) |>
+  rename(plot_inv_count = n)
+
+# add logical columns for each reason for possibly being dropped
+# NOTE: `TRUE` means dropped and *either* `FALSE` or `NA` means not dropped
+trees_dropped_detailed <- tree |>
+  left_join(plot_inv_count, by = "plot_ID") |>
+  group_by(tree_ID) |>
+  mutate(
+    reason = case_when(
+      #Earlier conditions take precedence over later ones
+      #So, these are in order of "there's no solution, we will drop them anyways" then specific to general cases that have solutions.
+      any(RECONCILECD %in% c(7, 8)) |
+        all(STATUSCD == 0 & is.na(RECONCILECD)) ~ 
+        "error",
+
+      #fallen trees sometimes get diameter measurements, but I don't think ht is measured
+      sum(!is.na(DIA) & !is.na(HT)) == 0 &
+        all(STANDING_DEAD_CD == 0) &
+        plot_inv_count > 1 ~
+        "always_fallen",
+
+      #tree fell over after being measured only once
+      sum(!is.na(DIA) & !is.na(HT)) == 1 &
+        n() > 1 &
+        #treating dead with no measurements the same as fallen
+        (any(STANDING_DEAD_CD == 0) | any(STATUSCD == 2 & is.na(DIA) & is.na(HT))) ~
+        "fell",
+      
+      #tree was in a condition sampled in one inventory, but now in nonsampled condition
+      #OR tree was in non-sampled condition and only once in sampled condtion
+      sum(!is.na(DIA) & !is.na(HT)) <= 1 &
+        n() > 1 &
+        any(RECONCILECD == 9) ~
+        "nonsampled",
+      
+      #plot and tree only exists once in dataset
+      plot_inv_count == 1 & n() == 1 ~ "only_visit",
+
+      #deforestation?
+      sum(!is.na(DIA) & !is.na(HT)) <= 1 &
+        # n() > 1 &
+        any(COND_STATUS_CD == 2) ~ "deforestation",
+
+      #Then, capture any remaining trees that have STATUSCD 0 with no explanation here
+      #  sum(!is.na(DIA) & !is.na(HT)) <= 1 &
+      #   any(STATUSCD == 0) &
+      #   all(is.na(RECONCILECD)) ~ "no_status",
+        
+
+      #plot has been inventoried previously, small DIA or explicitly marked as ingrowth
+      #this may also include trees that shrank (RECONCILECD = 5)
+      drop_ingrowth = sum(!is.na(DIA) & !is.na(HT)) <= 1 &
+        (any(DIA < 10) | any(RECONCILECD == 1)) &
+          plot_inv_count > 1 ~
+        "ingrowth",
+
+      #changing species (we can fix this, so it's at the end)
+      !(length(unique(SPCD)) == 1) ~ "spcd",
+
+      #flag any remaining trees with only one observation and measurement
+      sum(!is.na(DIA) & !is.na(HT)) == 1 &
+      n() == 1 ~ "other"
+    )
+  )
+```
+
+Then we can summarize by state and inventory year to get a sense of how many trees are dropped, what proportion of total trees are represented by each category, and how much total carbon is represented by each category.
+
+
+```{r}
+dropped_detailed <- wrangle_dropped(trees_dropped_detailed)
+```
+
+```{r}
+#| column: page
+plot_dropped(dropped_detailed, y_var = "n")
+```
+
+```{r}
+#| column: page
+plot_dropped(dropped_detailed, y_var = "carbon")
+```
+
+There are a surprising number of trees that were only sampled once because of condition change (from sampled to non-sampled or from non-sampled to sampled).  Let's take a closer look at these
+
+```{r}
+trees_dropped_detailed |> 
+  ungroup() |> 
+  filter(reason == "nonsampled") |> count(COND_NONSAMPLE_REASN_CD)
+```
+
+- 1 = outside U.S. boundary
+- 2 = denied access area
+- 3 = hazardous situation
+- 5 = lost data
+- 6 = lost plot (can't find entire plot)
+- 7 = wrong location (plot found, but it's not in the right spot?)
+- 8 = skipped visit (entire plot skipped)
+- 9 = dropped intensified plot
+- 10 = other
+- 11 = ocean
+- `NA` = ???
