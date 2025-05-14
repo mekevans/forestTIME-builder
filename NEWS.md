@@ -1,5 +1,7 @@
 # forestTIME-builder (development version)
 
+- Trees that have always been fallen and have no measurements are now removed by `prep_data()`
+- Trees that change species (more than one `SPCD` value) are assumed to have always been their last recorded species.  `prep_data()` now overwrites `SPCD` with the last recorded `SPCD` for each tree.
 - `prep_data()` now removes intensfication plots (`INTENSITY != 1`)
 - Additional columns `PLT_CN`, `COND_STATUS_CD` are kept for the interpolated data.
 - Added a vignette (WIP) on how to use outputs of `forestTIME.builder` to get population level estimates.

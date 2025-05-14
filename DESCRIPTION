@@ -40,6 +40,7 @@ Suggests:
     readr,
     rmarkdown,
     testthat (>= 3.0.0),
+    waldo,
     withr
 VignetteBuilder: knitr, quarto
 URL: https://github.com/mekevans/forestTIME-builder

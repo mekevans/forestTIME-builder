@@ -12,3 +12,7 @@
 ^Meta$
 ^vignettes/\.quarto$
 ^vignettes/*_files$
+^CITATION.cff$
+^scripts$
+^_publish.yml$
+^carbon_code$
