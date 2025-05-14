@@ -1,11 +1,18 @@
 #' Read in and join all required tables
 #'
 #' Reads in all the tables needed for carbon estimation and population scaling
-#' and joins them into a single table.  Also creates unique tree an plot
-#' identifiers (`tree_ID` and `plot_ID`, respectively).  Removes "problem" trees
-#' such as those with only records when they are dead and trees that switch
-#' species (`SPCD`). Fills in missing values for `ACTUALHT` with values from
-#' `HT` to prepare for interpolation.
+#' and joins them into a single table. Then, some additional wrangling steps are
+#' performed.
+#' 1. Creates unique tree an plot identifiers (`tree_ID` and `plot_ID`,
+#'   respectively).
+#' 2. Filters out intensification plots.
+#' 3. Removes trees that were measured in error (`RECONCILECD` 7 or 8).
+#' 4. Removes trees with no measurements because they've always been fallen
+#'   (`STANDING_DEAD_CD` 0).
+#' 5. Fills in missing values for `ACTUALHT` with values from `HT` to prepare
+#'   for interpolation.
+#' 6. Overwrites `SPCD` with whatever the last value of `SPCD` is for each tree
+#'   (to handle trees that change `SPCD`)
 #'
 #' @param db a list of tables produced by [read_fia()]
 #' @export
