@@ -78,8 +78,8 @@ library(rFIA)
 
 theme_set(theme_dark())
 
-# states <- c("OR", "CA", "AZ", "DE", "RI", "ID", "AK", "MA", "CT")
-states <-c("DE", "RI")
+states <- c("OR", "CA", "AZ", "DE", "RI", "ID", "AK", "MA", "CT")
+# states <-c("DE", "RI")
 
 get_fia_tables(states = states, download_dir = here::here("fia"), keep_zip = TRUE)
 ```
