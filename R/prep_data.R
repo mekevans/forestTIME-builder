@@ -130,11 +130,11 @@ prep_data <- function(db) {
     # ) |>
     #remove trees that were measured in error (https://github.com/mekevans/forestTIME-builder/issues/59#issuecomment-2758575994)
     dplyr::filter(!any(RECONCILECD %in% c(7, 8))) |>
+    # if trees have more than one SPCD, set all to be the most recent SPCD (https://github.com/mekevans/forestTIME-builder/issues/53)
+    dplyr::mutate(SPCD = last(SPCD)) |>
     dplyr::ungroup() |>
     #coalesce ACTUALHT so it can be interpolated
-    dplyr::mutate(ACTUALHT = dplyr::coalesce(ACTUALHT, HT)) |>
-    # if trees have more than one SPCD, set all to be the most recent SPCD (https://github.com/mekevans/forestTIME-builder/issues/53)
-    dplyr::mutate(SPCD = last(SPCD))
+    dplyr::mutate(ACTUALHT = dplyr::coalesce(ACTUALHT, HT))
   #return:
   data
 }
