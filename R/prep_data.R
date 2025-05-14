@@ -128,14 +128,13 @@ prep_data <- function(db) {
     # dplyr::filter(
     #   sum(!is.na(DIA)) > 1 & sum(!is.na(HT)) > 1
     # ) |>
-    #remove trees that change species
-    # dplyr::filter(length(unique(SPCD)) == 1) |>
-
     #remove trees that were measured in error (https://github.com/mekevans/forestTIME-builder/issues/59#issuecomment-2758575994)
     dplyr::filter(!any(RECONCILECD %in% c(7, 8))) |>
     dplyr::ungroup() |>
     #coalesce ACTUALHT so it can be interpolated
-    dplyr::mutate(ACTUALHT = dplyr::coalesce(ACTUALHT, HT))
+    dplyr::mutate(ACTUALHT = dplyr::coalesce(ACTUALHT, HT)) |>
+    # if trees have more than one SPCD, set all to be the most recent SPCD (https://github.com/mekevans/forestTIME-builder/issues/53)
+    dplyr::mutate(SPCD = last(SPCD))
   #return:
   data
 }
