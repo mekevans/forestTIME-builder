@@ -1,5 +1,6 @@
 # forestTIME-builder (development version)
 
+- `prep_data()` now removes intensfication plots (`INTENSITY != 1`)
 - Additional columns `PLT_CN`, `COND_STATUS_CD` are kept for the interpolated data.
 - Added a vignette (WIP) on how to use outputs of `forestTIME.builder` to get population level estimates.
 - `forestTIME.builder` is now an R package
