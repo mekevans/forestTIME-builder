@@ -6,7 +6,9 @@ on:
       - 'README*'
       - 'LICENSE*'
       - 'docs/**'
+      - 'doc/**'
       - 'man/**'
+      - 'vignettes/**'
       - 'CITATION.cff'
       - 'NEWS.md'
   pull_request:  
@@ -15,7 +17,9 @@ on:
       - 'README*'
       - 'LICENSE*'
       - 'docs/**'
+      - 'doc/**'
       - 'man/**'
+      - 'vignettes/**'
       - 'CITATION.cff'
       - 'NEWS.md'
   workflow_dispatch:
