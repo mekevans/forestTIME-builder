@@ -16,6 +16,9 @@ test_that("prep_data() works", {
   #check that SPCD is consistent
   spcd_check <- data |> group_by(tree_ID) |> filter(length(unique(SPCD)) > 1)
   expect_equal(nrow(spcd_check), 0)
+
+  #check that only base intensity plots are included
+  expect_true(all(data$INTENSITY == 1))
 })
 
 
