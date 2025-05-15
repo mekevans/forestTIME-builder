@@ -7,7 +7,8 @@
 expand_data(data)
 }
 \arguments{
-\item{data}{tibble produced by \code{\link[=read_fia]{read_fia()}}.}
+\item{data}{tibble produced by \code{\link[=read_fia]{read_fia()}}---must have at least \code{tree_ID}
+and \code{INVYR} columns.}
 }
 \value{
 a tibble

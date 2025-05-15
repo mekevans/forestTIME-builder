@@ -23,7 +23,7 @@ test_that("prep_data() works", {
 
 
 test_that("composite ID helpers work", {
-  df <- tibble(
+  df <- dplyr::tibble(
     STATECD = 1,
     UNITCD = 2,
     COUNTYCD = 3,
