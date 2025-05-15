@@ -1,3 +1,4 @@
+library(dplyr)
 test_that("expand_data() works", {
   # fmt: skip
   df <- dplyr::tribble( 
@@ -16,5 +17,23 @@ test_that("expand_data() works", {
   expect_identical(
     unique(df_expanded$YEAR),
     seq(min(df$INVYR), max(df$INVYR), by = 1)
+  )
+})
+
+test_that("interpolation flag works", {
+  # fmt: skip
+  df <- dplyr::tribble( 
+      ~plot_ID, ~tree_ID, ~INVYR, ~HT, ~DIA, ~SPCD,
+      "p1", "A", 2000, 12, 24, 123,
+      "p1", "A", 2005, NA, NA, NA,
+      "p1", "A", 2010, 5, 10, 222,
+      "p1", "A", 2015, 7, 11, 222
+    )
+  df_expanded <- expand_data(df)
+
+  expect_equal(nrow(df_expanded |> filter(interpolated == FALSE)), nrow(df))
+  expect_equal(
+    nrow(df_expanded |> filter(interpolated == TRUE)),
+    length(seq(min(df$INVYR), max(df$INVYR))) - nrow(df)
   )
 })
