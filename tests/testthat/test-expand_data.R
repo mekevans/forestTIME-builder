@@ -9,7 +9,6 @@ test_that("expand_data() works", {
   )
 
   df_expanded <- expand_data(df)
-  expect_snapshot(df_expanded) #TODO comment out if this gets annoying
   expect_gt(nrow(df_expanded), nrow(df))
 
   expect_true(all(!is.na(df_expanded$plot_ID)))

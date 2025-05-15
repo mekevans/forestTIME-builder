@@ -11,7 +11,8 @@
 #' @param data tibble produced by [read_fia()]---must have at least `tree_ID`
 #'   and `INVYR` columns.
 #' @export
-#' @returns a tibble
+#' @returns a tibble with a logical column `interpolated` marking whether a row
+#'   was present in the original data (`FALSE`) or was added (`TRUE`).
 expand_data <- function(data) {
   cli::cli_progress_step("Expanding years between surveys")
   #We do the expand() in chunks because it is computationally expensive otherwise
@@ -41,9 +42,13 @@ expand_data <- function(data) {
 
   tree_annual <-
     dplyr::right_join(
-      data,
-      all_yrs,
+      data |> dplyr::mutate(interpolated = FALSE),
+      all_yrs |> dplyr::mutate(interpolated = TRUE),
       by = dplyr::join_by(tree_ID, INVYR == YEAR)
+    ) |>
+    dplyr::mutate(
+      interpolated = dplyr::coalesce(interpolated.x, interpolated.y),
+      .keep = "unused" #to remove interpolated.x and interpolated.y
     ) |>
     dplyr::rename(YEAR = INVYR) |>
     dplyr::arrange(tree_ID, YEAR) |>
@@ -63,6 +68,7 @@ expand_data <- function(data) {
         "tree_ID",
         "plot_ID",
         "YEAR",
+        "interpolated",
         "DIA",
         "HT",
         "ACTUALHT",

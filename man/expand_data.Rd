@@ -11,7 +11,8 @@ expand_data(data)
 and \code{INVYR} columns.}
 }
 \value{
-a tibble
+a tibble with a logical column \code{interpolated} marking whether a row
+was present in the original data (\code{FALSE}) or was added (\code{TRUE}).
 }
 \description{
 This expands the data frame in preparation for interpolation of now "missing"
