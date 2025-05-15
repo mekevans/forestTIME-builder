@@ -5,10 +5,11 @@
 #' `plot_ID`, `SPCD`, `ECOSUBCD`, `DESIGNCD`, and `PROP_BASIS` are simply filled
 #' in with [tidyr::fill()]. Categorical variables `STATUDSCD`, `RECONCILECD`,
 #' `STDORGCD`, `CONDID`, and `COND_STATUS_CD` are modified to replace `NA`s with
-#'  `999` so that they are properly interpolated by [interpolate_data()] (which
+#' `999` so that they are properly interpolated by [interpolate_data()] (which
 #' converts them back to `NA`s).
 #'
-#' @param data tibble produced by [read_fia()].
+#' @param data tibble produced by [read_fia()]---must have at least `tree_ID`
+#'   and `INVYR` columns.
 #' @export
 #' @returns a tibble
 expand_data <- function(data) {
@@ -20,7 +21,7 @@ expand_data <- function(data) {
     # replace NAs for some categorical variables with 999 (temporarily) so
     # they switch from NA correctly (https://github.com/mekevans/forestTIME-builder/issues/72)
     dplyr::mutate(dplyr::across(
-      all_of(c(
+      any_of(c(
         "STATUSCD",
         "RECONCILECD",
         # Except these two which get handled differently, I think. (see adjust_mortality())
@@ -34,7 +35,7 @@ expand_data <- function(data) {
     ))
 
   all_yrs <-
-    dplyr::left_join(data, plot_chunks, by = dplyr::join_by(plot_ID)) |>
+    data |>
     dplyr::group_by(tree_ID) |>
     tidyr::expand(YEAR = tidyr::full_seq(INVYR, 1))
 
@@ -48,18 +49,26 @@ expand_data <- function(data) {
     dplyr::arrange(tree_ID, YEAR) |>
     #fill down any time-invariant columns
     dplyr::group_by(tree_ID) |>
-    tidyr::fill(plot_ID, SPCD, ECOSUBCD, DESIGNCD, PROP_BASIS) |>
+    tidyr::fill(any_of(c(
+      "plot_ID",
+      "SPCD",
+      "ECOSUBCD",
+      "DESIGNCD",
+      "PROP_BASIS"
+    ))) |>
     dplyr::ungroup() |>
     #rearrange
     dplyr::select(
-      tree_ID,
-      plot_ID,
-      YEAR,
-      DIA,
-      HT,
-      ACTUALHT,
-      CR,
-      CULL,
+      any_of(c(
+        "tree_ID",
+        "plot_ID",
+        "YEAR",
+        "DIA",
+        "HT",
+        "ACTUALHT",
+        "CR",
+        "CULL"
+      )),
       everything()
     )
   tree_annual
