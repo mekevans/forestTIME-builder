@@ -119,7 +119,6 @@ estimate_carbon <- function(data) {
       DECAYCD,
       STANDING_DEAD_CD,
       SPCD,
-      CN, #not sure which CN this is
       # DESIGNCD, #only needed this to get TPA_UNADJ
       TPA_UNADJ,
       # DRYBIO_AG = AGB, #Includes foliage, which is not part of DRYBIO_AG
