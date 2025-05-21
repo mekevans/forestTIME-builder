@@ -35,7 +35,7 @@ interpolate_data <- function(data_expanded) {
   )
 
   data_expanded |>
-    dplyr::group_by(tree_ID) |>
+    dplyr::group_by(plot_ID, tree_ID) |>
     dplyr::mutate(
       #linearly interpolate/extrapolate
       dplyr::across(

@@ -17,7 +17,6 @@ expand_data <- function(data) {
   cli::cli_progress_step("Expanding years between surveys")
   #We do the expand() in chunks because it is computationally expensive otherwise
   #TODO actually bench::mark() this.  I don't know why this doesn't work not chunked
-
   data <- data |>
     # replace NAs for some categorical variables with 999 (temporarily) so
     # they switch from NA correctly (https://github.com/mekevans/forestTIME-builder/issues/72)
@@ -37,14 +36,14 @@ expand_data <- function(data) {
 
   all_yrs <-
     data |>
-    dplyr::group_by(tree_ID) |>
+    dplyr::group_by(plot_ID, tree_ID) |>
     tidyr::expand(YEAR = tidyr::full_seq(INVYR, 1))
 
   tree_annual <-
     dplyr::right_join(
       data |> dplyr::mutate(interpolated = FALSE),
       all_yrs |> dplyr::mutate(interpolated = TRUE),
-      by = dplyr::join_by(tree_ID, INVYR == YEAR)
+      by = dplyr::join_by(plot_ID, tree_ID, INVYR == YEAR)
     ) |>
     dplyr::mutate(
       interpolated = dplyr::coalesce(interpolated.x, interpolated.y),
@@ -65,8 +64,8 @@ expand_data <- function(data) {
     #rearrange
     dplyr::select(
       any_of(c(
-        "tree_ID",
         "plot_ID",
+        "tree_ID",
         "YEAR",
         "interpolated",
         "DIA",
