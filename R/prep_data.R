@@ -23,7 +23,7 @@ prep_data <- function(db) {
   PLOTGEOM <-
     db$PLOTGEOM |>
     dplyr::filter(INVYR >= 2000L) |>
-    dplyr::select(CN, INVYR, ECOSUBCD)
+    dplyr::select(PLT_CN = CN, INVYR, ECOSUBCD)
 
   PLOT <-
     db$PLOT |>
@@ -31,7 +31,7 @@ prep_data <- function(db) {
     add_composite_ids() |>
     dplyr::select(
       plot_ID,
-      CN,
+      PLT_CN = CN,
       INVYR,
       DESIGNCD, #for joining TPA_UNADJ based on rules later
       # MACRO_BREAKPOINT_DIA #unclear if this is really needed
@@ -115,10 +115,10 @@ prep_data <- function(db) {
 
   # Join the tables
   data <-
-    TREE |> #13,963
+    PLOT |>
     dplyr::as_tibble() |>
-    dplyr::left_join(PLOT, by = dplyr::join_by(plot_ID, INVYR)) |>
-    dplyr::left_join(PLOTGEOM, by = dplyr::join_by(INVYR, CN)) |>
+    dplyr::left_join(TREE, by = dplyr::join_by(plot_ID, PLT_CN, INVYR)) |>
+    dplyr::left_join(PLOTGEOM, by = dplyr::join_by(INVYR, PLT_CN)) |>
     dplyr::left_join(COND, by = dplyr::join_by(plot_ID, INVYR, PLT_CN, CONDID))
 
   # TODO These population tables are needed for pop scaling, but the 'many-to-many' relationship messes up the interpolation.  I think this is because plots can belong to multiple strata? Probably can't use this with interpolated data anyways?
@@ -129,9 +129,19 @@ prep_data <- function(db) {
   # left_join(POP_EVAL, by = c('EVAL_CN' = 'CN')) %>%
   # left_join(POP_EVAL_TYP, by = 'EVAL_CN', relationship = 'many-to-many') |>
 
+  # use only base intensity plots
+  data <- data |>
+    dplyr::filter(INTENSITY == 1)
+
+  #at this point, get the list of plots and years as following steps may remove "empty" plots
+  all_plots <- data |>
+    dplyr::select(plot_ID, INVYR) |>
+    dplyr::distinct() |>
+    dplyr::left_join(PLOT, by = dplyr::join_by(plot_ID, INVYR))
+
+  # deal with "problem" trees
   data <- data |>
     dplyr::group_by(tree_ID) |>
-    dplyr::filter(INTENSITY == 1) |> # use only base intensity plots
     # dplyr::filter(
     #   sum(!is.na(DIA)) > 1 & sum(!is.na(HT)) > 1
     # ) |>
@@ -144,10 +154,17 @@ prep_data <- function(db) {
     dplyr::filter(!any(RECONCILECD %in% c(7, 8))) |>
     # if trees have more than one SPCD, set all to be the most recent SPCD
     # (https://github.com/mekevans/forestTIME-builder/issues/53)
-    dplyr::mutate(SPCD = last(SPCD)) |>
+    dplyr::mutate(SPCD = dplyr::last(SPCD)) |>
     dplyr::ungroup() |>
     # coalesce ACTUALHT so it can be interpolated
     dplyr::mutate(ACTUALHT = dplyr::coalesce(ACTUALHT, HT))
+
+  #join the empty plots back in
+  data <-
+    dplyr::full_join(data, all_plots, by = dplyr::join_by(plot_ID, PLT_CN, INVYR, DESIGNCD, INTENSITY)) |>
+    dplyr::arrange(plot_ID, tree_ID, INVYR) |>
+    dplyr::select(plot_ID, tree_ID, INVYR, everything())
+
   #return:
   data
 }

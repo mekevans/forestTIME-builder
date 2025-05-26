@@ -11,14 +11,6 @@ data <-
   read_fia(states = state) |>
   prep_data()
 
-# Check that each tree only has 1 entry per year
-n <- data |>
-  group_by(tree_ID, INVYR) |>
-  summarise(n = n(), .groups = "drop") |>
-  filter(n > 1) |>
-  nrow()
-stopifnot(n == 0)
-
 # Expand to include all years between surveys and interpolate/extrapolate
 data_interpolated <- data |> expand_data() |> interpolate_data()
 

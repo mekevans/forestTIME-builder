@@ -102,6 +102,7 @@ Check that each tree has only 1 entry per year
 #| label: check-data
 n <- data |> 
   group_by(tree_ID, INVYR) |> 
+  filter(!is.na(tree_ID)) |> #remove empty plots
   summarise(n = n(), .groups = "drop") |>
   filter(n > 1) |> 
   nrow()
