@@ -1,5 +1,6 @@
 # forestTIME-builder (development version)
 
+- `prep_data()` now converts `PLT_CN` from numeric to character for better readability in the output.
 - Empty plots are no longer dropped silently by `prep_data()` and should be handled correctly by the rest of the workflow through `interpolate_data()`.
 - `expand_data()` now adds a column, `interpolated`, that marks whether an observation was interpolated (`TRUE`) or in the original data (`FALSE`).
 - Trees that have always been fallen and have no measurements are now removed by `prep_data()`

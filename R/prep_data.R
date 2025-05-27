@@ -23,11 +23,13 @@ prep_data <- function(db) {
   PLOTGEOM <-
     db$PLOTGEOM |>
     dplyr::filter(INVYR >= 2000L) |>
+    dplyr::mutate(CN = as.character(CN)) |> 
     dplyr::select(PLT_CN = CN, INVYR, ECOSUBCD)
 
   PLOT <-
     db$PLOT |>
     dplyr::filter(INVYR >= 2000L) |>
+    dplyr::mutate(CN = as.character(CN)) |> 
     add_composite_ids() |>
     dplyr::select(
       plot_ID,
@@ -41,6 +43,7 @@ prep_data <- function(db) {
   COND <-
     db$COND |>
     dplyr::filter(INVYR >= 2000L) |>
+    dplyr::mutate(PLT_CN = as.character(PLT_CN)) |> 
     add_composite_ids() |>
     dplyr::select(
       plot_ID,
@@ -56,6 +59,7 @@ prep_data <- function(db) {
   TREE <-
     db$TREE |>
     dplyr::filter(INVYR >= 2000L) |>
+    dplyr::mutate(PLT_CN = as.character(PLT_CN)) |> 
     add_composite_ids() |>
     dplyr::select(
       plot_ID,
