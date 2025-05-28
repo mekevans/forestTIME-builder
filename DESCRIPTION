@@ -34,6 +34,7 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
 LazyData: true
 Suggests: 
+    ggplot2,
     knitr,
     nanoparquet,
     quarto,
@@ -44,6 +45,6 @@ Suggests:
     waldo,
     withr
 VignetteBuilder: knitr, quarto
-URL: https://github.com/mekevans/forestTIME-builder
+URL: https://github.com/mekevans/forestTIME-builder https://cct-datascience.r-universe.dev/forestTIME.builder
 BugReports: https://github.com/mekevans/forestTIME-builder/issues
 Config/testthat/edition: 3
