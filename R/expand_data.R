@@ -57,8 +57,9 @@ expand_data <- function(data) {
       "SPCD",
       "ECOSUBCD",
       "DESIGNCD",
-      "PROP_BASIS"
-    ))) |>
+      "PROP_BASIS",
+      "MORTYR"
+    )), .direction = "downup") |>
     dplyr::ungroup() |>
     #rearrange
     dplyr::select(
