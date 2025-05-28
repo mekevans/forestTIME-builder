@@ -1,5 +1,6 @@
 # forestTIME-builder (development version)
 
+- Fixed a bug in `expand_data()` that was caused `STANDING_DEAD_CD` and `DECAYCD` to not be interpolated correctly, resulting in extrapolated measurments for fallen dead trees (#101 reported by @dnsteinberg)
 - `prep_data()` now converts `PLT_CN` from numeric to character for better readability in the output.
 - Empty plots are no longer dropped silently by `prep_data()` and should be handled correctly by the rest of the workflow through `interpolate_data()`.
 - `expand_data()` now adds a column, `interpolated`, that marks whether an observation was interpolated (`TRUE`) or in the original data (`FALSE`).
