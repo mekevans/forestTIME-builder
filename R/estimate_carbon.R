@@ -104,6 +104,7 @@ estimate_carbon <- function(data) {
       tree_ID,
       plot_ID,
       YEAR,
+      interpolated,
       DIA,
       HT,
       ACTUALHT,
