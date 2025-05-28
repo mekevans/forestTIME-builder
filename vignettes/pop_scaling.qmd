@@ -42,7 +42,7 @@ They will not be exact because **many trees are dropped from the sample by `fore
 
 ```{r}
 agc_rfia <- 
-  biomass(fiaRI, method = "annual", treeType = "live", areaDomain = COND_STATUS_CD == 1) |> 
+  biomass(fiaRI, method = "annual", treeType = "live", areaDomain = COND_STATUS_CD == 1 & INTENSITY == 1) |> 
   mutate(method = "rFIA::biomass()") |> 
   select(method, YEAR, carbon_ton_acre = CARB_ACRE)
 agc_rfia
@@ -85,8 +85,8 @@ So we can't just `filter(STATUSCD == 1 & COND_STATUSCD == 1)` to estimate carbon
 data_midpt <-
   data_midpt |>
   mutate(
-    aDI = if_else(COND_STATUS_CD == 1, 1, 0),
-    tDI = if_else(STATUSCD == 1, 1, 0)
+    aDI = if_else(COND_STATUS_CD == 1, 1, 0), #forested land
+    tDI = if_else(STATUSCD == 1, 1, 0) * aDI #live trees on forested land
   )
 ```
 
