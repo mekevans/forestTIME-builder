@@ -76,5 +76,6 @@ adjust_mortality <- function(data_interpolated, use_mortyr = TRUE) {
         \(x) dplyr::if_else(STANDING_DEAD_CD == 0, NA, x, missing = x)
       )
     ) |>
-    dplyr::select(-MORTYR, -first_dead) #don't need this anymore?
+    ungroup() |> 
+    dplyr::select(-first_dead) 
 }
