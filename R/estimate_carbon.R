@@ -101,30 +101,32 @@ estimate_carbon <- function(data) {
     dplyr::as_tibble() |>
     #select only columns needed
     dplyr::select(
-      tree_ID,
-      plot_ID,
-      YEAR,
-      interpolated,
-      DIA,
-      HT,
-      ACTUALHT,
-      CR,
-      CULL,
-      PLT_CN,
-      CONDID,
-      COND_STATUS_CD,
-      PROP_BASIS,
-      CONDPROP_UNADJ,
-      STATUSCD,
-      RECONCILECD, #might be done with this column?
-      DECAYCD,
-      STANDING_DEAD_CD,
-      SPCD,
-      # DESIGNCD, #only needed this to get TPA_UNADJ
-      TPA_UNADJ,
-      # DRYBIO_AG = AGB, #Includes foliage, which is not part of DRYBIO_AG
-      DRYBIO_AG = BIOMASS, #Does not include foliage
-      CARBON_AG = CARBON
+      any_of(c(
+        "tree_ID",
+        "plot_ID",
+        "YEAR",
+        "interpolated",
+        "DIA",
+        "HT",
+        "ACTUALHT",
+        "CR",
+        "CULL",
+        "PLT_CN",
+        "CONDID",
+        "COND_STATUS_CD",
+        "PROP_BASIS",
+        "CONDPROP_UNADJ",
+        "STATUSCD",
+        "RECONCILECD", #might be done with this column?
+        "DECAYCD",
+        "STANDING_DEAD_CD",
+        "SPCD",
+        # DESIGNCD, #only needed this to get TPA_UNADJ
+        "TPA_UNADJ",
+        # DRYBIO_AG = AGB, #Includes foliage, which is not part of DRYBIO_AG
+        "DRYBIO_AG" = "BIOMASS", #Does not include foliage
+        "CARBON_AG" = "CARBON"
+      ))
     )
 
   #TODO: undo changing of NAs to 0s
