@@ -24,9 +24,8 @@ expand_data <- function(data) {
       any_of(c(
         "STATUSCD",
         "RECONCILECD",
-        # Except these two which get handled differently, I think. (see adjust_mortality())
-        # "DECAYCD",
-        # "STANDING_DEAD_CD",
+        "DECAYCD",
+        "STANDING_DEAD_CD",
         "STDORGCD",
         "CONDID",
         "COND_STATUS_CD"
@@ -58,8 +57,9 @@ expand_data <- function(data) {
       "SPCD",
       "ECOSUBCD",
       "DESIGNCD",
-      "PROP_BASIS"
-    ))) |>
+      "PROP_BASIS",
+      "MORTYR"
+    )), .direction = "downup") |>
     dplyr::ungroup() |>
     #rearrange
     dplyr::select(
