@@ -15,11 +15,11 @@
 #'   was present in the original data (`FALSE`) or was added (`TRUE`).
 expand_data <- function(data) {
   cli::cli_progress_step("Expanding years between surveys")
-  #We do the expand() in chunks because it is computationally expensive otherwise
-  #TODO actually bench::mark() this.  I don't know why this doesn't work not chunked
+
   data <- data |>
-    # replace NAs for some categorical variables with 999 (temporarily) so
-    # they switch from NA correctly (https://github.com/mekevans/forestTIME-builder/issues/72)
+    # replace NAs for some categorical variables with 999 (temporarily) so they
+    # switch from NA correctly
+    # (https://github.com/mekevans/forestTIME-builder/issues/72)
     dplyr::mutate(dplyr::across(
       any_of(c(
         "STATUSCD",
@@ -38,6 +38,8 @@ expand_data <- function(data) {
     dplyr::group_by(plot_ID, tree_ID) |>
     tidyr::expand(YEAR = tidyr::full_seq(INVYR, 1))
 
+  # Join while creating a flag indicating whether the row is from the original
+  # data or a result of "expanding"
   tree_annual <-
     dplyr::right_join(
       data |> dplyr::mutate(interpolated = FALSE),
