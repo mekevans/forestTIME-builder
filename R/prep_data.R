@@ -125,7 +125,10 @@ prep_data <- function(db) {
     dplyr::left_join(PLOTGEOM, by = dplyr::join_by(INVYR, PLT_CN)) |>
     dplyr::left_join(COND, by = dplyr::join_by(plot_ID, INVYR, PLT_CN, CONDID))
 
-  # TODO These population tables are needed for pop scaling, but the 'many-to-many' relationship messes up the interpolation.  I think this is because plots can belong to multiple strata? Probably can't use this with interpolated data anyways?
+  # TODO These population tables are needed for pop scaling, but the
+  # 'many-to-many' relationship messes up the interpolation.  I think this is
+  # because plots can belong to multiple strata? Probably can't use this with
+  # interpolated data anyways?
 
   # left_join(POP_PLOT_STRATUM_ASSGN, by = join_by(INVYR, PLT_CN), relationship = 'many-to-many') %>% #many-to-many relationship?
   # left_join(POP_STRATUM, by = c('STRATUM_CN' = 'CN')) %>%
@@ -137,7 +140,14 @@ prep_data <- function(db) {
   data <- data |>
     dplyr::filter(INTENSITY == 1)
 
-  #at this point, get the list of plots and years as following steps may remove "empty" plots
+  # fill MORTYR so it is a property of trees
+  data <- data |> 
+    dplyr::group_by(tree_ID) |> 
+    tidyr::fill(MORTYR, .direction = c("updown")) |> 
+    ungroup()
+
+  # at this point, get the list of plots and years as following steps may remove
+  # "empty" plots
   all_plots <- data |>
     dplyr::select(plot_ID, INVYR) |>
     dplyr::distinct() |>
@@ -163,13 +173,13 @@ prep_data <- function(db) {
     # coalesce ACTUALHT so it can be interpolated
     dplyr::mutate(ACTUALHT = dplyr::coalesce(ACTUALHT, HT))
 
-  #join the empty plots back in
+  # join the empty plots back in
   data <-
     dplyr::full_join(data, all_plots, by = dplyr::join_by(plot_ID, PLT_CN, INVYR, DESIGNCD, INTENSITY)) |>
     dplyr::arrange(plot_ID, tree_ID, INVYR) |>
     dplyr::select(plot_ID, tree_ID, INVYR, everything())
 
-  #return:
+  # return:
   data
 }
 
@@ -228,8 +238,8 @@ split_composite_ids <- function(data) {
     stop("No composite ID columns found")
   }
 
-  # tree_ID contains all the information in plot_ID, so if tree_ID exists,
-  # it's enough to just split that one
+  # tree_ID contains all the information in plot_ID, so if tree_ID exists, it's
+  # enough to just split that one
   if ("tree_ID" %in% cols) {
     data <- data |>
       tidyr::separate_wider_delim(
