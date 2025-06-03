@@ -71,7 +71,7 @@ interpolate_data <- function(data_expanded) {
     # trees to fallen dead
     data_interpolated |> 
       dplyr::mutate(
-        STATUSCD = if_else(DIA <= 0 | HT <= 0 | ACTUALHT <= 0, 2, STATUSCD),
-        STANDING_DEAD_CD = if_else(DIA <= 0 | HT <= 0 | ACTUALHT <= 0, 0, STANDING_DEAD_CD)
+        STATUSCD = dplyr::if_else(DIA <= 0 | HT <= 0 | ACTUALHT <= 0, 2, STATUSCD),
+        STANDING_DEAD_CD = dplyr::if_else(DIA <= 0 | HT <= 0 | ACTUALHT <= 0, 0, STANDING_DEAD_CD)
       )
 }
