@@ -24,24 +24,43 @@
 adjust_mortality <- function(data_interpolated, use_mortyr = TRUE) {
   cli::cli_progress_step("Adjusting for mortality")
 
-  #STATUSCD is already interpolated to the midpoint between surveys, but if MORTYR is used it is more complicated
+  # STATUSCD is already interpolated to the midpoint between surveys, but if
+  # MORTYR is used it is more complicated
 
   if (isTRUE(use_mortyr)) {
+    #TODO if there are values recorded and STATUSCD 1 in the MORTYR (i.e. it is
+    #also an inventory year), then assume death happened the year after
+    #(https://github.com/mekevans/forestTIME-builder/issues/61)
     df <- data_interpolated |>
       dplyr::group_by(tree_ID) |>
       dplyr::mutate(
         # STATUSCD is interpolated to the midpoint between surveys
         # see utils.R for more info on what %|||% does
-        first_dead = YEAR[min(which(STATUSCD == 2) %|||% NA)]
-      ) |> 
-      #adjust STATUSCD depending on whether MORTYR is before or after the midpoint (first_dead)
-      mutate(STATUSCD = case_when(
-        unique(MORTYR) < unique(first_dead) ~ if_else(YEAR >= MORTYR & YEAR < first_dead, 2, STATUSCD),
-        unique(MORTYR) > unique(first_dead) ~ if_else(YEAR < MORTYR & YEAR >= first_dead, 1, STATUSCD),
-        unique(MORTYR) == unique(first_dead) ~ STATUSCD
-      )) |> 
-      # MORTYR might be earlier than the midpoint, so backfill NAs for DECAYCD and STANDING_DEAD_CD
-      # These will be corrected later anyways
+        first_dead = YEAR[min(which(STATUSCD == 2) %|||% NA)],
+        .before = MORTYR
+      ) |>
+      # When a tree has a recorded MORTYR, adjust STATUSCD depending on whether
+      # MORTYR is before or after the midpoint (first_dead). This works because
+      # MORTYR is filled in for every row of a tree by prep_data() and
+      # expand_data(). Can't assume tree has STATUSCD 0 after MORTYR since
+      # sometimes STATUSCD goes from 1 to 2 to 0.
+      dplyr::mutate(
+        STATUSCD = dplyr::case_when(
+          is.na(MORTYR) ~ STATUSCD, #do nothing
+          MORTYR == first_dead ~ STATUSCD, #do nothing
+
+          # if MORTYR is earlier than midpoint and the year is between the
+          # MORTYR and the midpoint, adjust STATUSCD to 2
+          MORTYR < first_dead & YEAR >= MORTYR & YEAR < first_dead ~ 2,
+
+          # if MORTYR is after the midpoint and the year is between the midpoint
+          # and MORTYR, adjust STATUSCD to 1
+          MORTYR > first_dead & YEAR < MORTYR & YEAR >= first_dead ~ 1,
+          .default = STATUSCD
+        )
+      ) |>
+      # MORTYR might be earlier than the midpoint, so backfill NAs for DECAYCD
+      # and STANDING_DEAD_CD. These will be corrected later anyways
       tidyr::fill(DECAYCD, STANDING_DEAD_CD, .direction = "up") |>
       dplyr::select(-first_dead)
 
