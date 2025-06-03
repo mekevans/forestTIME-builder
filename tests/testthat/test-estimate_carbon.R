@@ -39,7 +39,6 @@ test_that("estimates match those in raw data", {
   )
 
   #with NAs
-  skip("Haven't dealt with all dropped trees yet")
   expect_equal(test$CARBON_AG, test$CARBON_AG_est, tolerance = 1e-3)
   expect_equal(test$DRYBIO_AG, test$DRYBIO_AG_est, tolerance = 1e-3)
 })
