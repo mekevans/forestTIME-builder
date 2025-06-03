@@ -1,5 +1,6 @@
 # forestTIME-builder (development version)
 
+- `estimate_carbon()` no longer modifies any columns and no longer filters out any rows. It only adds columns for biomass and carbon estimates (which may be `NA` if they couldn't be estimated) (finally fixes #63)
 - `expand_data()` now fills `MORTYR` so it is constant for a particular tree.  NOTE this is different from how this column is populated in the raw data.
 - Fixed a bug in `adjust_mortality()` that was causing trees that go from STATUSCD 2 to STATUSCD 0 (move to non-sampled area) to inapropriately have extrapolated values (#100 reported by @dnsteinberg)
 - Fixed a bug in `expand_data()` that was caused `STANDING_DEAD_CD` and `DECAYCD` to not be interpolated correctly, resulting in extrapolated measurments for fallen dead trees (#101 reported by @dnsteinberg)

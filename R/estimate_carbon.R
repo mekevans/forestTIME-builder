@@ -103,39 +103,20 @@ estimate_carbon <- function(data) {
     all.vars = TRUE
   ) |>
     dplyr::as_tibble() |>
-    #select only columns needed
+    # I don't trust predictCRM2() to have not modified columns in weird ways
+    # just to satisfy prerequesites of calculations. Therefore, I'm only going
+    # to keep certain columns from the output and join them into the input data.
     dplyr::select(
       any_of(c(
         "tree_ID",
         "plot_ID",
         "YEAR",
-        "interpolated",
-        "DIA",
-        "HT",
-        "ACTUALHT",
-        "CR",
-        "CULL",
-        "MORTYR",
-        "PLT_CN",
-        "CONDID",
-        "COND_STATUS_CD",
-        "PROP_BASIS",
-        "CONDPROP_UNADJ",
-        "STATUSCD",
-        "RECONCILECD", #might be done with this column?
-        "DECAYCD",
-        "STANDING_DEAD_CD",
-        "SPCD",
-        # DESIGNCD, #only needed this to get TPA_UNADJ
-        "TPA_UNADJ",
         # DRYBIO_AG = AGB, #Includes foliage, which is not part of DRYBIO_AG
         "DRYBIO_AG" = "BIOMASS", #Does not include foliage
         "CARBON_AG" = "CARBON"
       ))
     )
 
-  #TODO: undo changing of NAs to 0s
-
   #return
-  fiadb2
+  left_join(data, fiadb2, by = join_by(plot_ID, tree_ID, YEAR))
 }
