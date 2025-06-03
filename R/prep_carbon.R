@@ -54,18 +54,17 @@ prep_carbon <- function(data_mortyr) {
     dplyr::ungroup() |>
     #join to get species properties
     dplyr::left_join(ref_species, by = dplyr::join_by(SPCD)) |>
-    #first joins by SFTWD_HRDWD only the DENSITY_PROP column for DECAYCD 3, but calls it CULL_DECAY_RATIO
+    # Use density reduction for DECAYCD 3 for live trees (described in appendix K of FIADB User Guides)
     dplyr::left_join(
       ref_tree_decay_prop |>
         dplyr::filter(DECAYCD == 3) |>
         dplyr::select(
           SFTWD_HRDWD,
-          #not sure I understand the naming of this variable
           CULL_DECAY_RATIO = DENSITY_PROP
         ),
       by = dplyr::join_by(SFTWD_HRDWD)
     ) |>
-    #then joins additional columns (including DENSITY_PROP) based on DECAYCD and SFTWD_HRDWD
+    # then joins additional columns (including DENSITY_PROP) based on DECAYCD and SFTWD_HRDWD
     dplyr::left_join(
       ref_tree_decay_prop,
       by = dplyr::join_by(DECAYCD, SFTWD_HRDWD)
