@@ -54,7 +54,11 @@ estimate_carbon <- function(data) {
 
   fiadb$BROKEN_TOP <- !(fiadb$HT == fiadb$ACTUALHT)
 
-  fiadb[is.na(fiadb$CR) & fiadb$STATUSCD == 1, 'CR'] <- 0
+  # Assumes un-recorded CR for alive trees is 0
+
+  # original code doesn't work with NAs for STATUSCD as is the case with plots with no trees
+  # fiadb[is.na(fiadb$CR) & fiadb$STATUSCD == 1, 'CR'] <- 0
+  fiadb <- dplyr::mutate(fiadb, CR = dplyr::if_else(is.na(CR) & STATUSCD == 1, 0, CR))
 
   # planted loblolly/slash use separate equations
   fiadb[is.na(fiadb$STDORGCD), "STDORGCD"] <- 0
