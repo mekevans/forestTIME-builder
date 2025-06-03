@@ -1,6 +1,9 @@
 # forestTIME-builder (development version)
 
-- `interpolate_data()` no longer produces negative values for `HT`, `DIA`, or `ACTUALHT`.  Instead, trees that get extrapolated to have values ≤ 0 are assumed to be fallen and dead (`STATUSCD` 2 and `STANDING_DEAD_CD` 0).  These fallen dead trees then have their measurements set to `NA` by `adjust_mortality()`.
+- `interpolate_data()` no longer produces negative values for `HT`, `DIA`, or `ACTUALHT`.  Instead, trees that get extrapolated to have values ≤ 0 are assumed to be fallen and dead (`STATUSCD` 2 and `STANDING_DEAD_CD` 0).  These fallen dead trees then have their measurements set to `NA` by `adjust_mortality()`. (#60)
+- `expand_data()` now fills `MORTYR` so it is constant for a particular tree.  NOTE this is different from how this column is populated in the raw data.
+- Fixed a bug in `adjust_mortality()` that was causing trees that go from STATUSCD 2 to STATUSCD 0 (move to non-sampled area) to inapropriately have extrapolated values (#100 reported by @dnsteinberg)
+- Fixed a bug in `expand_data()` that was caused `STANDING_DEAD_CD` and `DECAYCD` to not be interpolated correctly, resulting in extrapolated measurments for fallen dead trees (#101 reported by @dnsteinberg)
 - `prep_data()` now converts `PLT_CN` from numeric to character for better readability in the output.
 - Empty plots are no longer dropped silently by `prep_data()` and should be handled correctly by the rest of the workflow through `interpolate_data()`.
 - `expand_data()` now adds a column, `interpolated`, that marks whether an observation was interpolated (`TRUE`) or in the original data (`FALSE`).
