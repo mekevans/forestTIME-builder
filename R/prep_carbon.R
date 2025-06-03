@@ -36,17 +36,18 @@ prep_carbon <- function(data_mortyr) {
     dplyr::select(SFTWD_HRDWD, DECAYCD, CARBON_RATIO)
 
   #remove trees with non positive values for HT and warn if there were any
-  #TODO check that it is necessary to remove rows with NA for HT
+  #TODO: this is temporary!  Eventually should deal with this in the interpolation!
   #https://github.com/mekevans/forestTIME-builder/issues/92
   weird_obs <- data_mortyr |>
-    dplyr::filter(HT <= 0 | is.na(HT))
+    dplyr::filter(HT <= 0)
+
   if (nrow(weird_obs) > 0) {
     warning(
       nrow(weird_obs),
       " observations removed due to negative or missing HT values"
     )
     data_mortyr <- data_mortyr |>
-      dplyr::filter(HT > 0 & !is.na(HT))
+      dplyr::filter(HT > 0)
   }
 
   data_mortyr |>
