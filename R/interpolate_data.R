@@ -39,15 +39,15 @@ interpolate_data <- function(data_expanded) {
     dplyr::mutate(
       #linearly interpolate/extrapolate
       dplyr::across(
-        dplyr::all_of(cols_interpolate),
+        dplyr::any_of(cols_interpolate),
         \(var) inter_extra_polate(x = YEAR, y = var)
       ),
       #interpolate to switch at midpoint
-      dplyr::across(dplyr::all_of(cols_midpt_switch), step_interp)
+      dplyr::across(dplyr::any_of(cols_midpt_switch), step_interp)
     ) |>
     # convert 999 back to NA for some vars
     dplyr::mutate(dplyr::across(
-      dplyr::all_of(cols_midpt_switch),
+      dplyr::any_of(cols_midpt_switch),
       \(x) dplyr::if_else(x == 999, NA, x)
     )) |>
     dplyr::ungroup() |>

@@ -115,6 +115,7 @@ estimate_carbon <- function(data) {
         "ACTUALHT",
         "CR",
         "CULL",
+        "MORTYR",
         "PLT_CN",
         "CONDID",
         "COND_STATUS_CD",
