@@ -8,6 +8,12 @@
 #' [expand_data()] back to `NA`s.  This also assigns a value for `TPA_UNADJ`
 #' based on `DESIGNCD` and interpolated values of `DIA` according to Appendix G
 #' of the FIADB user guide.
+#' 
+#' @note
+#' If `HT`, `ACTUALHT`, or `DIA` are extrapolated to values ≤ 0, the tree is 
+#' marked as fallen dead (`STATUSCD` 2 and `STANDING_DEAD_CD` 0). All 
+#' measurements for these trees will be removed (set to `NA`) by 
+#' [adjust_mortality()].
 #'
 #' @references
 #' Burrill, E.A., Christensen, G.A., Conkling, B.L., DiTommaso, A.M.,
@@ -34,7 +40,7 @@ interpolate_data <- function(data_expanded) {
     "COND_STATUS_CD"
   )
 
-  data_expanded |>
+  data_interpolated <- data_expanded |>
     dplyr::group_by(plot_ID, tree_ID) |>
     dplyr::mutate(
       #linearly interpolate/extrapolate
@@ -60,4 +66,12 @@ interpolate_data <- function(data_expanded) {
       )
     ) |>
     dplyr::select(-min_DIA, -max_DIA)
+
+    # can't have negative HT or DIA values for carbon estimation, so set those
+    # trees to fallen dead
+    data_interpolated |> 
+      dplyr::mutate(
+        STATUSCD = if_else(DIA <= 0 | HT <= 0 | ACTUALHT <= 0, 2, STATUSCD),
+        STANDING_DEAD_CD = if_else(DIA <= 0 | HT <= 0 | ACTUALHT <= 0, 0, STANDING_DEAD_CD)
+      )
 }
