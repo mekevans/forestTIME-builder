@@ -24,57 +24,81 @@
 adjust_mortality <- function(data_interpolated, use_mortyr = TRUE) {
   cli::cli_progress_step("Adjusting for mortality")
 
+  # STATUSCD is already interpolated to the midpoint between surveys, but if
+  # MORTYR is used it is more complicated
+
   if (isTRUE(use_mortyr)) {
+    #TODO if there are values recorded and STATUSCD 1 in the MORTYR (i.e. it is
+    #also an inventory year), then assume death happened the year after
+    #(https://github.com/mekevans/forestTIME-builder/issues/61)
     df <- data_interpolated |>
       dplyr::group_by(tree_ID) |>
       dplyr::mutate(
-        #to use MORTYR
-        first_dead = ifelse(
-          test = any(!is.na(MORTYR)), #has recorded MORTYR
-          yes = max(MORTYR, na.rm = TRUE),
-          # see utils.R for more info on what %|||% does
-          no = YEAR[min(which(STATUSCD == 2) %|||% NA)]
-        )
-      )
-  } else {
-    df <- data_interpolated |>
-      dplyr::group_by(tree_ID) |>
-      dplyr::mutate(
+        # STATUSCD is interpolated to the midpoint between surveys
         # see utils.R for more info on what %|||% does
-        first_dead = YEAR[min(which(STATUSCD == 2) %|||% NA)]
-      )
+        first_dead = YEAR[min(which(STATUSCD == 2) %|||% NA)],
+        .before = MORTYR
+      ) |>
+      # When a tree has a recorded MORTYR, adjust STATUSCD depending on whether
+      # MORTYR is before or after the midpoint (first_dead). This works because
+      # MORTYR is filled in for every row of a tree by prep_data() and
+      # expand_data(). Can't assume tree has STATUSCD 0 after MORTYR since
+      # sometimes STATUSCD goes from 1 to 2 to 0.
+      dplyr::mutate(
+        STATUSCD = dplyr::case_when(
+          is.na(MORTYR) ~ STATUSCD, #do nothing
+          MORTYR == first_dead ~ STATUSCD, #do nothing
+
+          # if MORTYR is earlier than midpoint and the year is between the
+          # MORTYR and the midpoint, adjust STATUSCD to 2
+          MORTYR < first_dead & YEAR >= MORTYR & YEAR < first_dead ~ 2,
+
+          # if MORTYR is after the midpoint and the year is between the midpoint
+          # and MORTYR, adjust STATUSCD to 1
+          MORTYR > first_dead & YEAR < MORTYR & YEAR >= first_dead ~ 1,
+          .default = STATUSCD
+        )
+      ) |>
+      # MORTYR might be earlier than the midpoint, so backfill NAs for DECAYCD
+      # and STANDING_DEAD_CD. These will be corrected later anyways
+      tidyr::fill(DECAYCD, STANDING_DEAD_CD, .direction = "up") |>
+      dplyr::select(-first_dead)
+
+  } else {
+    df <- data_interpolated |> group_by(tree_ID)
   }
 
   df |>
-    #drop trees that transition to STATUSCD 0 and RECONCILECD 5, 6, or 9
-    #https://github.com/mekevans/forestTIME-builder/issues/59
-    dplyr::filter(!(STATUSCD == 0 & RECONCILECD %in% c(5, 6, 9))) |>
-    #then adjust STATUSCD & DECAYCD
-    dplyr::group_by(tree_ID) |>
-    dplyr::mutate(
-      STATUSCD = dplyr::if_else(
-        YEAR >= first_dead,
-        2,
-        STATUSCD,
-        missing = STATUSCD
-      )
-    ) |>
-    #MORTYR might be earlier than the midpoint, so backfill NAs for DECAYCD and STANDING_DEAD_CD
-    tidyr::fill(DECAYCD, STANDING_DEAD_CD, .direction = "up") |>
-    #But, STANDING_DEAD_CD only applies to dead trees
+    # adjust STATUSCD & DECAYCD
+  
+    # STANDING_DEAD_CD only applies to dead trees
     dplyr::mutate(
       STANDING_DEAD_CD = dplyr::if_else(STATUSCD == 2, STANDING_DEAD_CD, NA)
     ) |>
-    #and DECAYCD only applies to standing dead trees
+    # and DECAYCD only applies to standing dead trees
     dplyr::mutate(
       DECAYCD = dplyr::if_else(STANDING_DEAD_CD == 1, DECAYCD, NA)
     ) |>
-    #fallen trees shouldn't have measurements for anything
+    # fallen trees shouldn't have measurements for anything
     dplyr::mutate(
       dplyr::across(
         c(DIA, HT, ACTUALHT, CULL, CR),
         \(x) dplyr::if_else(STANDING_DEAD_CD == 0, NA, x, missing = x)
       )
     ) |>
-    dplyr::select(-MORTYR, -first_dead) #don't need this anymore?
+    # trees in non-sampled areas shoudn't have measurements for anything
+    # https://github.com/mekevans/forestTIME-builder/issues/59
+    dplyr::mutate(
+      dplyr::across(
+        c(DIA, HT, ACTUALHT, CULL, CR),
+        \(x)
+          dplyr::if_else(
+            STATUSCD == 0 & RECONCILECD %in% c(5, 6, 9),
+            NA,
+            x,
+            missing = x
+          )
+      )
+    ) |>
+    ungroup()
 }

@@ -36,17 +36,18 @@ prep_carbon <- function(data_mortyr) {
     dplyr::select(SFTWD_HRDWD, DECAYCD, CARBON_RATIO)
 
   #remove trees with non positive values for HT and warn if there were any
-  #TODO check that it is necessary to remove rows with NA for HT
+  #TODO: this is temporary!  Eventually should deal with this in the interpolation!
   #https://github.com/mekevans/forestTIME-builder/issues/92
   weird_obs <- data_mortyr |>
-    dplyr::filter(HT <= 0 | is.na(HT))
+    dplyr::filter(HT <= 0)
+
   if (nrow(weird_obs) > 0) {
     warning(
       nrow(weird_obs),
       " observations removed due to negative or missing HT values"
     )
     data_mortyr <- data_mortyr |>
-      dplyr::filter(HT > 0 & !is.na(HT))
+      dplyr::filter(HT > 0)
   }
 
   data_mortyr |>
@@ -75,10 +76,10 @@ prep_carbon <- function(data_mortyr) {
     ) |>
     #TODO Why is CULL_DECAY_RATIO set to 1 when trees are dead?
     dplyr::mutate(
-      CULL_DECAY_RATIO = if_else(STATUSCD == 1, CULL_DECAY_RATIO, 1),
-      STANDING_DEAD_CD = if_else(STATUSCD == 1, 0, STANDING_DEAD_CD),
+      CULL_DECAY_RATIO = dplyr::if_else(STATUSCD == 1, CULL_DECAY_RATIO, 1),
+      STANDING_DEAD_CD = dplyr::if_else(STATUSCD == 1, 0, STANDING_DEAD_CD),
       #TODO shouldn't DECAYCD actually get ajusted based on STANDING_DEAD_CD?
-      DECAYCD = if_else(STATUSCD == 1, 0, DECAYCD),
+      DECAYCD = dplyr::if_else(STATUSCD == 1, 0, DECAYCD),
       #additional variables for walker code only
       DECAY_WD = dplyr::if_else(STATUSCD == 1, 1, DENSITY_PROP),
       DECAY_BK = dplyr::if_else(STATUSCD == 1, 1, BARK_LOSS_PROP),
