@@ -144,7 +144,7 @@ prep_data <- function(db) {
   data <- data |> 
     dplyr::group_by(tree_ID) |> 
     tidyr::fill(MORTYR, .direction = c("updown")) |> 
-    ungroup()
+    dplyr::ungroup()
 
   # at this point, get the list of plots and years as following steps may remove
   # "empty" plots
