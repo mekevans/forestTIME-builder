@@ -54,7 +54,11 @@ estimate_carbon <- function(data) {
 
   fiadb$BROKEN_TOP <- !(fiadb$HT == fiadb$ACTUALHT)
 
-  fiadb[is.na(fiadb$CR) & fiadb$STATUSCD == 1, 'CR'] <- 0
+  # Assumes un-recorded CR for alive trees is 0
+
+  # original code doesn't work with NAs for STATUSCD as is the case with plots with no trees
+  # fiadb[is.na(fiadb$CR) & fiadb$STATUSCD == 1, 'CR'] <- 0
+  fiadb <- dplyr::mutate(fiadb, CR = dplyr::if_else(is.na(CR) & STATUSCD == 1, 0, CR))
 
   # planted loblolly/slash use separate equations
   fiadb[is.na(fiadb$STDORGCD), "STDORGCD"] <- 0
@@ -99,39 +103,20 @@ estimate_carbon <- function(data) {
     all.vars = TRUE
   ) |>
     dplyr::as_tibble() |>
-    #select only columns needed
+    # I don't trust predictCRM2() to have not modified columns in weird ways
+    # just to satisfy prerequesites of calculations. Therefore, I'm only going
+    # to keep certain columns from the output and join them into the input data.
     dplyr::select(
       any_of(c(
         "tree_ID",
         "plot_ID",
         "YEAR",
-        "interpolated",
-        "DIA",
-        "HT",
-        "ACTUALHT",
-        "CR",
-        "CULL",
-        "MORTYR",
-        "PLT_CN",
-        "CONDID",
-        "COND_STATUS_CD",
-        "PROP_BASIS",
-        "CONDPROP_UNADJ",
-        "STATUSCD",
-        "RECONCILECD", #might be done with this column?
-        "DECAYCD",
-        "STANDING_DEAD_CD",
-        "SPCD",
-        # DESIGNCD, #only needed this to get TPA_UNADJ
-        "TPA_UNADJ",
         # DRYBIO_AG = AGB, #Includes foliage, which is not part of DRYBIO_AG
         "DRYBIO_AG" = "BIOMASS", #Does not include foliage
         "CARBON_AG" = "CARBON"
       ))
     )
 
-  #TODO: undo changing of NAs to 0s
-
   #return
-  fiadb2
+  left_join(data, fiadb2, by = join_by(plot_ID, tree_ID, YEAR))
 }
