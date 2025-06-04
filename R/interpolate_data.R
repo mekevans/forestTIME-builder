@@ -8,12 +8,12 @@
 #' [expand_data()] back to `NA`s.  This also assigns a value for `TPA_UNADJ`
 #' based on `DESIGNCD` and interpolated values of `DIA` according to Appendix G
 #' of the FIADB user guide.
-#' 
+#'
 #' @note
-#' If `HT`, `ACTUALHT`, or `DIA` are extrapolated to values ≤ 0, the tree is 
-#' marked as fallen dead (`STATUSCD` 2 and `STANDING_DEAD_CD` 0). All 
-#' measurements for these trees will be removed (set to `NA`) by 
-#' [adjust_mortality()].
+#' If `HT` or `ACTUALHT` are extrapolated to values < 4.5 (or < 1 for woodland
+#' species) OR `DIA` is extrapolated to < 1, the tree is marked as fallen dead
+#' (`STATUSCD` 2 and `STANDING_DEAD_CD` 0). All measurements for these trees
+#' will be removed (set to `NA`) by [adjust_mortality()].
 #'
 #' @references
 #' Burrill, E.A., Christensen, G.A., Conkling, B.L., DiTommaso, A.M.,
@@ -67,11 +67,32 @@ interpolate_data <- function(data_expanded) {
     ) |>
     dplyr::select(-min_DIA, -max_DIA)
 
-    # can't have negative HT or DIA values for carbon estimation, so set those
-    # trees to fallen dead
-    data_interpolated |> 
-      dplyr::mutate(
-        STATUSCD = dplyr::if_else(DIA <= 0 | HT <= 0 | ACTUALHT <= 0, 2, STATUSCD),
-        STANDING_DEAD_CD = dplyr::if_else(DIA <= 0 | HT <= 0 | ACTUALHT <= 0, 0, STANDING_DEAD_CD)
+  # If trees are interpolated to below FIA thresholds for being measured, set
+  # them to fallen dead. For most trees, this is DIA < 1 and ACTUALHT < 4.5.
+  # For woodland species, the ACTUALHT threshold is 1. To figure out if a tree
+  # is a woodland species, we need to pull in one of the ref tables
+  # temporarily.
+
+  ref_species <-
+    REF_SPECIES |>
+    dplyr::select(
+      SPCD,
+      JENKINS_SPGRPCD
+    )
+
+  data_interpolated |>
+    dplyr::left_join(ref_species, by = join_by(SPCD)) |>
+    dplyr::mutate(
+      STATUSCD = dplyr::case_when(
+        JENKINS_SPGRPCD < 10 & (DIA < 1 | HT < 4.5 | ACTUALHT < 4.5) ~ 2,
+        JENKINS_SPGRPCD == 10 & (DIA < 1 | HT < 1 | ACTUALHT < 1) ~ 2,
+        .default = STATUSCD
+      ),
+      STANDING_DEAD_CD = dplyr::case_when(
+        JENKINS_SPGRPCD < 10 & (DIA < 1 | HT < 4.5 | ACTUALHT < 4.5) ~ 0,
+        JENKINS_SPGRPCD == 10 & (DIA < 1 | HT < 1 | ACTUALHT < 1) ~ 0,
+        .default = STANDING_DEAD_CD
       )
+    ) |> 
+    select(-JENKINS_SPGRPCD)
 }

@@ -22,6 +22,12 @@ with \code{\link[=inter_extra_polate]{inter_extra_polate()}} and the categorical
 based on \code{DESIGNCD} and interpolated values of \code{DIA} according to Appendix G
 of the FIADB user guide.
 }
+\note{
+If \code{HT} or \code{ACTUALHT} are extrapolated to values < 4.5 (or < 1 for woodland
+species) OR \code{DIA} is extrapolated to < 1, the tree is marked as fallen dead
+(\code{STATUSCD} 2 and \code{STANDING_DEAD_CD} 0). All measurements for these trees
+will be removed (set to \code{NA}) by \code{\link[=adjust_mortality]{adjust_mortality()}}.
+}
 \references{
 Burrill, E.A., Christensen, G.A., Conkling, B.L., DiTommaso, A.M.,
 Kralicek, K.M., Lepine, L.C., Perry, C.J., Pugh, S.A., Turner, J.A.,

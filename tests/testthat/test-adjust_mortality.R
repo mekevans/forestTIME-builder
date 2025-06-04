@@ -9,6 +9,7 @@ test_that("fallen dead trees get NAs correctly", {
     dplyr::select(
       plot_ID,
       tree_ID,
+      SPCD,
       INVYR,
       DIA,
       HT,
@@ -44,6 +45,7 @@ test_that("trees moving to non-sampled conditions have NAs", {
     dplyr::select(
       plot_ID,
       tree_ID,
+      SPCD,
       INVYR,
       DIA,
       HT,
@@ -79,6 +81,7 @@ test_that("method doesn't matter for DE", {
     dplyr::select(
       plot_ID,
       tree_ID,
+      SPCD,
       INVYR,
       DIA,
       HT,
