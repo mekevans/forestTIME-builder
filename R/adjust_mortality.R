@@ -93,7 +93,7 @@ adjust_mortality <- function(data_interpolated, use_mortyr = TRUE) {
         c(DIA, HT, ACTUALHT, CULL, CR),
         \(x)
           dplyr::if_else(
-            STATUSCD == 0 & RECONCILECD %in% c(5, 6, 9),
+            (STATUSCD == 0 & RECONCILECD %in% c(5, 6, 9)) | (COND_STATUS_CD != 1), 
             NA,
             x,
             missing = x
