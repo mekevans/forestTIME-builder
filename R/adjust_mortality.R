@@ -13,7 +13,7 @@
 #' - Adjusts `STANDING_DEAD_CD` so that it only applies to dead trees
 #' - Adjusts `DECAYCD` so that it only applies to standing dead trees
 #' - Adjusts `DIA`, `HT`, `ACTUALHT`, `CULL`, and `CR` so that they only apply
-#'   to live or standing dead trees.
+#'   to live or standing dead trees in sampled conitions.
 #' - Removes the `MORTYR` column, as it is no longer needed
 #'
 #' @param data_interpolated tibble created by [interpolate_data()]
@@ -93,7 +93,7 @@ adjust_mortality <- function(data_interpolated, use_mortyr = TRUE) {
         c(DIA, HT, ACTUALHT, CULL, CR),
         \(x)
           dplyr::if_else(
-            STATUSCD == 0 & RECONCILECD %in% c(5, 6, 9),
+            (STATUSCD == 0 & RECONCILECD %in% c(5, 6, 9)) | (COND_STATUS_CD != 1), 
             NA,
             x,
             missing = x

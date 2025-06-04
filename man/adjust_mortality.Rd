@@ -31,7 +31,7 @@ the transition to \code{STATUSCD} 2 instead of the interpolated values. (assumes
 \item Adjusts \code{STANDING_DEAD_CD} so that it only applies to dead trees
 \item Adjusts \code{DECAYCD} so that it only applies to standing dead trees
 \item Adjusts \code{DIA}, \code{HT}, \code{ACTUALHT}, \code{CULL}, and \code{CR} so that they only apply
-to live or standing dead trees.
+to live or standing dead trees in sampled conitions.
 \item Removes the \code{MORTYR} column, as it is no longer needed
 }
 }
