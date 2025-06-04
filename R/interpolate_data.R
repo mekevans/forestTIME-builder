@@ -81,7 +81,7 @@ interpolate_data <- function(data_expanded) {
     )
 
   data_interpolated |>
-    dplyr::left_join(ref_species, by = join_by(SPCD)) |>
+    dplyr::left_join(ref_species, by = dplyr::join_by(SPCD)) |>
     #TODO is there a way of only having to do the case_when once?  E.g. would it
     #be faster to create a column "dead_fallen" and then in a subsequent step
     #use dead_fallen to set STATUSCD and STANDING_DEAD_CD? this function feels a
@@ -98,5 +98,5 @@ interpolate_data <- function(data_expanded) {
         .default = STANDING_DEAD_CD
       )
     ) |> 
-    select(-JENKINS_SPGRPCD)
+    dplyr::select(-JENKINS_SPGRPCD)
 }
