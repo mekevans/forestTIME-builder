@@ -13,7 +13,7 @@
 #' - Adjusts `STANDING_DEAD_CD` so that it only applies to dead trees
 #' - Adjusts `DECAYCD` so that it only applies to standing dead trees
 #' - Adjusts `DIA`, `HT`, `ACTUALHT`, `CULL`, and `CR` so that they only apply
-#'   to live or standing dead trees.
+#'   to live or standing dead trees in sampled conitions.
 #' - Removes the `MORTYR` column, as it is no longer needed
 #'
 #' @param data_interpolated tibble created by [interpolate_data()]
