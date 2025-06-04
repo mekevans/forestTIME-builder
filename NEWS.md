@@ -1,6 +1,7 @@
 # forestTIME-builder (development version)
 
 - `interpolate_data()` no longer produces negative values for `HT`, `DIA`, or `ACTUALHT`.  Instead, trees that get extrapolated to have DIA < 1 or HT or ACTUALHT < 4.5 (or < 1 for woodland species) are assumed to be fallen and dead (`STATUSCD` 2 and `STANDING_DEAD_CD` 0). These fallen dead trees then have their measurements set to `NA` by `adjust_mortality()`. Therefore, `prep_carbon()` no longer filters out trees with negative values for `HT`. (Fixes #60).
+- `adjust_mortality()` now assures trees in non-sampled conditions (`COND_STATUS_CD != 1`) don't have interpolated values.
 - `estimate_carbon()` no longer modifies any columns and no longer filters out any rows. It only adds columns for biomass and carbon estimates (which may be `NA` if they couldn't be estimated) (finally fixes #63)
 - `expand_data()` now fills `MORTYR` so it is constant for a particular tree.  NOTE this is different from how this column is populated in the raw data.
 - Fixed a bug in `adjust_mortality()` that was causing trees that go from STATUSCD 2 to STATUSCD 0 (move to non-sampled area) to inapropriately have extrapolated values (#100 reported by @dnsteinberg)
