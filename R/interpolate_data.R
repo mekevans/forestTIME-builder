@@ -9,6 +9,12 @@
 #' based on `DESIGNCD` and interpolated values of `DIA` according to Appendix G
 #' of the FIADB user guide.
 #'
+#' @note
+#' If `HT` or `ACTUALHT` are extrapolated to values < 4.5 (or < 1 for woodland
+#' species) OR `DIA` is extrapolated to < 1, the tree is marked as fallen dead
+#' (`STATUSCD` 2 and `STANDING_DEAD_CD` 0). All measurements for these trees
+#' will be removed (set to `NA`) by [adjust_mortality()].
+#'
 #' @references
 #' Burrill, E.A., Christensen, G.A., Conkling, B.L., DiTommaso, A.M.,
 #' Kralicek, K.M., Lepine, L.C., Perry, C.J., Pugh, S.A., Turner, J.A.,
@@ -34,7 +40,7 @@ interpolate_data <- function(data_expanded) {
     "COND_STATUS_CD"
   )
 
-  data_expanded |>
+  data_interpolated <- data_expanded |>
     dplyr::group_by(plot_ID, tree_ID) |>
     dplyr::mutate(
       #linearly interpolate/extrapolate
@@ -60,4 +66,33 @@ interpolate_data <- function(data_expanded) {
       )
     ) |>
     dplyr::select(-min_DIA, -max_DIA)
+
+  # If trees are interpolated to below FIA thresholds for being measured, set
+  # them to fallen dead. For most trees, this is DIA < 1 and ACTUALHT < 4.5.
+  # For woodland species, the ACTUALHT threshold is 1. To figure out if a tree
+  # is a woodland species, we need to pull in one of the ref tables
+  # temporarily.
+
+  ref_species <-
+    REF_SPECIES |>
+    dplyr::select(
+      SPCD,
+      JENKINS_SPGRPCD
+    )
+
+  data_interpolated |>
+    dplyr::left_join(ref_species, by = join_by(SPCD)) |>
+    dplyr::mutate(
+      STATUSCD = dplyr::case_when(
+        JENKINS_SPGRPCD < 10 & (DIA < 1 | HT < 4.5 | ACTUALHT < 4.5) ~ 2,
+        JENKINS_SPGRPCD == 10 & (DIA < 1 | HT < 1 | ACTUALHT < 1) ~ 2,
+        .default = STATUSCD
+      ),
+      STANDING_DEAD_CD = dplyr::case_when(
+        JENKINS_SPGRPCD < 10 & (DIA < 1 | HT < 4.5 | ACTUALHT < 4.5) ~ 0,
+        JENKINS_SPGRPCD == 10 & (DIA < 1 | HT < 1 | ACTUALHT < 1) ~ 0,
+        .default = STANDING_DEAD_CD
+      )
+    ) |> 
+    select(-JENKINS_SPGRPCD)
 }

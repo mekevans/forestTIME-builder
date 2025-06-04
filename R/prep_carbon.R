@@ -35,21 +35,6 @@ prep_carbon <- function(data_mortyr) {
     REF_TREE_CARBON_RATIO_DEAD |>
     dplyr::select(SFTWD_HRDWD, DECAYCD, CARBON_RATIO)
 
-  #remove trees with non positive values for HT and warn if there were any
-  #TODO: this is temporary!  Eventually should deal with this in the interpolation!
-  #https://github.com/mekevans/forestTIME-builder/issues/92
-  weird_obs <- data_mortyr |>
-    dplyr::filter(HT <= 0)
-
-  if (nrow(weird_obs) > 0) {
-    warning(
-      nrow(weird_obs),
-      " observations removed due to negative or missing HT values"
-    )
-    data_mortyr <- data_mortyr |>
-      dplyr::filter(HT > 0)
-  }
-
   data_mortyr |>
     dplyr::ungroup() |>
     #join to get species properties
