@@ -14,18 +14,19 @@ a tibble
 }
 \description{
 Reads in all the tables needed for carbon estimation and population scaling
-and joins them into a single table. Then, some additional wrangling steps are
-performed.
+and joins them into a single table. Then, some additional data cleaning steps
+are performed.
 \enumerate{
-\item Creates unique tree an plot identifiers (\code{tree_ID} and \code{plot_ID},
+\item Creates unique tree and plot identifiers (\code{tree_ID} and \code{plot_ID},
 respectively).
-\item Filters out intensification plots.
-\item Removes trees that were measured in error (\code{RECONCILECD} 7 or 8).
-\item Removes trees with no measurements because they've always been fallen
-(\code{STANDING_DEAD_CD} 0).
 \item Fills in missing values for \code{ACTUALHT} with values from \code{HT} to prepare
 for interpolation.
 \item Overwrites \code{SPCD} with whatever the last value of \code{SPCD} is for each tree
-(to handle trees that change \code{SPCD})
+(to handle trees that change \code{SPCD}).
+\item Fills a tree's \code{MORTYR} column so every row contains the recorded
+mortality year.
 }
+}
+\seealso{
+\code{\link[=add_composite_ids]{add_composite_ids()}}
 }

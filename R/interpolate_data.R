@@ -13,7 +13,9 @@
 #' If `HT` or `ACTUALHT` are extrapolated to values < 4.5 (or < 1 for woodland
 #' species) OR `DIA` is extrapolated to < 1, the tree is marked as fallen dead
 #' (`STATUSCD` 2 and `STANDING_DEAD_CD` 0). All measurements for these trees
-#' will be removed (set to `NA`) by [adjust_mortality()].
+#' will be removed (set to `NA`) by [adjust_mortality()]. Trees with only one
+#' measurement have that measurement carried forward as appropriate (e.g. until
+#' fallen and dead or in non-sampled condition).
 #'
 #' @references
 #' Burrill, E.A., Christensen, G.A., Conkling, B.L., DiTommaso, A.M.,
