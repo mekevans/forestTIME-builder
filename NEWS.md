@@ -1,6 +1,8 @@
 # forestTIME-builder (development version)
 
-- In the case when `MORTYR` is an inventory year where the tree is alive (`STATUSCD` 1), it is now assumed by `adjust_mortality()` that the tree died in the year following `MORTYR` in order to keep the observation.
+- `prep_data()` no longer filters out any rows (un-doing #59 and addressing #99).  If you want to remove certain rows, do this between `prep_data()` and `expand_data()`.
+- Trees with only a single measurement have their single measurement carried forward during extrapolation rather than getting dropped from the data (#94, #99).
+- In the case when `MORTYR` is an inventory year where the tree is alive (`STATUSCD` 1), it is now assumed by `adjust_mortality()` that the tree died in the year following `MORTYR` in order to keep the observation (#61).
 - `interpolate_data()` no longer produces negative values for `HT`, `DIA`, or `ACTUALHT`.  Instead, trees that get extrapolated to have DIA < 1 or HT or ACTUALHT < 4.5 (or < 1 for woodland species) are assumed to be fallen and dead (`STATUSCD` 2 and `STANDING_DEAD_CD` 0). These fallen dead trees then have their measurements set to `NA` by `adjust_mortality()`. Therefore, `prep_carbon()` no longer filters out trees with negative values for `HT`. (Fixes #60).
 - `adjust_mortality()` now assures trees in non-sampled conditions (`COND_STATUS_CD != 1`) don't have interpolated values.
 - `estimate_carbon()` no longer modifies any columns and no longer filters out any rows. It only adds columns for biomass and carbon estimates (which may be `NA` if they couldn't be estimated) (finally fixes #63)
@@ -12,7 +14,6 @@
 - `expand_data()` now adds a column, `interpolated`, that marks whether an observation was interpolated (`TRUE`) or in the original data (`FALSE`).
 - Trees that have always been fallen and have no measurements are now removed by `prep_data()`
 - Trees that change species (more than one `SPCD` value) are assumed to have always been their last recorded species.  `prep_data()` now overwrites `SPCD` with the last recorded `SPCD` for each tree.
-- `prep_data()` now removes intensfication plots (`INTENSITY != 1`)
 - Additional columns `PLT_CN`, `COND_STATUS_CD` are kept for the interpolated data.
 - Added a vignette (WIP) on how to use outputs of `forestTIME.builder` to get population level estimates.
 - `forestTIME.builder` is now an R package
