@@ -6,15 +6,15 @@
 #'
 #' This does the following:
 #' - Optionally figures out if a tree has a recorded `MORTYR` and uses that for
-#'   the transition to `STATUSCD` 2 instead of the interpolated values. (assumes
-#'   `MORTYR` was *before* the inventory where it was recoreed dead)
+#'   the transition to `STATUSCD` 2 instead of the interpolated values. If the
+#'   tree is alive (`STATUSCD` 1) in `MORTYR`, then it is assumed it died in the
+#'   following year.
 #' - Drops trees that transition to `STATUSCD` 0 and `RECONCILECD` 5, 6, or 9
 #'   (moved out of plot) at the midpoint between surveys
 #' - Adjusts `STANDING_DEAD_CD` so that it only applies to dead trees
 #' - Adjusts `DECAYCD` so that it only applies to standing dead trees
 #' - Adjusts `DIA`, `HT`, `ACTUALHT`, `CULL`, and `CR` so that they only apply
 #'   to live or standing dead trees in sampled conitions.
-#' - Removes the `MORTYR` column, as it is no longer needed
 #'
 #' @param data_interpolated tibble created by [interpolate_data()]
 #' @param use_mortyr logical; use `MORTYR` (if recorded) as the first year a
@@ -28,49 +28,74 @@ adjust_mortality <- function(data_interpolated, use_mortyr = TRUE) {
   # MORTYR is used it is more complicated
 
   if (isTRUE(use_mortyr)) {
-    #TODO if there are values recorded and STATUSCD 1 in the MORTYR (i.e. it is
-    #also an inventory year), then assume death happened the year after
-    #(https://github.com/mekevans/forestTIME-builder/issues/61)
+    # If there aren't any recorded MORTYR, warn and skip the complicated stuff
+    any_mortyr <- any(!is.na(data_interpolated$MORTYR))
+    if (isFALSE(any_mortyr)) {
+      cli::cli_warn(
+        c(
+          "!" = "No recorded {.var MORTYR} in data. ",
+          "i" = "Setting {.arg use_mortyr} to `FALSE`"
+        )
+      )
+      use_mortyr <- FALSE
+    }
+  }
+
+  if (isTRUE(use_mortyr)) {
+    # If a tree is marked as alive (STATUSCD 1) in the recorded MORTYR (i.e.
+    # MORTYR is an inventory year), then assume death happened the year after
+    # that inventory year
+    # (https://github.com/mekevans/forestTIME-builder/issues/61)
+
     df <- data_interpolated |>
       dplyr::group_by(tree_ID) |>
       dplyr::mutate(
+        MORTYR_eff = if_else(
+          YEAR == MORTYR & STATUSCD == 1,
+          MORTYR + 1,
+          MORTYR
+        ),
+        .after = MORTYR
+      ) |>
+      # this "fills in" the new effective MORTYR for all rows since the above
+      # if_else() only increments it for the inventory year row
+      mutate(MORTYR_eff = max(MORTYR_eff)) |>
+      dplyr::mutate(
         # STATUSCD is interpolated to the midpoint between surveys
         # see utils.R for more info on what %|||% does
-        first_dead = YEAR[min(which(STATUSCD == 2) %|||% NA)],
-        .before = MORTYR
+        first_dead = YEAR[min(which(STATUSCD == 2) %|||% NA)]
       ) |>
       # When a tree has a recorded MORTYR, adjust STATUSCD depending on whether
       # MORTYR is before or after the midpoint (first_dead). This works because
       # MORTYR is filled in for every row of a tree by prep_data() and
-      # expand_data(). Can't assume tree has STATUSCD 0 after MORTYR since
+      # expand_data(). Can't assume tree has STATUSCD 2 after MORTYR since
       # sometimes STATUSCD goes from 1 to 2 to 0.
       dplyr::mutate(
         STATUSCD = dplyr::case_when(
-          is.na(MORTYR) ~ STATUSCD, #do nothing
-          MORTYR == first_dead ~ STATUSCD, #do nothing
+          is.na(MORTYR_eff) ~ STATUSCD, #do nothing
+          MORTYR_eff == first_dead ~ STATUSCD, #do nothing
 
           # if MORTYR is earlier than midpoint and the year is between the
           # MORTYR and the midpoint, adjust STATUSCD to 2
-          MORTYR < first_dead & YEAR >= MORTYR & YEAR < first_dead ~ 2,
+          MORTYR_eff < first_dead & YEAR >= MORTYR_eff & YEAR < first_dead ~ 2,
 
           # if MORTYR is after the midpoint and the year is between the midpoint
           # and MORTYR, adjust STATUSCD to 1
-          MORTYR > first_dead & YEAR < MORTYR & YEAR >= first_dead ~ 1,
+          MORTYR_eff > first_dead & YEAR < MORTYR_eff & YEAR >= first_dead ~ 1,
           .default = STATUSCD
         )
       ) |>
       # MORTYR might be earlier than the midpoint, so backfill NAs for DECAYCD
       # and STANDING_DEAD_CD. These will be corrected later anyways
       tidyr::fill(DECAYCD, STANDING_DEAD_CD, .direction = "up") |>
-      dplyr::select(-first_dead)
-
+      dplyr::select(-first_dead, -MORTYR_eff)
   } else {
-    df <- data_interpolated |> group_by(tree_ID)
+    df <- data_interpolated |> dplyr::group_by(tree_ID)
   }
 
   df |>
     # adjust STATUSCD & DECAYCD
-  
+
     # STANDING_DEAD_CD only applies to dead trees
     dplyr::mutate(
       STANDING_DEAD_CD = dplyr::if_else(STATUSCD == 2, STANDING_DEAD_CD, NA)
@@ -93,12 +118,13 @@ adjust_mortality <- function(data_interpolated, use_mortyr = TRUE) {
         c(DIA, HT, ACTUALHT, CULL, CR),
         \(x)
           dplyr::if_else(
-            (STATUSCD == 0 & RECONCILECD %in% c(5, 6, 9)) | (COND_STATUS_CD != 1), 
+            (STATUSCD == 0 & RECONCILECD %in% c(5, 6, 9)) |
+              (COND_STATUS_CD != 1),
             NA,
             x,
             missing = x
           )
       )
     ) |>
-    ungroup()
+    dplyr::ungroup()
 }
