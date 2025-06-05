@@ -146,3 +146,34 @@ test_that("No values below thresholds for measurement", {
     0
   )
 })
+
+test_that("MORTYR gets nudged to next year if tree is alive", {
+  data_interpolated <- readRDS(testthat::test_path("testdata/CO_MORTYR.rds"))
+
+  data_adj <- adjust_mortality(data_interpolated, use_mortyr = TRUE)
+
+  expect_equal(
+    data_adj |>
+      filter(
+        tree_ID == "8_1_119_80086_3_12", #alive in MORTYR
+        YEAR == MORTYR
+      ) |> pull(STATUSCD),
+    1
+  )
+  expect_equal(
+    data_adj |>
+      filter(
+        tree_ID == "8_1_119_80086_3_12", # alive in MORTYR
+        YEAR == MORTYR + 1
+      ) |> pull(STATUSCD),
+    2
+  )
+    expect_equal(
+    data_adj |>
+      filter(
+        tree_ID == "8_1_119_85646_4_1", # dead in MORTYR
+        YEAR == MORTYR
+      ) |> pull(STATUSCD),
+    2
+  )
+})
