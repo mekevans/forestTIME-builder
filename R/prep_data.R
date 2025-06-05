@@ -79,43 +79,6 @@ prep_data <- function(db) {
       SPCD
     )
 
-  # POP_ESTN_UNIT <-
-  #   db$POP_ESTN_UNIT |>
-  #   dplyr::select(CN, EVAL_CN, AREA_USED, P1PNTCNT_EU)
-
-  # POP_EVAL <-
-  #   db$POP_EVAL |>
-  #   dplyr::select(
-  #     EVALID,
-  #     EVAL_GRP_CN,
-  #     ESTN_METHOD,
-  #     CN,
-  #     END_INVYR,
-  #     REPORT_YEAR_NM
-  #   )
-
-  # POP_EVAL_TYP <-
-  #   db$POP_EVAL_TYP |>
-  #   dplyr::select(EVAL_TYP, EVAL_CN)
-
-  # POP_PLOT_STRATUM_ASSGN <-
-  #   db$POP_PLOT_STRATUM_ASSGN |>
-  #   dplyr::filter(INVYR >= 2000L) |>
-  #   dplyr::select(STRATUM_CN, PLT_CN, INVYR)
-
-  # POP_STRATUM <-
-  #   db$POP_STRATUM |>
-  #   dplyr::select(
-  #     ESTN_UNIT_CN,
-  #     EXPNS,
-  #     P2POINTCNT,
-  #     ADJ_FACTOR_MICR,
-  #     ADJ_FACTOR_SUBP,
-  #     ADJ_FACTOR_MACR,
-  #     CN,
-  #     P1POINTCNT
-  #   )
-
   # Join the tables
   data <-
     PLOT |>
@@ -124,23 +87,10 @@ prep_data <- function(db) {
     dplyr::left_join(PLOTGEOM, by = dplyr::join_by(INVYR, PLT_CN)) |>
     dplyr::left_join(COND, by = dplyr::join_by(plot_ID, INVYR, PLT_CN, CONDID))
 
-  # TODO These population tables are needed for pop scaling, but the
-  # 'many-to-many' relationship messes up the interpolation.  I think this is
-  # because plots can belong to multiple strata? Probably can't use this with
-  # interpolated data anyways?
-
-  # left_join(POP_PLOT_STRATUM_ASSGN, by = join_by(INVYR, PLT_CN), relationship = 'many-to-many') %>% #many-to-many relationship?
-  # left_join(POP_STRATUM, by = c('STRATUM_CN' = 'CN')) %>%
-  # left_join(POP_ESTN_UNIT, by = c('ESTN_UNIT_CN' = 'CN')) %>%
-  # left_join(POP_EVAL, by = c('EVAL_CN' = 'CN')) %>%
-  # left_join(POP_EVAL_TYP, by = 'EVAL_CN', relationship = 'many-to-many') |>
-
-  # TODO: maybe don't hard-code this.  The user can do this filtering after
-  # `prep_data()` but before interpolation.
 
   # use only base intensity plots 
-  data <- data |>
-    dplyr::filter(INTENSITY == 1)
+  # data <- data |>
+  #   dplyr::filter(INTENSITY == 1)
 
   # fill MORTYR so it is a property of trees
   data <- data |>
