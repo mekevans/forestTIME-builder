@@ -24,14 +24,14 @@ it's last survey alive and first survey dead.
 This does the following:
 \itemize{
 \item Optionally figures out if a tree has a recorded \code{MORTYR} and uses that for
-the transition to \code{STATUSCD} 2 instead of the interpolated values. (assumes
-\code{MORTYR} was \emph{before} the inventory where it was recoreed dead)
+the transition to \code{STATUSCD} 2 instead of the interpolated values. If the
+tree is alive (\code{STATUSCD} 1) in \code{MORTYR}, then it is assumed it died in the
+following year.
 \item Drops trees that transition to \code{STATUSCD} 0 and \code{RECONCILECD} 5, 6, or 9
 (moved out of plot) at the midpoint between surveys
 \item Adjusts \code{STANDING_DEAD_CD} so that it only applies to dead trees
 \item Adjusts \code{DECAYCD} so that it only applies to standing dead trees
 \item Adjusts \code{DIA}, \code{HT}, \code{ACTUALHT}, \code{CULL}, and \code{CR} so that they only apply
 to live or standing dead trees in sampled conitions.
-\item Removes the \code{MORTYR} column, as it is no longer needed
 }
 }
