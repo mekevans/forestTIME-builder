@@ -47,24 +47,19 @@ adjust_mortality <- function(data_interpolated, use_mortyr = TRUE) {
     # that inventory year
     # (https://github.com/mekevans/forestTIME-builder/issues/61)
 
-    trees_mortyr_adjust <- data_interpolated |>
-      dplyr::filter(interpolated == FALSE) |>
-      dplyr::filter(MORTYR == YEAR & STATUSCD == 1) |>
-      dplyr::select(tree_ID, MORTYR) |>
-      dplyr::distinct() |>
-      dplyr::mutate(MORTYR_eff = MORTYR + 1) |>
-      dplyr::select(-MORTYR)
-    
-    data_interpolated <-
-      dplyr::left_join(
-        data_interpolated,
-        trees_mortyr_adjust,
-        by = dplyr::join_by(tree_ID)
-      ) |>
-      dplyr::mutate(MORTYR_eff = dplyr::coalesce(MORTYR_eff, MORTYR))
-
     df <- data_interpolated |>
       dplyr::group_by(tree_ID) |>
+      dplyr::mutate(
+        MORTYR_eff = if_else(
+          YEAR == MORTYR & STATUSCD == 1,
+          MORTYR + 1,
+          MORTYR
+        ),
+        .after = MORTYR
+      ) |>
+      # this "fills in" the new effective MORTYR for all rows since the above
+      # if_else() only increments it for the inventory year row
+      mutate(MORTYR_eff = max(MORTYR_eff)) |>
       dplyr::mutate(
         # STATUSCD is interpolated to the midpoint between surveys
         # see utils.R for more info on what %|||% does
@@ -73,7 +68,7 @@ adjust_mortality <- function(data_interpolated, use_mortyr = TRUE) {
       # When a tree has a recorded MORTYR, adjust STATUSCD depending on whether
       # MORTYR is before or after the midpoint (first_dead). This works because
       # MORTYR is filled in for every row of a tree by prep_data() and
-      # expand_data(). Can't assume tree has STATUSCD 0 after MORTYR since
+      # expand_data(). Can't assume tree has STATUSCD 2 after MORTYR since
       # sometimes STATUSCD goes from 1 to 2 to 0.
       dplyr::mutate(
         STATUSCD = dplyr::case_when(
