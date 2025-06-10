@@ -14,6 +14,8 @@ test_that("variables with NAs get interpolated correctly", {
       DIA,
       HT,
       ACTUALHT,
+      CULL,
+      CR,
       STATUSCD,
       STANDING_DEAD_CD,
       DECAYCD,
@@ -44,6 +46,8 @@ test_that("interpolation flags negative numbers as fallen dead", {
       DIA,
       HT,
       ACTUALHT,
+      CULL,
+      CR,
       STATUSCD,
       STANDING_DEAD_CD,
       DECAYCD,
@@ -64,4 +68,9 @@ test_that("interpolation flags negative numbers as fallen dead", {
     data_interpolated |> filter(ACTUALHT < 4.5) |> pull(STATUSCD) |> unique(),
     2
   )
+})
+
+test_that("interpolation of CULL is correct", {
+
+  expect_error("TODO: check if CULL needs to be re-set to 0 after interpolation for trees smaller than a certain DIA.  Also update documentation if that is the case")
 })

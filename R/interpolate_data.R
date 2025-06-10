@@ -9,23 +9,25 @@
 #' based on `DESIGNCD` and interpolated values of `DIA` according to Appendix G
 #' of the FIADB user guide.
 #'
-#' @note
-#' If `HT` or `ACTUALHT` are extrapolated to values < 4.5 (or < 1 for woodland
-#' species) OR `DIA` is extrapolated to < 1, the tree is marked as fallen dead
-#' (`STATUSCD` 2 and `STANDING_DEAD_CD` 0). All measurements for these trees
-#' will be removed (set to `NA`) by [adjust_mortality()]. Trees with only one
-#' measurement have that measurement carried forward as appropriate (e.g. until
-#' fallen and dead or in non-sampled condition).
+#' @note If `HT` or `ACTUALHT` are extrapolated to values < 4.5 (or < 1 for
+#' woodland species) OR `DIA` is extrapolated to < 1, the tree is marked as
+#' fallen dead (`STATUSCD` 2 and `STANDING_DEAD_CD` 0). All measurements for
+#' these trees will be removed (set to `NA`) by [adjust_mortality()]. Trees with
+#' only one measurement have that measurement carried forward as appropriate
+#' (e.g. until fallen and dead or in non-sampled condition). 
+#' 
+#' Since missing values for `CULL` are already assumed to be 0 by
+#' [predictCRM2()]`, they are converted to 0s here for better linear
+#' interpolation.
 #'
-#' @references
-#' Burrill, E.A., Christensen, G.A., Conkling, B.L., DiTommaso, A.M.,
-#' Kralicek, K.M., Lepine, L.C., Perry, C.J., Pugh, S.A., Turner, J.A.,
+#' @references Burrill, E.A., Christensen, G.A., Conkling, B.L., DiTommaso,
+#' A.M., Kralicek, K.M., Lepine, L.C., Perry, C.J., Pugh, S.A., Turner, J.A.,
 #' Walker, D.M., 2024. The Forest Inventory and Analysis Database User Guide
-#' (NFI). USDA Forest Service. <https://research.fs.usda.gov/understory/forest-inventory-and-analysis-database-user-guide-nfi>
+#' (NFI). USDA Forest Service.
+#' <https://research.fs.usda.gov/understory/forest-inventory-and-analysis-database-user-guide-nfi>
 #'
-#' @param data_expanded tibble produced by [expand_data()]
-#' @export
-#' @returns a tibble
+#' @param data_expanded tibble produced by [expand_data()] @export @returns a
+#' tibble
 interpolate_data <- function(data_expanded) {
   cli::cli_progress_step("Interpolating between surveys")
   #variables to linearly interpolate/extrapolate
@@ -43,6 +45,7 @@ interpolate_data <- function(data_expanded) {
   )
 
   data_interpolated <- data_expanded |>
+    dplyr::mutate(CULL = dplyr::if_else(is.na(CULL), 0, CULL)) |> 
     dplyr::group_by(plot_ID, tree_ID) |>
     dplyr::mutate(
       #linearly interpolate/extrapolate
