@@ -24,12 +24,19 @@ is used for annualizing tree measurements such as \code{DIA}, \code{HT}, and
 \code{ACTUALHT}.  Extrapolation is necessary for trees that have \code{NA}s recorded in
 their first inventory marked dead because we want to extrapolate their growth
 from the last time they were inventoried alive to an estimated mortality
-year.
+year. In the case of vectors with only one non-NA value, that value is
+carried forward if \code{extrapolate = TRUE}.
 }
 \examples{
 x <- 1:7
 y <- c(2, NA, 5, 6, NA, NA, NA)
 inter_extra_polate(x = x, y = y)
+#with extrapolation
+inter_extra_polate(x = x, y = y, extrapolate = TRUE)
+#single numbers get carried forward
+y2 <- c(NA, NA, 3, NA, NA)
+inter_extra_polate(x = x, y = y2, extrapolate = TRUE)
+
 }
 \author{
 Eric R. Scott

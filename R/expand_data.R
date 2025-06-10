@@ -56,6 +56,7 @@ expand_data <- function(data) {
     dplyr::group_by(tree_ID) |>
     tidyr::fill(any_of(c(
       "plot_ID",
+      "INTENSITY",
       "SPCD",
       "ECOSUBCD",
       "DESIGNCD",

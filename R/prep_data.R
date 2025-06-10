@@ -1,21 +1,20 @@
 #' Read in and join all required tables
 #'
 #' Reads in all the tables needed for carbon estimation and population scaling
-#' and joins them into a single table. Then, some additional wrangling steps are
-#' performed.
-#' 1. Creates unique tree an plot identifiers (`tree_ID` and `plot_ID`,
+#' and joins them into a single table. Then, some additional data cleaning steps
+#' are performed.
+#' 1. Creates unique tree and plot identifiers (`tree_ID` and `plot_ID`,
 #'   respectively).
-#' 2. Filters out intensification plots.
-#' 3. Removes trees that were measured in error (`RECONCILECD` 7 or 8).
-#' 4. Removes trees with no measurements because they've always been fallen
-#'   (`STANDING_DEAD_CD` 0).
-#' 5. Fills in missing values for `ACTUALHT` with values from `HT` to prepare
+#' 2. Fills in missing values for `ACTUALHT` with values from `HT` to prepare
 #'   for interpolation.
-#' 6. Overwrites `SPCD` with whatever the last value of `SPCD` is for each tree
-#'   (to handle trees that change `SPCD`)
+#' 3. Overwrites `SPCD` with whatever the last value of `SPCD` is for each tree
+#'   (to handle trees that change `SPCD`).
+#' 4. Fills a tree's `MORTYR` column so every row contains the recorded
+#'   mortality year.
 #'
 #' @param db a list of tables produced by [read_fia()]
 #' @export
+#' @seealso [add_composite_ids()]
 #' @returns a tibble
 prep_data <- function(db) {
   # Select only the columns we need from each table, to keep things slim
@@ -80,43 +79,6 @@ prep_data <- function(db) {
       SPCD
     )
 
-  # POP_ESTN_UNIT <-
-  #   db$POP_ESTN_UNIT |>
-  #   dplyr::select(CN, EVAL_CN, AREA_USED, P1PNTCNT_EU)
-
-  # POP_EVAL <-
-  #   db$POP_EVAL |>
-  #   dplyr::select(
-  #     EVALID,
-  #     EVAL_GRP_CN,
-  #     ESTN_METHOD,
-  #     CN,
-  #     END_INVYR,
-  #     REPORT_YEAR_NM
-  #   )
-
-  # POP_EVAL_TYP <-
-  #   db$POP_EVAL_TYP |>
-  #   dplyr::select(EVAL_TYP, EVAL_CN)
-
-  # POP_PLOT_STRATUM_ASSGN <-
-  #   db$POP_PLOT_STRATUM_ASSGN |>
-  #   dplyr::filter(INVYR >= 2000L) |>
-  #   dplyr::select(STRATUM_CN, PLT_CN, INVYR)
-
-  # POP_STRATUM <-
-  #   db$POP_STRATUM |>
-  #   dplyr::select(
-  #     ESTN_UNIT_CN,
-  #     EXPNS,
-  #     P2POINTCNT,
-  #     ADJ_FACTOR_MICR,
-  #     ADJ_FACTOR_SUBP,
-  #     ADJ_FACTOR_MACR,
-  #     CN,
-  #     P1POINTCNT
-  #   )
-
   # Join the tables
   data <-
     PLOT |>
@@ -125,25 +87,18 @@ prep_data <- function(db) {
     dplyr::left_join(PLOTGEOM, by = dplyr::join_by(INVYR, PLT_CN)) |>
     dplyr::left_join(COND, by = dplyr::join_by(plot_ID, INVYR, PLT_CN, CONDID))
 
-  # TODO These population tables are needed for pop scaling, but the
-  # 'many-to-many' relationship messes up the interpolation.  I think this is
-  # because plots can belong to multiple strata? Probably can't use this with
-  # interpolated data anyways?
 
-  # left_join(POP_PLOT_STRATUM_ASSGN, by = join_by(INVYR, PLT_CN), relationship = 'many-to-many') %>% #many-to-many relationship?
-  # left_join(POP_STRATUM, by = c('STRATUM_CN' = 'CN')) %>%
-  # left_join(POP_ESTN_UNIT, by = c('ESTN_UNIT_CN' = 'CN')) %>%
-  # left_join(POP_EVAL, by = c('EVAL_CN' = 'CN')) %>%
-  # left_join(POP_EVAL_TYP, by = 'EVAL_CN', relationship = 'many-to-many') |>
-
-  # use only base intensity plots
-  data <- data |>
-    dplyr::filter(INTENSITY == 1)
+  # use only base intensity plots 
+  # data <- data |>
+  #   dplyr::filter(INTENSITY == 1)
 
   # fill MORTYR so it is a property of trees
-  data <- data |> 
-    dplyr::group_by(tree_ID) |> 
-    tidyr::fill(MORTYR, .direction = c("updown")) |> 
+  data <- data |>
+    dplyr::group_by(tree_ID) |>
+    tidyr::fill(MORTYR, .direction = c("updown")) |>
+    # if trees have more than one SPCD, set all to be the most recent SPCD
+    # (https://github.com/mekevans/forestTIME-builder/issues/53)
+    dplyr::mutate(SPCD = dplyr::last(SPCD)) |>
     dplyr::ungroup()
 
   # at this point, get the list of plots and years as following steps may remove
@@ -153,31 +108,34 @@ prep_data <- function(db) {
     dplyr::distinct() |>
     dplyr::left_join(PLOT, by = dplyr::join_by(plot_ID, INVYR))
 
-  # deal with "problem" trees
+  # coalesce ACTUALHT so it can be interpolated
   data <- data |>
-    dplyr::group_by(tree_ID) |>
-    # dplyr::filter(
-    #   sum(!is.na(DIA)) > 1 & sum(!is.na(HT)) > 1
-    # ) |>
-    # remove trees that have always been fallen and have no measurements
-    dplyr::filter(
-      !(sum(is.finite(DIA) & is.finite(HT)) == 0 & all(STANDING_DEAD_CD == 0))
-    ) |>
-    # remove trees that were measured in error
-    # (https://github.com/mekevans/forestTIME-builder/issues/59#issuecomment-2758575994)
-    dplyr::filter(!any(RECONCILECD %in% c(7, 8))) |>
-    # if trees have more than one SPCD, set all to be the most recent SPCD
-    # (https://github.com/mekevans/forestTIME-builder/issues/53)
-    dplyr::mutate(SPCD = dplyr::last(SPCD)) |>
-    dplyr::ungroup() |>
-    # coalesce ACTUALHT so it can be interpolated
     dplyr::mutate(ACTUALHT = dplyr::coalesce(ACTUALHT, HT))
 
-  # join the empty plots back in
-  data <-
-    dplyr::full_join(data, all_plots, by = dplyr::join_by(plot_ID, PLT_CN, INVYR, DESIGNCD, INTENSITY)) |>
-    dplyr::arrange(plot_ID, tree_ID, INVYR) |>
-    dplyr::select(plot_ID, tree_ID, INVYR, everything())
+  #   # deal with "problem" trees
+    # data <- data |>
+    #   dplyr::group_by(tree_ID) |>
+    #   dplyr::filter(
+    #     sum(!is.na(DIA)) > 1 & sum(!is.na(HT)) > 1
+    #   ) |>
+    #   # remove trees that have always been fallen and have no measurements
+    #   dplyr::filter(
+    #     !(sum(is.finite(DIA) & is.finite(HT)) == 0 & all(STANDING_DEAD_CD == 0))
+    #   ) |>
+    #   # remove trees that were measured in error
+    #   # (https://github.com/mekevans/forestTIME-builder/issues/59#issuecomment-2758575994)
+    #   dplyr::filter(!any(RECONCILECD %in% c(7, 8))) |>
+    #   dplyr::ungroup() |>
+
+    # join the empty plots back in
+    data <-
+      dplyr::full_join(
+        data,
+        all_plots,
+        by = dplyr::join_by(plot_ID, PLT_CN, INVYR, DESIGNCD, INTENSITY)
+      ) |>
+      dplyr::arrange(plot_ID, tree_ID, INVYR) |>
+      dplyr::select(plot_ID, tree_ID, INVYR, everything())
 
   # return:
   data
