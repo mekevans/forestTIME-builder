@@ -31,7 +31,7 @@ only one measurement have that measurement carried forward as appropriate
 (e.g. until fallen and dead or in non-sampled condition).
 
 Since missing values for \code{CULL} are already assumed to be 0 by
-\code{\link[=eztimate_carbon]{eztimate_carbon()}}, they are converted to 0s by \code{\link[=expand_data]{expand_data()}} for better
+\code{\link[=estimate_carbon]{estimate_carbon()}}, they are converted to 0s by \code{\link[=expand_data]{expand_data()}} for better
 linear interpolation here and then set back to \code{NA} if \code{DIA} < 5.
 }
 \references{
