@@ -1,5 +1,6 @@
 # forestTIME-builder (development version)
 
+- `expand_data()` now converts `NA`s for `CULL` to 0s (this is what the carbon estimation code in `predictCRM2()` does already anyways) so that they are better interpolated.  `CULL` values are converted *back* to `NA` if `DIA` is < 5 after interpolation by `interpolate_data()` ([#77](https://github.com/mekevans/forestTIME-builder/issues/77)).
 - `prep_data()` no longer filters out any rows (un-doing #59 and addressing #99).  If you want to remove certain rows, do this between `prep_data()` and `expand_data()`.
 - Trees with only a single measurement have their single measurement carried forward during extrapolation rather than getting dropped from the data (#94, #99).
 - In the case when `MORTYR` is an inventory year where the tree is alive (`STATUSCD` 1), it is now assumed by `adjust_mortality()` that the tree died in the year following `MORTYR` in order to keep the observation (#61).

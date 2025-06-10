@@ -23,16 +23,21 @@ based on \code{DESIGNCD} and interpolated values of \code{DIA} according to Appe
 of the FIADB user guide.
 }
 \note{
-If \code{HT} or \code{ACTUALHT} are extrapolated to values < 4.5 (or < 1 for woodland
-species) OR \code{DIA} is extrapolated to < 1, the tree is marked as fallen dead
-(\code{STATUSCD} 2 and \code{STANDING_DEAD_CD} 0). All measurements for these trees
-will be removed (set to \code{NA}) by \code{\link[=adjust_mortality]{adjust_mortality()}}. Trees with only one
-measurement have that measurement carried forward as appropriate (e.g. until
-fallen and dead or in non-sampled condition).
+If \code{HT} or \code{ACTUALHT} are extrapolated to values < 4.5 (or < 1 for
+woodland species) OR \code{DIA} is extrapolated to < 1, the tree is marked as
+fallen dead (\code{STATUSCD} 2 and \code{STANDING_DEAD_CD} 0). All measurements for
+these trees will be removed (set to \code{NA}) by \code{\link[=adjust_mortality]{adjust_mortality()}}. Trees with
+only one measurement have that measurement carried forward as appropriate
+(e.g. until fallen and dead or in non-sampled condition).
+
+Since missing values for \code{CULL} are already assumed to be 0 by
+\code{\link[=estimate_carbon]{estimate_carbon()}}, they are converted to 0s by \code{\link[=expand_data]{expand_data()}} for better
+linear interpolation here and then set back to \code{NA} if \code{DIA} < 5.
 }
 \references{
-Burrill, E.A., Christensen, G.A., Conkling, B.L., DiTommaso, A.M.,
-Kralicek, K.M., Lepine, L.C., Perry, C.J., Pugh, S.A., Turner, J.A.,
+Burrill, E.A., Christensen, G.A., Conkling, B.L., DiTommaso,
+A.M., Kralicek, K.M., Lepine, L.C., Perry, C.J., Pugh, S.A., Turner, J.A.,
 Walker, D.M., 2024. The Forest Inventory and Analysis Database User Guide
-(NFI). USDA Forest Service. \url{https://research.fs.usda.gov/understory/forest-inventory-and-analysis-database-user-guide-nfi}
+(NFI). USDA Forest Service.
+\url{https://research.fs.usda.gov/understory/forest-inventory-and-analysis-database-user-guide-nfi}
 }

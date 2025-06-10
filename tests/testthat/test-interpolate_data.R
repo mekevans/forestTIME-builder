@@ -14,6 +14,8 @@ test_that("variables with NAs get interpolated correctly", {
       DIA,
       HT,
       ACTUALHT,
+      CULL,
+      CR,
       STATUSCD,
       STANDING_DEAD_CD,
       DECAYCD,
@@ -44,6 +46,8 @@ test_that("interpolation flags negative numbers as fallen dead", {
       DIA,
       HT,
       ACTUALHT,
+      CULL,
+      CR,
       STATUSCD,
       STANDING_DEAD_CD,
       DECAYCD,
@@ -64,4 +68,34 @@ test_that("interpolation flags negative numbers as fallen dead", {
     data_interpolated |> filter(ACTUALHT < 4.5) |> pull(STATUSCD) |> unique(),
     2
   )
+})
+
+test_that("interpolation of CULL is correct", {
+  data <- read_fia(
+    "DE",
+    dir = system.file("exdata", package = "forestTIME.builder")
+  ) |>
+    prep_data() |>
+    dplyr::filter(tree_ID == "10_1_1_128_1_24")
+
+  data_interpolated <- data |>
+    expand_data() |>
+    interpolate_data()
+
+  expect_true(
+    data_interpolated |>
+      filter(DIA < 5) |>
+      pull(CULL) |>
+      is.na() |>
+      all()
+  )
+
+  cull_vals <- data_interpolated |>
+    filter(DIA >= 5) |>
+    pull(CULL) |>
+    unique()
+  expect_false(
+    identical(cull_vals, c(0, 1))
+  )
+  
 })
