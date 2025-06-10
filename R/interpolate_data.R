@@ -18,7 +18,7 @@
 #' 
 #' Since missing values for `CULL` are already assumed to be 0 by
 #' [predictCRM2()]`, they are converted to 0s here for better linear
-#' interpolation.
+#' interpolation and then set back to `NA` if `DIA` < 5.
 #'
 #' @references Burrill, E.A., Christensen, G.A., Conkling, B.L., DiTommaso,
 #' A.M., Kralicek, K.M., Lepine, L.C., Perry, C.J., Pugh, S.A., Turner, J.A.,
@@ -26,8 +26,9 @@
 #' (NFI). USDA Forest Service.
 #' <https://research.fs.usda.gov/understory/forest-inventory-and-analysis-database-user-guide-nfi>
 #'
-#' @param data_expanded tibble produced by [expand_data()] @export @returns a
-#' tibble
+#' @param data_expanded tibble produced by [expand_data()] 
+#' @export 
+#' @returns a tibble
 interpolate_data <- function(data_expanded) {
   cli::cli_progress_step("Interpolating between surveys")
   #variables to linearly interpolate/extrapolate
@@ -62,6 +63,8 @@ interpolate_data <- function(data_expanded) {
       \(x) dplyr::if_else(x == 999, NA, x)
     )) |>
     dplyr::ungroup() |>
+    # Cull only measured for trees with DIA >= 5
+    dplyr::mutate(CULL = dplyr::if_else(DIA < 5, NA, CULL)) |> 
     #join TPA_UNADJ
     dplyr::left_join(
       tpa_rules,
