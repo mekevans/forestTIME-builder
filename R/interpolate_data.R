@@ -17,8 +17,8 @@
 #' (e.g. until fallen and dead or in non-sampled condition). 
 #' 
 #' Since missing values for `CULL` are already assumed to be 0 by
-#' [predictCRM2()]`, they are converted to 0s here for better linear
-#' interpolation and then set back to `NA` if `DIA` < 5.
+#' [predictCRM2()]`, they are converted to 0s by [expand_data()] for better
+#' linear interpolation here and then set back to `NA` if `DIA` < 5.
 #'
 #' @references Burrill, E.A., Christensen, G.A., Conkling, B.L., DiTommaso,
 #' A.M., Kralicek, K.M., Lepine, L.C., Perry, C.J., Pugh, S.A., Turner, J.A.,
@@ -46,7 +46,6 @@ interpolate_data <- function(data_expanded) {
   )
 
   data_interpolated <- data_expanded |>
-    dplyr::mutate(CULL = dplyr::if_else(is.na(CULL), 0, CULL)) |> 
     dplyr::group_by(plot_ID, tree_ID) |>
     dplyr::mutate(
       #linearly interpolate/extrapolate

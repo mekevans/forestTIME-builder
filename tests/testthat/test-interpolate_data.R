@@ -71,6 +71,31 @@ test_that("interpolation flags negative numbers as fallen dead", {
 })
 
 test_that("interpolation of CULL is correct", {
+  data <- read_fia(
+    "DE",
+    dir = system.file("exdata", package = "forestTIME.builder")
+  ) |>
+    prep_data() |>
+    dplyr::filter(tree_ID == "10_1_1_128_1_24")
 
-  expect_error("TODO: check if CULL needs to be re-set to 0 after interpolation for trees smaller than a certain DIA.  Also update documentation if that is the case")
+  data_interpolated <- data |>
+    expand_data() |>
+    interpolate_data()
+
+  expect_true(
+    data_interpolated |>
+      filter(DIA < 5) |>
+      pull(CULL) |>
+      is.na() |>
+      all()
+  )
+
+  cull_vals <- data_interpolated |>
+    filter(DIA >= 5) |>
+    pull(CULL) |>
+    unique()
+  expect_false(
+    identical(cull_vals, c(0, 1))
+  )
+  
 })
