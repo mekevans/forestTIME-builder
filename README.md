@@ -7,6 +7,11 @@
 [![R-CMD-check](https://github.com/mekevans/forestTIME-builder/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/mekevans/forestTIME-builder/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
+> [!CAUTION]
+> `forestTIME.builder` is an **experimental** package and currently a **work-in-progress**. 
+> It is **not** an official product of the US Forest Service. 
+
+
 This R package contains functions to create annualized versions of FIA data. It can download raw FIA data from DataMart, merge required tables, interpolate between surveys, and re-estimate biomass and carbon from interpolated values.  The output is a single dataframe with values for every tree in every year rather than the original panel design.
 
 ## Installation
