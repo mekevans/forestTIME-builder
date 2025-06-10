@@ -31,7 +31,8 @@ only one measurement have that measurement carried forward as appropriate
 (e.g. until fallen and dead or in non-sampled condition).
 
 Since missing values for \code{CULL} are already assumed to be 0 by
-\code{\link[=predictCRM2]{predictCRM2()}}\verb{, they are converted to 0s here for better linear interpolation and then set back to }NA\code{if}DIA` < 5.
+\code{\link[=eztimate_carbon]{eztimate_carbon()}}, they are converted to 0s by \code{\link[=expand_data]{expand_data()}} for better
+linear interpolation here and then set back to \code{NA} if \code{DIA} < 5.
 }
 \references{
 Burrill, E.A., Christensen, G.A., Conkling, B.L., DiTommaso,
