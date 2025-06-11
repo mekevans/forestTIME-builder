@@ -111,9 +111,19 @@ estimate_carbon <- function(data) {
         "tree_ID",
         "plot_ID",
         "YEAR",
-        # DRYBIO_AG = AGB, #Includes foliage, which is not part of DRYBIO_AG
+
         "DRYBIO_AG" = "BIOMASS", #Does not include foliage
-        "CARBON_AG" = "CARBON"
+        "DRIBIO_FOLIAGE" = "FOLIAGE", #just foliage
+        "CARBON_AG" = "CARBON",
+        
+        #total stem volumes
+        "VOLTSGRS" = "VTOTIB_GROSS",
+        "VOLTSSND" = "VTOTIB_GROSS",
+        
+        #bole volumes
+        "VOLCFNET" = 
+        "VOLCFGRS" =
+        "VOLCFSND" = 
       ))
     )
 
