@@ -118,12 +118,12 @@ estimate_carbon <- function(data) {
         
         #total stem volumes
         "VOLTSGRS" = "VTOTIB_GROSS",
-        "VOLTSSND" = "VTOTIB_SOUND",
+        "VOLTSSND" = "VTOTIB_SOUND"#,
         
         #bole volumes
-        "VOLCFNET" = 
-        "VOLCFGRS" =
-        "VOLCFSND" = 
+        # "VOLCFNET" = 
+        # "VOLCFGRS" =
+        # "VOLCFSND" = 
       ))
     )
 
