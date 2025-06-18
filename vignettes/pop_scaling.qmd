@@ -36,8 +36,6 @@ We'll use the standard basic workflow to get estimated aboveground carbon for ea
 ::: callout-important
 `rFIA` produces estimates of carbon from 33 -- 40.7 tons/acre using design-based estimators.
 "Correct" estimates should be in this ballpark.
-They will not be exact because **many trees are dropped from the sample by `forestTIME.builder`** either due to changing species or due to only having 1 non-`NA` observation (unable to interpolate).
-**This could very well account for the differences observed below!**
 
 ```{r}
 agc_rfia <- 
@@ -115,13 +113,13 @@ agc_pop <- data_midpt |>
   ) |>
   summarize(
     # purposefully omits ajustment factor `aAdj` because it is assumed to be 1
-    carbPlot = sum(CARBON_AG * TPA_UNADJ * EXPNS * tDI / 2000, na.rm = TRUE),
-    forArea = sum(CONDPROP_UNADJ * EXPNS * aDI, na.rm = TRUE)
+    carbPlot = sum(CARBON_AG * TPA_UNADJ * EXPNS * tDI / 2000, na.rm = TRUE), #tons/plot
+    forArea = sum(CONDPROP_UNADJ * EXPNS * aDI, na.rm = TRUE) #acres/plot
   ) |>
   group_by(YEAR) |>
   summarize(
-    CARB_AG_TOTAL = sum(carbPlot, na.rm = TRUE), #Aren't the units here are actually tons/acre??
-    AREA_TOTAL = sum(forArea, na.rm = TRUE) #How is a sum of proportions equal to area? What are the units?
+    CARB_AG_TOTAL = sum(carbPlot, na.rm = TRUE), #
+    AREA_TOTAL = sum(forArea, na.rm = TRUE) #
   ) |>
 # the units work out to still be tons(live carbon)/acre(forested land) even if the variable names are misleading
   mutate(method = "annualized", carbon_ton_acre = CARB_AG_TOTAL / AREA_TOTAL) |> 
