@@ -96,33 +96,50 @@ Let's calculate our own expansion factor using the land area of RI.
 [Wikipedia](https://en.wikipedia.org/wiki/Rhode_Island) tells me the land area of RI is 2,678 km^2^ or 661,745.6 acres
 
 ```{r}
-data_midpt <- data_midpt |> 
-  group_by(YEAR) |> 
+data_midpt <- data_midpt |>
+  group_by(YEAR) |>
   mutate(
     EXPNS = 661745.6 / length(unique(plot_ID))
   )
+
+data_midpt |>
+  select(YEAR, EXPNS) |>
+  group_by(YEAR) |>
+  summarize(EXPNS = unique(EXPNS)) |>
+  ggplot(aes(x = YEAR, y = EXPNS)) +
+  geom_line()
 ```
+
+You'll notice that our calculated `EXPNS` follow a "U" shape rather than being constant.  That is because in our interpolated data, there are fewer plots in the beginning and end of the timeseries because we do not extrapolate beyond a panel's first and last inventory.
+
 
 Now that we have expansion factors, we can follow the methods in the [FIA demystified vignette](https://doserlab.com/files/rfia/articles/fiademystified#without-sampling-errors).
 
 ```{r}
-agc_pop <- data_midpt |>
-  group_by(
-    PLT_CN,
-    YEAR
-  ) |>
+tree_totals <- data_midpt |>
+  group_by(plot_ID, YEAR) |>
   summarize(
     # purposefully omits ajustment factor `aAdj` because it is assumed to be 1
     carbPlot = sum(CARBON_AG * TPA_UNADJ * EXPNS * tDI / 2000, na.rm = TRUE), #tons/plot
+  )
+
+area_totals <- data_midpt |>
+  group_by(plot_ID, YEAR) |>
+  # Keep only one row for each condition in each plot and year
+  distinct(CONDID, COND_STATUS_CD, CONDPROP_UNADJ, EXPNS, aDI) |>
+  summarize(
+    # purposefully omits ajustment factor `aAdj` because it is assumed to be 1
     forArea = sum(CONDPROP_UNADJ * EXPNS * aDI, na.rm = TRUE) #acres/plot
-  ) |>
-  group_by(YEAR) |>
+  )
+
+agc_pop <- inner_join(tree_totals, area_totals) |> 
+  group_by(YEAR) |> 
   summarize(
     CARB_AG_TOTAL = sum(carbPlot, na.rm = TRUE), #
     AREA_TOTAL = sum(forArea, na.rm = TRUE) #
   ) |>
-# the units work out to still be tons(live carbon)/acre(forested land) even if the variable names are misleading
-  mutate(method = "annualized", carbon_ton_acre = CARB_AG_TOTAL / AREA_TOTAL) |> 
+  # the units work out to still be tons(live carbon)/acre(forested land) even if the variable names are misleading
+  mutate(method = "annualized", carbon_ton_acre = CARB_AG_TOTAL / AREA_TOTAL) |>
   select(method, YEAR, carbon_ton_acre)
 agc_pop
 ```
@@ -134,31 +151,4 @@ bind_rows(agc_rfia, agc_pop) |>
 
 ```
 
-Ok, these numbers are obviously way off.  The expansion factors themselves are ballpark the same, which actually doesn't seem right—they should be smaller since there are more plots in each year in our dataset, right?
-
-```{r}
-POP_ESTN_UNIT <- select(db$POP_ESTN_UNIT, CN, EVAL_CN, AREA_USED, 
-                        P1PNTCNT_EU)
-POP_EVAL <- select(db$POP_EVAL, EVALID, EVAL_GRP_CN, ESTN_METHOD, CN, 
-                   END_INVYR, REPORT_YEAR_NM)
-POP_EVAL_TYP <- select(db$POP_EVAL_TYP, EVAL_TYP, EVAL_CN)
-POP_PLOT_STRATUM_ASSGN <- select(db$POP_PLOT_STRATUM_ASSGN, STRATUM_CN, 
-                                 PLT_CN)
-POP_STRATUM <- select(db$POP_STRATUM, ESTN_UNIT_CN, EXPNS, P2POINTCNT,
-                      ADJ_FACTOR_MICR, ADJ_FACTOR_SUBP, ADJ_FACTOR_MACR, 
-                      CN, P1POINTCNT)
-
-pop <- POP_PLOT_STRATUM_ASSGN %>%
-  left_join(POP_STRATUM, by = c('STRATUM_CN' = 'CN')) %>%
-  left_join(POP_ESTN_UNIT, by = c('ESTN_UNIT_CN' = 'CN')) %>%
-  left_join(POP_EVAL, by = c('EVAL_CN' = 'CN')) %>%
-  left_join(POP_EVAL_TYP, by = 'EVAL_CN', relationship = 'many-to-many')
-
-pop |> filter(EVAL_TYP %in% c("EXPVOL", "EXPCURR")) |> 
-  summarize(
-    mean = mean(EXPNS),
-    median = median(EXPNS)
-  )
-
-data_midpt |> ungroup() |> summarize(mean = mean(EXPNS), median = median(EXPNS))
-```
+We have some ballbark similar estimates that are obviously very different in terms of temporal trend.
