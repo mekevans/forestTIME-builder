@@ -23,7 +23,6 @@ library(forestTIME.builder)
 library(dplyr)
 library(rFIA)
 library(ggplot2)
-library(units)
 ```
 
 How can we use the interpolated data produced by `forestTIME.builder` to get popluation-level (i.e. state-level) per-area estimates?

@@ -42,7 +42,6 @@ Suggests:
     readr,
     rmarkdown,
     testthat (>= 3.0.0),
-    units,
     waldo,
     withr
 VignetteBuilder: knitr, quarto
