@@ -23,11 +23,9 @@ library(forestTIME.builder)
 library(dplyr)
 library(rFIA)
 library(ggplot2)
-library(units)
 ```
 
 How can we use the interpolated data produced by `forestTIME.builder` to get popluation-level (i.e. state-level) per-area estimates?
-This "is the science" according to Grant, so we need to explore different options for getting these etsimamtes.
 
 ## Example data
 
@@ -37,15 +35,13 @@ We'll use the standard basic workflow to get estimated aboveground carbon for ea
 ::: callout-important
 `rFIA` produces estimates of carbon from 33 -- 40.7 tons/acre using design-based estimators.
 "Correct" estimates should be in this ballpark.
-They will not be exact because **many trees are dropped from the sample by `forestTIME.builder`** either due to changing species or due to only having 1 non-`NA` observation (unable to interpolate).
-**This could very well account for the differences observed below!**
 
 ```{r}
 agc_rfia <- 
   biomass(fiaRI, method = "annual", treeType = "live", areaDomain = COND_STATUS_CD == 1 & INTENSITY == 1) |> 
   mutate(method = "rFIA::biomass()") |> 
   select(method, YEAR, carbon_ton_acre = CARB_ACRE)
-agc_rfia
+mean(agc_rfia$carbon_ton_acre)
 ```
 :::
 
@@ -72,7 +68,7 @@ data_midpt <-
   estimate_carbon() 
 ```
 
-I'll add domain indicator columns as are done in the `rFIA` demystified vignette so we calculate carbon in live trees per area of forested land.
+I'll add domain indicator columns as are done in the `rFIA` demystified vignette so we calculate carbon in live trees per area of forested land using base intensity plots only.
 Reason:
 
 > We build separate domain indicators for estimating tree totals and area totals, because we can specify different domains of interest for both.
@@ -85,224 +81,73 @@ So we can't just `filter(STATUSCD == 1 & COND_STATUSCD == 1)` to estimate carbon
 data_midpt <-
   data_midpt |>
   mutate(
-    aDI = if_else(COND_STATUS_CD == 1, 1, 0), #forested land
+    aDI = if_else(COND_STATUS_CD == 1 & INTENSITY == 1, 1, 0), #forested land
     tDI = if_else(STATUSCD == 1, 1, 0) * aDI #live trees on forested land
   )
 ```
 
-## Naive algerbra
+## Expansion factors
 
-If I was just given this interpolated dataset with little knowlege of FIA and asked to get mean carbon per acre in RI, this is probably what I'd do.
+The FIA data provides users with expansion factors, `EXPNS`, to aid in scaling estimates up to state levels.  There are two issues in using these provided `EXPNS` with our annualized data: 1) it is not straightforward to join the tables in to get the `EXPNS` column, and 2) there are now many more plots in each year, so the `EXPNS` column is no longer accurate (it is the land acres of the entire state represented by each plot).
 
-Fist, I'll figure out the (standard) area of a subplot and macroplot.
+Let's calculate our own expansion factor using the land area of RI.
 
-```{r}
-#| label: algerbra-area
-
-# Calculate plot areas using plot radii from FIA manual
-plot_areas <- 
-    tibble(
-        PROP_BASIS = c("SUBP", "MACR"),
-        radius_ft = c(24, 58.9) |> set_units("ft")
-    ) |> 
-    mutate(area_ft2 = pi*radius_ft^2) |> 
-    mutate(area_acre = set_units(area_ft2, "acre")) |> 
-    select(PROP_BASIS, area_acre)
-```
-
-My intuition would be to calculate total carbon/area on a per-plot basis and then average that across plots to get a state estimate.
-However, that doesn't work with the domain indicators, since it would result in a divide-by-zero error for some plots.
-Instead, I'll calculate total (live) carbon and total (forested) area separately and divide them.
-This is actually more in-line with the `rFIA` vignette anyways.
-I will also have to adjust the area for plots that aren't entirely forested.
-I think this is as simple as multiplying the plot area by `CONDPROP_UNADJ * aDI`.
+According to this [USDA tool](https://experience.arcgis.com/experience/ddb54b68e915431182d406f9778694cb/page/Land-Resources-Dashboard), the total land area of RI is 781,730.1 acres.
 
 ```{r}
-#| label: algerbra-plot-total
-agc_alg <- data_midpt |>
-  left_join(plot_areas, by = join_by(PROP_BASIS)) |>
-  #set units
-  mutate(
-    CARBON_AG = set_units(CARBON_AG, "lb")
-  ) |>
-  #get total carbon and total area for each year
+data_midpt <- data_midpt |>
   group_by(YEAR) |>
-  summarize(
-    carbon_total = sum(CARBON_AG * tDI, na.rm = TRUE),
-    area_total = sum(area_acre * CONDPROP_UNADJ * aDI, na.rm = TRUE),
-    .groups = "drop"
-  ) |>
   mutate(
-    method = "algerbra", 
-    carbon_ton_acre = set_units(carbon_total / area_total, "ton/acre") |> as.numeric()
-  ) |> 
-  select(method, YEAR, carbon_ton_acre)
-agc_alg
-```
-
-These results are about an order of magnitude smaller than what we'd expect.
-
-## Naive algerbra using `TPA_UNADJ`
-
-Rather than using the plot area to convert tons of carbon to tons/acre, I could use the `TPA_UNADJ` column (which I do not quite understand, but am fairly certain is in units of trees/acre).
-Note here that I'm using the `units` package which will error if I try to do an incorrect unit conversion.
-
-If `TPA_UNADJ` is in units of trees/acre, then I can use it to convert carbon/tree to carbon/acre by multiplying.
-Carbon/tree is just the mean (live tree) carbon in each plot, right?
-I think I would divide `TPA_UNADJ` by `CONDPROP_UNADJ` to get 1/area in the condition (1/plot area \* 1/proportion forested area = 1/forested area)
-
-```{r}
-#make a "tree" unit
-install_unit('tree', "unitless")
-agc_alg_tpa <- data_midpt |>
-  mutate(
-    TPA_UNADJ = set_units(TPA_UNADJ, "tree/acre"),
-    CARBON_AG = set_units(CARBON_AG, "lb")
-  ) |> 
-  group_by(plot_ID, YEAR, TPA_UNADJ, aDI, CONDPROP_UNADJ) |>
-  summarize(
-    plot_total_carbon = sum(CARBON_AG * tDI),
-    #how many (live) trees/plot?
-    n_trees = set_units(sum(tDI), "tree")
-  ) |> 
-  mutate(
-#carbon/tree * tree/acre = carbon/acre
-    plot_carbon_tree = plot_total_carbon / n_trees,
-    plot_tree_acre =  TPA_UNADJ / CONDPROP_UNADJ * aDI,
-    plot_carbon_acre = plot_carbon_tree * plot_tree_acre
-  ) |> 
-  group_by(YEAR) |> 
-  summarize(
-    carbon_ton_acre = mean(plot_carbon_acre, na.rm = TRUE) |> set_units("ton/acre") |> as.numeric()
-  ) |> 
-  mutate(method = "algerbra w/ TPA_UNADJ") |> 
-  select(method, YEAR, carbon_ton_acre)
-remove_unit("tree")
-agc_alg_tpa
-```
-
-These numbers are even smaller than above.
-
-## Using design-based estimators (POP tables & EXPNS)
-
-We'd like to be able to follow the [rFIA demystified](https://doserlab.com/files/rfia/articles/fiademystified#without-sampling-errors) vignette as closely as possible to apply the (panel) design-based estimators to our now simple random sample design.
-
-For this, we'll need the `POP_*` tables joined in.
-
-```{r}
-POP_ESTN_UNIT <-
-  db$POP_ESTN_UNIT |>
-  select(CN, EVAL_CN, AREA_USED, P1PNTCNT_EU)
-
-POP_EVAL <-
-  db$POP_EVAL |>
-  select(EVALID, EVAL_GRP_CN, ESTN_METHOD, CN, END_INVYR, REPORT_YEAR_NM)
-
-POP_EVAL_TYP <-
-  db$POP_EVAL_TYP |>
-  select(EVAL_TYP, EVAL_CN)
-
-POP_PLOT_STRATUM_ASSGN <-
-  db$POP_PLOT_STRATUM_ASSGN |>
-  filter(INVYR >= 2000L) |>
-  select(STRATUM_CN, PLT_CN, INVYR)
-
-POP_STRATUM <-
-  db$POP_STRATUM |>
-  select(
-    ESTN_UNIT_CN,
-    EXPNS,
-    P2POINTCNT,
-    ADJ_FACTOR_MICR,
-    ADJ_FACTOR_SUBP,
-    ADJ_FACTOR_MACR,
-    CN,
-    P1POINTCNT
+    EXPNS = 781730.1 / length(unique(plot_ID))
   )
 
-pop <- 
-  POP_PLOT_STRATUM_ASSGN |> 
-  left_join(POP_STRATUM, by = c('STRATUM_CN' = 'CN')) |> 
-  left_join(POP_ESTN_UNIT, by = c('ESTN_UNIT_CN' = 'CN')) |> 
-  left_join(POP_EVAL, by = c('EVAL_CN' = 'CN')) |>
-  left_join(POP_EVAL_TYP) |> 
-  #CNs as character for better printing
-  mutate(across(ends_with("CN"), as.character))
+data_midpt |>
+  select(YEAR, EXPNS) |>
+  group_by(YEAR) |>
+  summarize(EXPNS = unique(EXPNS)) |>
+  ggplot(aes(x = YEAR, y = EXPNS)) +
+  geom_line()
 ```
 
-To get a 1:1 join, I'll just pick rows where `EVAL_TYP == "EXPVOL"`.
-This is used in `rFIA` to "estimate tree totals", and is identical (at least in RI) to the values from `EVAL_TYPE == "EXPCURR"`, which is used to "estimate area totals".
+You'll notice that our calculated `EXPNS` follow a "U" shape rather than being constant.  That is because in our interpolated data, there are fewer plots in the beginning and end of the timeseries because we do not extrapolate beyond a panel's first and last inventory.
+
+
+Now that we have expansion factors, we can follow the methods in the [FIA demystified vignette](https://doserlab.com/files/rfia/articles/fiademystified#without-sampling-errors).
 
 ```{r}
-pop_expvol <- pop |>
-  filter(EVAL_TYP == "EXPVOL")
-pop_expcurr <- pop |>
-  filter(EVAL_TYP == "EXPCURR")
-
-waldo::compare(
-  pop_expvol |> select(-EVAL_TYP),
-  pop_expcurr |> select(-EVAL_TYP)
-)
-```
-
-Even for a single year, a single plot, and a single `EVAL_TYP` there are multiple rows with different values, so I'll need to choose which one to merge with the interpolated data ([#79](https://github.com/mekevans/forestTIME-builder/issues/79)).
-
-```{r}
-pop_expvol |> 
-    filter(INVYR == first(INVYR), PLT_CN == first(PLT_CN)) |> 
-    select(PLT_CN, INVYR, END_INVYR, everything())
-```
-
-We decided to merge on whichever `END_INVYR` is closest which should produce a 1:1 match.
-
-```{r}
-data_pop <- left_join(
-  data_midpt |> mutate(across(ends_with("CN"), as.character)),
-  pop_expvol,
-  by = join_by(PLT_CN, closest(YEAR <= END_INVYR))
-)
-```
-
-Cool, now we can multiply by expansion factors and all the rest of the steps
-
-::: callout-note
-In the `rFIA` vignette, `carbPlot` and `forArea` are calculated in separate datasets, but as far as I can tell, these two datasets are identical (at least for RI) so I have skipped that complication here.
-:::
-
-```{r}
-agc_pop <- data_pop |>
-  group_by(
-    PLT_CN,
-    YEAR
-  ) |>
+tree_totals <- data_midpt |>
+  group_by(plot_ID, YEAR) |>
   summarize(
     # purposefully omits ajustment factor `aAdj` because it is assumed to be 1
-    carbPlot = sum(CARBON_AG * TPA_UNADJ * EXPNS * tDI / 2000, na.rm = TRUE),
-    forArea = sum(CONDPROP_UNADJ * EXPNS * aDI, na.rm = TRUE)
-  ) |>
-  group_by(YEAR) |>
+    carbPlot = sum(CARBON_AG * TPA_UNADJ * EXPNS * tDI / 2000, na.rm = TRUE), #tons/plot
+  )
+
+area_totals <- data_midpt |>
+  group_by(plot_ID, YEAR) |>
+  # Keep only one row for each condition in each plot and year
+  distinct(CONDID, COND_STATUS_CD, CONDPROP_UNADJ, EXPNS, aDI) |>
   summarize(
-    CARB_AG_TOTAL = sum(carbPlot, na.rm = TRUE), #Aren't the units here are actually tons/acre??
-    AREA_TOTAL = sum(forArea, na.rm = TRUE) #How is a sum of proportions equal to area? What are the units?
+    # purposefully omits ajustment factor `aAdj` because it is assumed to be 1
+    forArea = sum(CONDPROP_UNADJ * EXPNS * aDI, na.rm = TRUE) #acres/plot
+  )
+
+agc_pop <- inner_join(tree_totals, area_totals) |> 
+  group_by(YEAR) |> 
+  summarize(
+    CARB_AG_TOTAL = sum(carbPlot, na.rm = TRUE), #
+    AREA_TOTAL = sum(forArea, na.rm = TRUE) #
   ) |>
-# the units work out to still be tons(live carbon)/acre(forested land) even if the variable names are misleading
-  mutate(method = "EXPNS", carbon_ton_acre = CARB_AG_TOTAL / AREA_TOTAL) |> 
+  # the units work out to still be tons(live carbon)/acre(forested land) even if the variable names are misleading
+  mutate(method = "annualized", carbon_ton_acre = CARB_AG_TOTAL / AREA_TOTAL) |>
   select(method, YEAR, carbon_ton_acre)
 agc_pop
 ```
 
 ```{r}
-bind_rows(agc_rfia, agc_alg, agc_alg_tpa, agc_pop) |> 
+bind_rows(agc_rfia, agc_pop) |> 
   ggplot(aes(x = YEAR, y = carbon_ton_acre, color = method)) +
   geom_line()
 
 ```
 
-Ok, these numbers are also too small and different from the other two methods.
-
-Possible reasons:
-
-1.  Incorrect implementation of the design-based estimate (someone check my work please!)
-2.  Design based estimates are not appropriate for our (non-panel design) interpolated data
-3.  Something went wrong in the interpolation (e.g. differences are due to `NA`s in the `CARBON_AG` column ([#76](https://github.com/mekevans/forestTIME-builder/issues/76) or because we drop trees ([#99](https://github.com/mekevans/forestTIME-builder/issues/99), [#94](https://github.com/mekevans/forestTIME-builder/issues/94))))
-
+We have some ballbark similar estimates that are obviously very different in terms of temporal trend.
