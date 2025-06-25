@@ -1,4 +1,4 @@
-# forestTIME-builder (development version)
+# forestTIME.builder 0.1.0
 
 - Fixed a bug causing the `INTENSITY` column (and possibly other plot-level variables) to be filled incorrectly by `expand_data()` ([#122](https://github.com/mekevans/forestTIME-builder/issues/122), reported by @brian-f-walters-usfs)
 - `expand_data()` now converts `NA`s for `CULL` to 0s (this is what the carbon estimation code in `predictCRM2()` does already anyways) so that they are better interpolated.  `CULL` values are converted *back* to `NA` if `DIA` is < 5 after interpolation by `interpolate_data()` ([#77](https://github.com/mekevans/forestTIME-builder/issues/77)).
