@@ -1,6 +1,6 @@
 library(dplyr)
 test_that("estimates match those in raw data", {
-  db <- read_fia(
+  db <- fia_load(
     "DE",
     dir = system.file("exdata", package = "forestTIME.builder")
   )

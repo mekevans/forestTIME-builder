@@ -2,7 +2,7 @@ library(dplyr)
 test_that("prep_data() works", {
   fia_dir <- system.file("exdata", package = "forestTIME.builder")
   # fia_download(states = "RI", download_dir = fia_dir, keep_zip = TRUE)
-  db <- read_fia(states = "DE", dir = fia_dir)
+  db <- fia_load(states = "DE", dir = fia_dir)
   data <- prep_data(db)
 
   expect_s3_class(data, "data.frame")

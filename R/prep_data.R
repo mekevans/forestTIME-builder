@@ -12,7 +12,7 @@
 #' 4. Fills a tree's `MORTYR` column so every row contains the recorded
 #'   mortality year.
 #'
-#' @param db a list of tables produced by [read_fia()]
+#' @param db a list of tables produced by [fia_load()]
 #' @export
 #' @seealso [add_composite_ids()]
 #' @returns a tibble

@@ -1,5 +1,6 @@
 # forestTIME.builder (development version)
 
+- Renamed `read_fia()` to `fia_load()`
 - Renamed `get_fia_tables()` to `fia_download()`
 
 # forestTIME.builder 1.1.0

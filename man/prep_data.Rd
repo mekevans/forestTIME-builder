@@ -7,7 +7,7 @@
 prep_data(db)
 }
 \arguments{
-\item{db}{a list of tables produced by \code{\link[=read_fia]{read_fia()}}}
+\item{db}{a list of tables produced by \code{\link[=fia_load]{fia_load()}}}
 }
 \value{
 a tibble

@@ -31,7 +31,7 @@ It will skip downloading if the files already exist.
 #| label: download-data
 #| eval: false
 fia_download(
-  states = "DE", 
+  states = "DE",
   download_dir = "fia",
   keep_zip = TRUE
 )
@@ -43,7 +43,7 @@ fia_download(
 
 #only re-run if you need to re-generate the example data for the package
 fia_download(
-  states = "DE", 
+  states = "DE",
   download_dir = "inst/exdata",
   keep_zip = TRUE
 )
@@ -53,12 +53,12 @@ fia_download(
 
 I need to make sure I have all the columns for population estimation *and* all the columns for carbon estimation using the walker code (documented better in `annual_carbon_estimation.qmd`).
 
-`read_fia()` is a wrapper around `rFIA::readFIA()` and reads in all the required tables as a list of data frames.
+`fia_load()` is a wrapper around `rFIA::readFIA()` and reads in all the required tables as a list of data frames.
 
 ```{r}
 #| label: read-data
 #| eval: false
-db <- read_fia(states = "DE", dir = "fia")
+db <- fia_load(states = "DE", dir = "fia")
 names(db)
 ```
 
@@ -66,7 +66,10 @@ names(db)
 #| echo: false
 
 #actually just read in the example data included in the package
-db <- read_fia(states = "DE", dir = system.file("exdata", package = "forestTIME.builder"))
+db <- fia_load(
+  states = "DE",
+  dir = system.file("exdata", package = "forestTIME.builder")
+)
 names(db)
 ```
 
@@ -83,11 +86,11 @@ Check that each tree has only 1 entry per year
 
 ```{r}
 #| label: check-data
-n <- data |> 
-  group_by(tree_ID, INVYR) |> 
+n <- data |>
+  group_by(tree_ID, INVYR) |>
   filter(!is.na(tree_ID)) |> #remove empty plots
   summarise(n = n(), .groups = "drop") |>
-  filter(n > 1) |> 
+  filter(n > 1) |>
   nrow()
 stopifnot(n == 0)
 ```

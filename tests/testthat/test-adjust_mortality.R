@@ -1,6 +1,6 @@
 library(dplyr)
 test_that("fallen dead trees get NAs correctly", {
-  db <- read_fia(
+  db <- fia_load(
     "DE",
     dir = system.file("exdata", package = "forestTIME.builder")
   )
@@ -37,7 +37,7 @@ test_that("fallen dead trees get NAs correctly", {
 })
 
 test_that("trees moving to non-sampled conditions have NAs", {
-  db <- read_fia(
+  db <- fia_load(
     "DE",
     dir = system.file("exdata", package = "forestTIME.builder")
   )
@@ -74,7 +74,7 @@ test_that("trees moving to non-sampled conditions have NAs", {
 })
 
 test_that("method doesn't matter for DE", {
-  db <- read_fia(
+  db <- fia_load(
     "DE",
     dir = system.file("exdata", package = "forestTIME.builder")
   )
@@ -112,7 +112,7 @@ test_that("method doesn't matter for DE", {
 })
 
 test_that("No values below thresholds for measurement", {
-  db <- read_fia(
+  db <- fia_load(
     "DE",
     dir = system.file("exdata", package = "forestTIME.builder")
   )

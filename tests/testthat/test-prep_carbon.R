@@ -1,5 +1,5 @@
 test_that("prep_carbon() keeps empty plots", {
-  data <- read_fia(
+  data <- fia_load(
     "DE",
     dir = system.file("exdata", package = "forestTIME.builder")
   ) |> prep_data()

@@ -53,7 +53,7 @@ state <- "RI"
 fia_download(states = state, keep_zip = FALSE)
 
 # Data prep
-db <- read_fia(states = state) #list of data frames
+db <- fia_load(states = state) #list of data frames
 
 data <- prep_data(db) #single tibble
 

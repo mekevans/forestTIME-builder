@@ -1,6 +1,6 @@
 library(dplyr)
 test_that("variables with NAs get interpolated correctly", {
-  db <- read_fia(
+  db <- fia_load(
     "DE",
     dir = system.file("exdata", package = "forestTIME.builder")
   )
@@ -32,7 +32,7 @@ test_that("variables with NAs get interpolated correctly", {
 })
 
 test_that("interpolation flags negative numbers as fallen dead", {
-  db <- read_fia(
+  db <- fia_load(
     "DE",
     dir = system.file("exdata", package = "forestTIME.builder")
   )
@@ -71,7 +71,7 @@ test_that("interpolation flags negative numbers as fallen dead", {
 })
 
 test_that("interpolation of CULL is correct", {
-  data <- read_fia(
+  data <- fia_load(
     "DE",
     dir = system.file("exdata", package = "forestTIME.builder")
   ) |>

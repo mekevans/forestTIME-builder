@@ -8,7 +8,7 @@ fia_download(states = state, keep_zip = FALSE)
 
 # Data prep
 data <-
-  read_fia(states = state) |>
+  fia_load(states = state) |>
   prep_data()
 
 # Expand to include all years between surveys and interpolate/extrapolate
