@@ -9,8 +9,6 @@
 #'   the transition to `STATUSCD` 2 instead of the interpolated values. If the
 #'   tree is alive (`STATUSCD` 1) in `MORTYR`, then it is assumed it died in the
 #'   following year.
-#' - Drops trees that transition to `STATUSCD` 0 and `RECONCILECD` 5, 6, or 9
-#'   (moved out of plot) at the midpoint between surveys
 #' - Adjusts `STANDING_DEAD_CD` so that it only applies to dead trees
 #' - Adjusts `DECAYCD` so that it only applies to standing dead trees
 #' - Adjusts `DIA`, `HT`, `ACTUALHT`, `CULL`, and `CR` so that they only apply
