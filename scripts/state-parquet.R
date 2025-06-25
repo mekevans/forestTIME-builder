@@ -4,7 +4,7 @@ library(forestTIME.builder)
 library(dplyr)
 
 # Data Download
-get_fia_tables(states = state, keep_zip = FALSE)
+fia_download(states = state, keep_zip = FALSE)
 
 # Data prep
 data <-

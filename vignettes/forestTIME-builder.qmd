@@ -24,13 +24,13 @@ library(dplyr)
 
 ## Data Download
 
-`get_fia_tables()` downloads zip files of all CSVs and extracts the necessary ones.
+`fia_download()` downloads zip files of all CSVs and extracts the necessary ones.
 It will skip downloading if the files already exist.
 
 ```{r}
 #| label: download-data
 #| eval: false
-get_fia_tables(
+fia_download(
   states = "DE", 
   download_dir = "fia",
   keep_zip = TRUE
@@ -42,7 +42,7 @@ get_fia_tables(
 #| eval: false
 
 #only re-run if you need to re-generate the example data for the package
-get_fia_tables(
+fia_download(
   states = "DE", 
   download_dir = "inst/exdata",
   keep_zip = TRUE

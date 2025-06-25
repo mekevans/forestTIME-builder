@@ -50,7 +50,7 @@ mean(agc_rfia$carbon_ton_acre)
 state <- "RI"
 
 # Data Download
-get_fia_tables(states = state, keep_zip = FALSE)
+fia_download(states = state, keep_zip = FALSE)
 
 # Data prep
 db <- read_fia(states = state) #list of data frames

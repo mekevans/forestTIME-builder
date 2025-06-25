@@ -1,7 +1,7 @@
 library(dplyr)
 test_that("prep_data() works", {
   fia_dir <- system.file("exdata", package = "forestTIME.builder")
-  # get_fia_tables(states = "RI", download_dir = fia_dir, keep_zip = TRUE)
+  # fia_download(states = "RI", download_dir = fia_dir, keep_zip = TRUE)
   db <- read_fia(states = "DE", dir = fia_dir)
   data <- prep_data(db)
 

@@ -24,7 +24,7 @@ tables <- c(
 #'
 #' @export
 #' @returns returns nothing
-get_fia_tables <- function(
+fia_download <- function(
   states,
   download_dir = "fia",
   extract = TRUE,

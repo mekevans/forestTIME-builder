@@ -1,3 +1,7 @@
+# forestTIME.builder (development version)
+
+- Renamed `get_fia_tables()` to `fia_download()`
+
 # forestTIME.builder 1.1.0
 
 - Fixed a bug causing the `INTENSITY` column (and possibly other plot-level variables) to be filled incorrectly by `expand_data()` ([#122](https://github.com/mekevans/forestTIME-builder/issues/122), reported by @brian-f-walters-usfs)
