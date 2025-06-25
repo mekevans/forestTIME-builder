@@ -8,7 +8,7 @@
 #' `999` so that they are properly interpolated by [interpolate_data()] (which
 #' converts them back to `NA`s).
 #'
-#' @param data tibble produced by [read_fia()]---must have at least `tree_ID`
+#' @param data tibble produced by [prep_data()]---must have at least `tree_ID`
 #'   and `INVYR` columns.
 #' @export
 #' @returns a tibble with a logical column `interpolated` marking whether a row
@@ -56,7 +56,7 @@ expand_data <- function(data) {
     dplyr::rename(YEAR = INVYR) |>
     dplyr::arrange(tree_ID, YEAR) |>
     #fill down any time-invariant columns
-    dplyr::group_by(tree_ID) |>
+    dplyr::group_by(plot_ID, tree_ID) |>
     tidyr::fill(any_of(c(
       "plot_ID",
       "INTENSITY",
