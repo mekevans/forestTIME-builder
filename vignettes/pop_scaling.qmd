@@ -92,13 +92,13 @@ The FIA data provides users with expansion factors, `EXPNS`, to aid in scaling e
 
 Let's calculate our own expansion factor using the land area of RI.
 
-[Wikipedia](https://en.wikipedia.org/wiki/Rhode_Island) tells me the land area of RI is 2,678 km^2^ or 661,745.6 acres
+According to this [USDA tool](https://experience.arcgis.com/experience/ddb54b68e915431182d406f9778694cb/page/Land-Resources-Dashboard), the total land area of RI is 781,730.1 acres.
 
 ```{r}
 data_midpt <- data_midpt |>
   group_by(YEAR) |>
   mutate(
-    EXPNS = 661745.6 / length(unique(plot_ID))
+    EXPNS = 781730.1 / length(unique(plot_ID))
   )
 
 data_midpt |>
