@@ -1,6 +1,6 @@
 Package: forestTIME.builder
 Title: Generate Annualized Carbon and Biomass Estimates From FIA Data
-Version: 1.1.0
+Version: 1.1.0.9000
 Authors@R: c(
     person("Eric R.", "Scott", , "ericrscott@arizona.edu", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-7430-7879")),
