@@ -1,5 +1,7 @@
 # forestTIME.builder (development version)
 
+- Renamed `split_composite_ids()` to `fia_split_composite_ids()`
+- Renamed `add_composite_ids()` to `fia_add_composite_ids()`
 - Renamed `prep_data()` to `fia_tidy()`
 - Renamed `read_fia()` to `fia_load()`
 - Renamed `get_fia_tables()` to `fia_download()`

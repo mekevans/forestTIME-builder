@@ -28,7 +28,7 @@ test_that("composite ID helpers work", {
     SUBP = 5,
     TREE = 6
   )
-  df2 <- add_composite_ids(df)
+  df2 <- fia_add_composite_ids(df)
 
   expect_true("tree_ID" %in% colnames(df2))
   expect_true("plot_ID" %in% colnames(df2))
@@ -38,7 +38,7 @@ test_that("composite ID helpers work", {
 
   df3 <- df2 |> select(tree_ID, plot_ID)
 
-  df4 <- split_composite_ids(df3)
+  df4 <- fia_split_composite_ids(df3)
 
   expect_equal(
     c(
@@ -54,7 +54,7 @@ test_that("composite ID helpers work", {
     colnames(df4)
   )
 
-  df5 <- df3 |> select(-tree_ID) |> split_composite_ids()
+  df5 <- df3 |> select(-tree_ID) |> fia_split_composite_ids()
 
   expect_equal(
     c(

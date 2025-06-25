@@ -24,7 +24,7 @@ if (do_both) {
     adjust_mortality(use_mortyr = TRUE) |>
     prep_carbon() |>
     estimate_carbon() |>
-    split_composite_ids()
+    fia_split_composite_ids()
 }
 
 data_midpt <-
@@ -32,7 +32,7 @@ data_midpt <-
   adjust_mortality(use_mortyr = FALSE) |>
   prep_carbon() |>
   estimate_carbon() |>
-  split_composite_ids()
+  fia_split_composite_ids()
 
 # Write out to parquet
 cli::cli_progress_step("Writing results")

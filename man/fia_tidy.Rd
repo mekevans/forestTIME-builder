@@ -28,5 +28,5 @@ mortality year.
 }
 }
 \seealso{
-\code{\link[=add_composite_ids]{add_composite_ids()}}
+\code{\link[=fia_add_composite_ids]{fia_add_composite_ids()}}
 }

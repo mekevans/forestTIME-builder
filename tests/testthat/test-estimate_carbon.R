@@ -6,7 +6,7 @@ test_that("estimates match those in raw data", {
   )
   orig <- db$TREE |>
     dplyr::filter(INVYR >= 2000L) |>
-    add_composite_ids() |>
+    fia_add_composite_ids() |>
     select(
       tree_ID,
       INVYR,
