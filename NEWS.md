@@ -1,5 +1,6 @@
 # forestTIME.builder (development version)
 
+- Renamed `prep_data()` to `fia_tidy()`
 - Renamed `read_fia()` to `fia_load()`
 - Renamed `get_fia_tables()` to `fia_download()`
 

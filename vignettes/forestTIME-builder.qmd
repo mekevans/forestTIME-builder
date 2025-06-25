@@ -73,12 +73,12 @@ db <- fia_load(
 names(db)
 ```
 
-`prep_data()` gets all the columns needed into a single table and create the unique plot and tree IDS, `plot_ID` and `tree_ID`.
+`fia_tidy()` gets all the columns needed into a single table and create the unique plot and tree IDS, `plot_ID` and `tree_ID`.
 
 
 ```{r}
 #| label: prep-data
-data <- prep_data(db)
+data <- fia_tidy(db)
 data
 ```
 

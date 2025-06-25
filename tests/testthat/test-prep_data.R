@@ -1,9 +1,9 @@
 library(dplyr)
-test_that("prep_data() works", {
+test_that("fia_tidy() works", {
   fia_dir <- system.file("exdata", package = "forestTIME.builder")
   # fia_download(states = "RI", download_dir = fia_dir, keep_zip = TRUE)
   db <- fia_load(states = "DE", dir = fia_dir)
-  data <- prep_data(db)
+  data <- fia_tidy(db)
 
   expect_s3_class(data, "data.frame")
   expect_true("tree_ID" %in% colnames(data))

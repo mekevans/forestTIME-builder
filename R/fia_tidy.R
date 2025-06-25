@@ -16,7 +16,7 @@
 #' @export
 #' @seealso [add_composite_ids()]
 #' @returns a tibble
-prep_data <- function(db) {
+fia_tidy <- function(db) {
   # Select only the columns we need from each table, to keep things slim
   cli::cli_progress_step("Wrangling data")
   PLOTGEOM <-
