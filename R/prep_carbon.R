@@ -6,7 +6,7 @@
 #'
 #' @param data_mortyr annualized tree table already adjusted for mortality by
 #'   [adjust_mortality()].
-#' @export
+#' @noRd
 #' @returns a tibble
 prep_carbon <- function(data_mortyr) {
   cli::cli_progress_step("Prepping for estimating carbon")
@@ -74,5 +74,18 @@ prep_carbon <- function(data_mortyr) {
         CARBON_RATIO_LIVE * 100,
         CARBON_RATIO * 100
       )
+    ) |> 
+    dplyr::mutate(
+      PROVINCE = getDivision(ECOSUBCD, TRUE),
+      DIVISION = getDivision(ECOSUBCD)
+    ) |>
+    # I think this is only necessary because this code uses [] for indexing
+    # instead of `filter()`
+    dplyr::mutate(
+      dplyr::across(
+        c(DECAYCD, STANDING_DEAD_CD),
+        \(x) dplyr::if_else(STATUSCD == 1, 0, x)
+      ),
+      CULL = ifelse(is.na(CULL), 0, CULL)
     )
 }

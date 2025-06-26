@@ -1,5 +1,6 @@
 # forestTIME.builder (development version)
 
+- The separate `prep_carbon()` and `estimate_carbon()` functions are no longer exported and are replaced by the combined `fia_estimate()` function.
 - Added `fia_annualize()` which is a wrapper for `df |> expand_data() |> interpolate_data |> adjust_mortality()` and prefered over running each step separately as the individual steps contain artifacts of the annualization process.
 - Renamed `split_composite_ids()` to `fia_split_composite_ids()`
 - Renamed `add_composite_ids()` to `fia_add_composite_ids()`

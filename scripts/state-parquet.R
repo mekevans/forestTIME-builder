@@ -22,16 +22,14 @@ if (do_both) {
   data_mortyr <-
     data_interpolated |>
     adjust_mortality(use_mortyr = TRUE) |>
-    prep_carbon() |>
-    estimate_carbon() |>
+    fia_estimate() |> 
     fia_split_composite_ids()
 }
 
 data_midpt <-
   data_interpolated |>
   adjust_mortality(use_mortyr = FALSE) |>
-  prep_carbon() |>
-  estimate_carbon() |>
+  fia_estimate() |> 
   fia_split_composite_ids()
 
 # Write out to parquet

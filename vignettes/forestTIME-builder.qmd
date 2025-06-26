@@ -14,6 +14,7 @@ knitr:
   opts_chunk:
     collapse: true
     comment: '#>'
+bibliography: references.bib
 ---
 
 ```{r}
@@ -75,7 +76,6 @@ names(db)
 
 `fia_tidy()` gets all the columns needed into a single table and create the unique plot and tree IDS, `plot_ID` and `tree_ID`.
 
-
 ```{r}
 #| label: prep-data
 data <- fia_tidy(db)
@@ -97,7 +97,10 @@ stopifnot(n == 0)
 
 ## Annualize
 
-Annualization of the panel data is performed by `fia_annualize()`.  "Under the hood" this is running `expand_data()` followed by `interpolate_data()` and then `adjust_mortality()`.  While you *can* run each of these steps separately, it is not generally recommended as there are "artifacts" introduced by some steps that are not "cleaned up" until later steps. One *good* reason to run this step-wise would be if you are wanting to produce a result both with and without using `MORTYR` since the slowest step is `interpolate_data()`.
+Annualization of the panel data is performed by `fia_annualize()`.
+"Under the hood" this is running `expand_data()` followed by `interpolate_data()` and then `adjust_mortality()`.
+While you *can* run each of these steps separately, it is not generally recommended as there are "artifacts" introduced by some steps that are not "cleaned up" until later steps.
+One *good* reason to run this step-wise would be if you are wanting to produce a result both with and without using `MORTYR` since the slowest step is `interpolate_data()`.
 
 ```{r}
 #| label: annualize-data
@@ -119,7 +122,8 @@ identical(data_midpt, data_midpt_stepwise)
 Let's break down what happens in each step.
 
 `expand_data()` expands the table to include all years between inventories.
-Time-invariant columns including `plot_ID`, `SPCD`, `ECOSUBCD`, `DESIGNCD`, `CONDID`, `INTENSITY` and `PROP_BASIS` are simply filled down. Some `NA`s thar represent missing values in inventory years are replaced with placeholder values (e.g. 999, 0 for `CULL`) to distinguish them from the `NA`s between surveys to aid in linear interpolation in later steps.
+Time-invariant columns including `plot_ID`, `SPCD`, `ECOSUBCD`, `DESIGNCD`, `CONDID`, `INTENSITY` and `PROP_BASIS` are simply filled down.
+Some `NA`s thar represent missing values in inventory years are replaced with placeholder values (e.g. 999, 0 for `CULL`) to distinguish them from the `NA`s between surveys to aid in linear interpolation in later steps.
 
 ```{r}
 #| label: expand-data
@@ -127,11 +131,10 @@ data_expanded <- expand_data(data)
 data_expanded
 ```
 
-
 `interpolate_data()` then interpolates continuous and categorical variables between surveys.
 Continuous variables are interpolated with `inter_extra_polate()` and categorical variables are interpolated with `step_interp()`.
 `interpolate_data()` also joins in the `TPA_UNADJ` column based on `DESIGNCD` and `DIA`.
-If trees are interpolated to below FIA thresholds for being measured (DIA < 1, ACTUALHT < 1 for woodland species and < 4.5 for non-woodland species), they are assumed to be fallen dead and have `STATUSCD` set to 2 and `STANDING_DEAD_CD` set to 0.
+If trees are interpolated to below FIA thresholds for being measured (DIA \< 1, ACTUALHT \< 1 for woodland species and \< 4.5 for non-woodland species), they are assumed to be fallen dead and have `STATUSCD` set to 2 and `STANDING_DEAD_CD` set to 0.
 
 ```{r}
 #| label: interpolate-data
@@ -140,7 +143,8 @@ data_interpolated
 ```
 
 `adjust_mortality()` adjusts all columns related to mortality (`STATUSCD`, `STANDING_DEAD_CD`, `DECAYCD`, and measurements like `DIA`, `HT`, `ACTUALHT`, `CULL`, `CR` etc.).
-E.g. `DECAYCD` only applies to standing dead trees and `STANDING_DEAD_CD` only applies to trees with `STATUSCD` 2 (dead).
+E.g.
+`DECAYCD` only applies to standing dead trees and `STANDING_DEAD_CD` only applies to trees with `STATUSCD` 2 (dead).
 
 ```{r}
 #| label: adjust-mort
@@ -151,28 +155,12 @@ all.equal(data_mortyr, data_midpt)
 
 These tables will be identical in states like RI where `MORTYR` is never used, but in states that have records for `MORTYR` these tables would differ slightly for some subset of trees.
 
-## Prep for Carbon Estimation
+## Carbon Estimation
 
-`prep_carbon()` joins in reference tables based on species code.
-These variables are needed by the carbon estimation functions.
-It also converts some `NA`s because the functions provided by David Walker are not set up to handle indexing with `NA`s.
+`fia_estimate()` uses code provided by David Walker to calculate carbon and biomass variables using the National Scale Volume and Biomass estimators (NSVB) [@westfall2024].
 
 ```{r}
 #| label: prep-carbon
-data_midpt_prepped <- prep_carbon(data_midpt)
-data_midpt_prepped
-```
-
-## Estimate carbon
-
-`estimate_carbon()` wraps some of the code David Walker provided into a function that returns a data frame.
-
-::: callout-note
-In particular, it uses the version of `predictCRM2.R` originally from `carbon_code/Decay_and_Dead/R/VT_CRM2_ApplyFuns.R` ([issue #66](https://github.com/mekevans/forestTIME-builder/issues/66){.uri}).
-:::
-
-```{r}
-#| label: estimate-carbon
-carbon_midpt <- estimate_carbon(data_midpt_prepped)
-carbon_midpt
+data_midpt_carbon <- fia_estimate(data_midpt)
+data_midpt_carbon
 ```
