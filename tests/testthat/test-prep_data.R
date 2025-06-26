@@ -1,9 +1,9 @@
 library(dplyr)
-test_that("prep_data() works", {
+test_that("fia_tidy() works", {
   fia_dir <- system.file("exdata", package = "forestTIME.builder")
-  # get_fia_tables(states = "RI", download_dir = fia_dir, keep_zip = TRUE)
-  db <- read_fia(states = "DE", dir = fia_dir)
-  data <- prep_data(db)
+  # fia_download(states = "RI", download_dir = fia_dir, keep_zip = TRUE)
+  db <- fia_load(states = "DE", dir = fia_dir)
+  data <- fia_tidy(db)
 
   expect_s3_class(data, "data.frame")
   expect_true("tree_ID" %in% colnames(data))
@@ -28,7 +28,7 @@ test_that("composite ID helpers work", {
     SUBP = 5,
     TREE = 6
   )
-  df2 <- add_composite_ids(df)
+  df2 <- fia_add_composite_ids(df)
 
   expect_true("tree_ID" %in% colnames(df2))
   expect_true("plot_ID" %in% colnames(df2))
@@ -38,7 +38,7 @@ test_that("composite ID helpers work", {
 
   df3 <- df2 |> select(tree_ID, plot_ID)
 
-  df4 <- split_composite_ids(df3)
+  df4 <- fia_split_composite_ids(df3)
 
   expect_equal(
     c(
@@ -54,7 +54,7 @@ test_that("composite ID helpers work", {
     colnames(df4)
   )
 
-  df5 <- df3 |> select(-tree_ID) |> split_composite_ids()
+  df5 <- df3 |> select(-tree_ID) |> fia_split_composite_ids()
 
   expect_equal(
     c(

@@ -1,18 +1,20 @@
 #' Linear intrpolation and extrapolation
 #'
-#' Performs linear interpolation and, optionally, extrapolation.  Interpolation
-#' is used for annualizing tree measurements such as `DIA`, `HT`, and
-#' `ACTUALHT`.  Extrapolation is necessary for trees that have `NA`s recorded in
-#' their first inventory marked dead because we want to extrapolate their growth
-#' from the last time they were inventoried alive to an estimated mortality
-#' year. In the case of vectors with only one non-NA value, that value is
-#' carried forward if `extrapolate = TRUE`.
+#' Performs linear interpolation and, optionally, extrapolation of numeric
+#' vectors. In `forestTIME.builder`, Interpolation is used for annualizing tree
+#' measurements such as `DIA`, `HT`, and `ACTUALHT`. Extrapolation is necessary
+#' for trees that are alive in one inventory, then fallen and dead with `NA`s in
+#' the next inventory, because we want to extrapolate their growth from the last
+#' time they were inventoried alive to an estimated mortality year. In the case
+#' of vectors with only one non-NA value, that value is carried forward if
+#' `extrapolate = TRUE`.
 #'
 #' @param x numeric; an x variable, usually `YEAR` in forestTIME-builder
 #' @param y numeric; the variable to be interpolated/extrapolated
 #' @param extrapolate logical; perform extrapolation if possible?
 #' @returns numeric vector
 #' @author Eric R. Scott
+#' @keywords internal
 #' @export
 #'
 #' @returns a numeric vector

@@ -19,13 +19,14 @@ numeric vector
 a numeric vector
 }
 \description{
-Performs linear interpolation and, optionally, extrapolation.  Interpolation
-is used for annualizing tree measurements such as \code{DIA}, \code{HT}, and
-\code{ACTUALHT}.  Extrapolation is necessary for trees that have \code{NA}s recorded in
-their first inventory marked dead because we want to extrapolate their growth
-from the last time they were inventoried alive to an estimated mortality
-year. In the case of vectors with only one non-NA value, that value is
-carried forward if \code{extrapolate = TRUE}.
+Performs linear interpolation and, optionally, extrapolation of numeric
+vectors. In \code{forestTIME.builder}, Interpolation is used for annualizing tree
+measurements such as \code{DIA}, \code{HT}, and \code{ACTUALHT}. Extrapolation is necessary
+for trees that are alive in one inventory, then fallen and dead with \code{NA}s in
+the next inventory, because we want to extrapolate their growth from the last
+time they were inventoried alive to an estimated mortality year. In the case
+of vectors with only one non-NA value, that value is carried forward if
+\code{extrapolate = TRUE}.
 }
 \examples{
 x <- 1:7
@@ -41,3 +42,4 @@ inter_extra_polate(x = x, y = y2, extrapolate = TRUE)
 \author{
 Eric R. Scott
 }
+\keyword{internal}

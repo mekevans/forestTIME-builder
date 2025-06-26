@@ -4,12 +4,12 @@ library(forestTIME.builder)
 library(dplyr)
 
 # Data Download
-get_fia_tables(states = state, keep_zip = FALSE)
+fia_download(states = state, keep_zip = FALSE)
 
 # Data prep
 data <-
-  read_fia(states = state) |>
-  prep_data()
+  fia_load(states = state) |>
+  fia_tidy()
 
 # Expand to include all years between surveys and interpolate/extrapolate
 data_interpolated <- data |> expand_data() |> interpolate_data()
@@ -22,17 +22,15 @@ if (do_both) {
   data_mortyr <-
     data_interpolated |>
     adjust_mortality(use_mortyr = TRUE) |>
-    prep_carbon() |>
-    estimate_carbon() |>
-    split_composite_ids()
+    fia_estimate() |> 
+    fia_split_composite_ids()
 }
 
 data_midpt <-
   data_interpolated |>
   adjust_mortality(use_mortyr = FALSE) |>
-  prep_carbon() |>
-  estimate_carbon() |>
-  split_composite_ids()
+  fia_estimate() |> 
+  fia_split_composite_ids()
 
 # Write out to parquet
 cli::cli_progress_step("Writing results")

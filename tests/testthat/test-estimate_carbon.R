@@ -1,12 +1,12 @@
 library(dplyr)
 test_that("estimates match those in raw data", {
-  db <- read_fia(
+  db <- fia_load(
     "DE",
     dir = system.file("exdata", package = "forestTIME.builder")
   )
   orig <- db$TREE |>
     dplyr::filter(INVYR >= 2000L) |>
-    add_composite_ids() |>
+    fia_add_composite_ids() |>
     select(
       tree_ID,
       INVYR,
@@ -23,7 +23,7 @@ test_that("estimates match those in raw data", {
       CARBON_AG,
       DRYBIO_AG
     )
-  data_prepped <- prep_data(db) |>
+  data_prepped <- fia_tidy(db) |>
     dplyr::filter(INVYR >= 2000L) |>
     rename(YEAR = INVYR) |>
     prep_carbon() |>

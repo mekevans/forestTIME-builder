@@ -8,7 +8,7 @@
 #' `999` so that they are properly interpolated by [interpolate_data()] (which
 #' converts them back to `NA`s).
 #'
-#' @param data tibble produced by [prep_data()]---must have at least `tree_ID`
+#' @param data tibble produced by [fia_tidy()]---must have at least `tree_ID`
 #'   and `INVYR` columns.
 #' @export
 #' @returns a tibble with a logical column `interpolated` marking whether a row

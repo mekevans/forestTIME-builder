@@ -1,5 +1,13 @@
 # forestTIME.builder (development version)
 
+- The separate `prep_carbon()` and `estimate_carbon()` functions are no longer exported and are replaced by the combined `fia_estimate()` function.
+- Added `fia_annualize()` which is a wrapper for `df |> expand_data() |> interpolate_data |> adjust_mortality()` and prefered over running each step separately as the individual steps contain artifacts of the annualization process.
+- Renamed `split_composite_ids()` to `fia_split_composite_ids()`
+- Renamed `add_composite_ids()` to `fia_add_composite_ids()`
+- Renamed `prep_data()` to `fia_tidy()`
+- Renamed `read_fia()` to `fia_load()`
+- Renamed `get_fia_tables()` to `fia_download()`
+
 # forestTIME.builder 1.1.0
 
 - Fixed a bug causing the `INTENSITY` column (and possibly other plot-level variables) to be filled incorrectly by `expand_data()` ([#122](https://github.com/mekevans/forestTIME-builder/issues/122), reported by @brian-f-walters-usfs)

@@ -7,7 +7,7 @@
 expand_data(data)
 }
 \arguments{
-\item{data}{tibble produced by \code{\link[=prep_data]{prep_data()}}---must have at least \code{tree_ID}
+\item{data}{tibble produced by \code{\link[=fia_tidy]{fia_tidy()}}---must have at least \code{tree_ID}
 and \code{INVYR} columns.}
 }
 \value{

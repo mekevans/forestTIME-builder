@@ -9,8 +9,6 @@
 #'   the transition to `STATUSCD` 2 instead of the interpolated values. If the
 #'   tree is alive (`STATUSCD` 1) in `MORTYR`, then it is assumed it died in the
 #'   following year.
-#' - Drops trees that transition to `STATUSCD` 0 and `RECONCILECD` 5, 6, or 9
-#'   (moved out of plot) at the midpoint between surveys
 #' - Adjusts `STANDING_DEAD_CD` so that it only applies to dead trees
 #' - Adjusts `DECAYCD` so that it only applies to standing dead trees
 #' - Adjusts `DIA`, `HT`, `ACTUALHT`, `CULL`, and `CR` so that they only apply
@@ -67,7 +65,7 @@ adjust_mortality <- function(data_interpolated, use_mortyr = TRUE) {
       ) |>
       # When a tree has a recorded MORTYR, adjust STATUSCD depending on whether
       # MORTYR is before or after the midpoint (first_dead). This works because
-      # MORTYR is filled in for every row of a tree by prep_data() and
+      # MORTYR is filled in for every row of a tree by fia_tidy() and
       # expand_data(). Can't assume tree has STATUSCD 2 after MORTYR since
       # sometimes STATUSCD goes from 1 to 2 to 0.
       dplyr::mutate(
