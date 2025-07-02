@@ -18,7 +18,7 @@
 #' (e.g. until fallen and dead or in non-sampled condition). 
 #' 
 #' Since missing values for `CULL` are already assumed to be 0 by
-#' [estimate_carbon()], they are converted to 0s by [expand_data()] for better
+#' [fia_estimate()], they are converted to 0s by [expand_data()] for better
 #' linear interpolation here and then set back to `NA` if `DIA` < 5.
 #'
 #' @references Burrill, E.A., Christensen, G.A., Conkling, B.L., DiTommaso,
