@@ -7,7 +7,7 @@
 expand_data(data)
 }
 \arguments{
-\item{data}{tibble produced by \code{\link[=prep_data]{prep_data()}}---must have at least \code{tree_ID}
+\item{data}{tibble produced by \code{\link[=fia_tidy]{fia_tidy()}}---must have at least \code{tree_ID}
 and \code{INVYR} columns.}
 }
 \value{
@@ -15,11 +15,13 @@ a tibble with a logical column \code{interpolated} marking whether a row
 was present in the original data (\code{FALSE}) or was added (\code{TRUE}).
 }
 \description{
-This expands the data frame in preparation for interpolation of now "missing"
-values between inventory years. Time-invariant variables \code{tree_ID},
-\code{plot_ID}, \code{SPCD}, \code{ECOSUBCD}, \code{DESIGNCD}, and \code{PROP_BASIS} are simply filled
-in with \code{\link[tidyr:fill]{tidyr::fill()}}. Categorical variables \code{STATUDSCD}, \code{RECONCILECD},
-\code{STDORGCD}, \code{CONDID}, and \code{COND_STATUS_CD} are modified to replace \code{NA}s with
-\code{999} so that they are properly interpolated by \code{\link[=interpolate_data]{interpolate_data()}} (which
-converts them back to \code{NA}s).
+This is an "internal" function—most users will want to run \code{\link[=fia_annualize]{fia_annualize()}}
+instead. This expands the data frame in preparation for interpolation of now
+"missing" values between inventory years. Time-invariant variables \code{tree_ID},
+\code{plot_ID}, \code{INTENSITY}, \code{SPCD}, \code{MORTYR}, \code{ECOSUBCD}, \code{DESIGNCD}, and
+\code{PROP_BASIS} are simply filled in with \code{\link[tidyr:fill]{tidyr::fill()}}. Categorical variables
+\code{STATUDSCD}, \code{RECONCILECD}, \code{STDORGCD}, \code{CONDID}, and \code{COND_STATUS_CD} are
+modified to replace \code{NA}s with \code{999} so that they are properly interpolated
+by \code{\link[=interpolate_data]{interpolate_data()}} (which converts them back to \code{NA}s).
 }
+\keyword{internal}

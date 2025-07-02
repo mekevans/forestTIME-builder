@@ -37,6 +37,7 @@ We'll use the standard basic workflow to get estimated aboveground carbon for ea
 "Correct" estimates should be in this ballpark.
 
 ```{r}
+#| label: rfia-biomass
 agc_rfia <- 
   biomass(fiaRI, method = "annual", treeType = "live", areaDomain = COND_STATUS_CD == 1 & INTENSITY == 1) |> 
   mutate(method = "rFIA::biomass()") |> 
@@ -46,26 +47,22 @@ mean(agc_rfia$carbon_ton_acre)
 :::
 
 ```{r}
-#| label: prep-data
+#| label: annualize-data
 state <- "RI"
 
 # Data Download
-get_fia_tables(states = state, keep_zip = FALSE)
+fia_download(states = state, keep_zip = FALSE)
 
 # Data prep
-db <- read_fia(states = state) #list of data frames
+db <- fia_load(states = state) #list of data frames
 
-data <- prep_data(db) #single tibble
+data <- fia_tidy(db) #single tibble
 
 # Expand to include all years between surveys and interpolate/extrapolate
 # Adjust for mortality and estimate carbon.
-data_midpt <-
-  data |>
-  expand_data() |>
-  interpolate_data() |>
-  adjust_mortality(use_mortyr = FALSE) |>
-  prep_carbon() |>
-  estimate_carbon() 
+data_midpt <- data |>
+  fia_annualize(use_mortyr = FALSE) |>
+  fia_estimate()
 ```
 
 I'll add domain indicator columns as are done in the `rFIA` demystified vignette so we calculate carbon in live trees per area of forested land using base intensity plots only.
@@ -78,6 +75,7 @@ Reason:
 So we can't just `filter(STATUSCD == 1 & COND_STATUSCD == 1)` to estimate carbon tons/acre.
 
 ```{r}
+#| label: domain-indicators
 data_midpt <-
   data_midpt |>
   mutate(
@@ -88,13 +86,15 @@ data_midpt <-
 
 ## Expansion factors
 
-The FIA data provides users with expansion factors, `EXPNS`, to aid in scaling estimates up to state levels.  There are two issues in using these provided `EXPNS` with our annualized data: 1) it is not straightforward to join the tables in to get the `EXPNS` column, and 2) there are now many more plots in each year, so the `EXPNS` column is no longer accurate (it is the land acres of the entire state represented by each plot).
+The FIA data provides users with expansion factors, `EXPNS`, to aid in scaling estimates up to state levels.
+There are two issues in using these provided `EXPNS` with our annualized data: 1) it is not straightforward to join the tables in to get the `EXPNS` column, and 2) there are now many more plots in each year, so the `EXPNS` column is no longer accurate (it is the land acres of the entire state represented by each plot).
 
 Let's calculate our own expansion factor using the land area of RI.
 
 According to this [USDA tool](https://experience.arcgis.com/experience/ddb54b68e915431182d406f9778694cb/page/Land-Resources-Dashboard), the total land area of RI is 781,730.1 acres.
 
 ```{r}
+#| label: expns
 data_midpt <- data_midpt |>
   group_by(YEAR) |>
   mutate(
@@ -109,12 +109,14 @@ data_midpt |>
   geom_line()
 ```
 
-You'll notice that our calculated `EXPNS` follow a "U" shape rather than being constant.  That is because in our interpolated data, there are fewer plots in the beginning and end of the timeseries because we do not extrapolate beyond a panel's first and last inventory.
-
+You'll notice that our calculated `EXPNS` follow a "U" shape rather than being constant.
+That is because in our interpolated data, there are fewer plots in the beginning and end of the timeseries because we do not extrapolate beyond a panel's first and last inventory.
 
 Now that we have expansion factors, we can follow the methods in the [FIA demystified vignette](https://doserlab.com/files/rfia/articles/fiademystified#without-sampling-errors).
 
 ```{r}
+#| label: estimators
+
 tree_totals <- data_midpt |>
   group_by(plot_ID, YEAR) |>
   summarize(
@@ -144,6 +146,8 @@ agc_pop
 ```
 
 ```{r}
+#| label: plot-results
+
 bind_rows(agc_rfia, agc_pop) |> 
   ggplot(aes(x = YEAR, y = carbon_ton_acre, color = method)) +
   geom_line()

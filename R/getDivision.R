@@ -1,7 +1,7 @@
 #' Virginia Tech CRM2.0 application funs
 #'
-#' @param x
-#' @param prov
+#' @param x `ECOSUBCD`
+#' @param prov logical; return province (`TRUE`) or division (`FALSE`)?
 #' @author David Walker
 #' @noRd
 getDivision <- function(x, prov = FALSE) {

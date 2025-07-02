@@ -16,10 +16,11 @@ a vector
 }
 \description{
 Categorical variables like \code{DECAYCD} can't be linearly interpolated between
-inventory years.  Instead, we assume they switch values at the midpoint
-(rounded down) between non-missing values.  Trailing \code{NA}s are replaced with
+inventory years. Instead, we assume they switch values at the midpoint
+(rounded down) between non-missing values. Trailing \code{NA}s are replaced with
 the last non-\code{NA} value and leading \code{NA}s are returned as-is.
 }
 \examples{
 step_interp(c(NA, NA, "A", NA, NA, NA, "B", NA, NA, NA, NA, "C", NA))
 }
+\keyword{internal}

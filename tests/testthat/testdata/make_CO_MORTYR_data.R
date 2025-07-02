@@ -1,6 +1,6 @@
 load_all()
 library(dplyr)
-CO_data <- read_fia("CO") |> prep_data()
+CO_data <- fia_load("CO") |> fia_tidy()
 CO_interpolated <- CO_data |>
   filter(
     tree_ID %in%

@@ -14,6 +14,7 @@ knitr:
   opts_chunk:
     collapse: true
     comment: '#>'
+bibliography: references.bib
 ---
 
 ```{r}
@@ -24,14 +25,14 @@ library(dplyr)
 
 ## Data Download
 
-`get_fia_tables()` downloads zip files of all CSVs and extracts the necessary ones.
+`fia_download()` downloads zip files of all CSVs and extracts the necessary ones.
 It will skip downloading if the files already exist.
 
 ```{r}
 #| label: download-data
 #| eval: false
-get_fia_tables(
-  states = "DE", 
+fia_download(
+  states = "DE",
   download_dir = "fia",
   keep_zip = TRUE
 )
@@ -42,8 +43,8 @@ get_fia_tables(
 #| eval: false
 
 #only re-run if you need to re-generate the example data for the package
-get_fia_tables(
-  states = "DE", 
+fia_download(
+  states = "DE",
   download_dir = "inst/exdata",
   keep_zip = TRUE
 )
@@ -53,12 +54,12 @@ get_fia_tables(
 
 I need to make sure I have all the columns for population estimation *and* all the columns for carbon estimation using the walker code (documented better in `annual_carbon_estimation.qmd`).
 
-`read_fia()` is a wrapper around `rFIA::readFIA()` and reads in all the required tables as a list of data frames.
+`fia_load()` is a wrapper around `rFIA::readFIA()` and reads in all the required tables as a list of data frames.
 
 ```{r}
 #| label: read-data
 #| eval: false
-db <- read_fia(states = "DE", dir = "fia")
+db <- fia_load(states = "DE", dir = "fia")
 names(db)
 ```
 
@@ -66,16 +67,18 @@ names(db)
 #| echo: false
 
 #actually just read in the example data included in the package
-db <- read_fia(states = "DE", dir = system.file("exdata", package = "forestTIME.builder"))
+db <- fia_load(
+  states = "DE",
+  dir = system.file("exdata", package = "forestTIME.builder")
+)
 names(db)
 ```
 
-`prep_data()` gets all the columns needed into a single table and create the unique plot and tree IDS, `plot_ID` and `tree_ID`.
-
+`fia_tidy()` gets all the columns needed into a single table and create the unique plot and tree IDS, `plot_ID` and `tree_ID`.
 
 ```{r}
 #| label: prep-data
-data <- prep_data(db)
+data <- fia_tidy(db)
 data
 ```
 
@@ -83,19 +86,44 @@ Check that each tree has only 1 entry per year
 
 ```{r}
 #| label: check-data
-n <- data |> 
-  group_by(tree_ID, INVYR) |> 
+n <- data |>
+  group_by(tree_ID, INVYR) |>
   filter(!is.na(tree_ID)) |> #remove empty plots
   summarise(n = n(), .groups = "drop") |>
-  filter(n > 1) |> 
+  filter(n > 1) |>
   nrow()
 stopifnot(n == 0)
 ```
 
-## Expand
+## Annualize
+
+Annualization of the panel data is performed by `fia_annualize()`.
+"Under the hood" this is running `expand_data()` followed by `interpolate_data()` and then `adjust_mortality()`.
+While you *can* run each of these steps separately, it is not generally recommended as there are "artifacts" introduced by some steps that are not "cleaned up" until later steps.
+One *good* reason to run this step-wise would be if you are wanting to produce a result both with and without using `MORTYR` since the slowest step is `interpolate_data()`.
+
+```{r}
+#| label: annualize-data
+data_midpt <- fia_annualize(data, use_mortyr = FALSE)
+```
+
+```{r}
+#| label: stepwise
+data_midpt_stepwise <- data |>
+  expand_data() |> #has placeholder values (e.g. 999) for some variables to ensure correct interpolation
+  interpolate_data() |> #has incorrect values for trees that die or fall between surveys
+  adjust_mortality(use_mortyr = FALSE)
+```
+
+```{r}
+identical(data_midpt, data_midpt_stepwise)
+```
+
+Let's break down what happens in each step.
 
 `expand_data()` expands the table to include all years between inventories.
-Time-invariant columns including `plot_ID`, `SPCD`, `ECOSUBCD`, `DESIGNCD`, and `PROP_BASIS` are filled down.
+Time-invariant columns including `plot_ID`, `SPCD`, `ECOSUBCD`, `DESIGNCD`, `CONDID`, `INTENSITY` and `PROP_BASIS` are simply filled down.
+Some `NA`s thar represent missing values in inventory years are replaced with placeholder values (e.g. 999, 0 for `CULL`) to distinguish them from the `NA`s between surveys to aid in linear interpolation in later steps.
 
 ```{r}
 #| label: expand-data
@@ -103,11 +131,10 @@ data_expanded <- expand_data(data)
 data_expanded
 ```
 
-## Interpolate
-
 `interpolate_data()` then interpolates continuous and categorical variables between surveys.
 Continuous variables are interpolated with `inter_extra_polate()` and categorical variables are interpolated with `step_interp()`.
 `interpolate_data()` also joins in the `TPA_UNADJ` column based on `DESIGNCD` and `DIA`.
+If trees are interpolated to below FIA thresholds for being measured (DIA \< 1, ACTUALHT \< 1 for woodland species and \< 4.5 for non-woodland species), they are assumed to be fallen dead and have `STATUSCD` set to 2 and `STANDING_DEAD_CD` set to 0.
 
 ```{r}
 #| label: interpolate-data
@@ -115,16 +142,9 @@ data_interpolated <- interpolate_data(data_expanded)
 data_interpolated
 ```
 
-::: callout-important
-I'm still unsure if `CONDPROP_UNADJ` is interpolated correctly ([issue #64](https://github.com/mekevans/forestTIME-builder/issues/64){.uri})
-:::
-
-## Adjust for mortality
-
-`adjust_mortality()` adjusts all columns related to mortality (`STATUSCD`, `STANDING_DEAD_CD`, `DECAYCD`, and dimensions like `DIA`, `HT`, etc.).
+`adjust_mortality()` adjusts all columns related to mortality (`STATUSCD`, `STANDING_DEAD_CD`, `DECAYCD`, and measurements like `DIA`, `HT`, `ACTUALHT`, `CULL`, `CR` etc.).
 E.g.
 `DECAYCD` only applies to standing dead trees and `STANDING_DEAD_CD` only applies to trees with `STATUSCD` 2 (dead).
-Trees that switch to `STATUSCD` 0 and have `RECONCILECD` 5, 6, or 9 get dropped at the midpoint between surveys ([issue #59](https://github.com/mekevans/forestTIME-builder/issues/59)).
 
 ```{r}
 #| label: adjust-mort
@@ -133,31 +153,14 @@ data_midpt <- adjust_mortality(data_interpolated, use_mortyr = FALSE)
 all.equal(data_mortyr, data_midpt)
 ```
 
-These tables will be identical in states like RI where `MORTYR` is never used, but in states like CO these tables will differ slightly for some subset of trees.
-In `scripts/state-parquet.R`, the table that uses `MORTYR` is only produced if `MORTYR` is recorded for trees in that state.
+These tables will be identical in states like RI where `MORTYR` is never used, but in states that have records for `MORTYR` these tables would differ slightly for some subset of trees.
 
-## Prep for Carbon Estimation
+## Carbon Estimation
 
-`prep_carbon()` joins in reference tables based on species code.
-These variables are needed by the carbon estimation functions.
-It also converts some `NA`s because the functions provided by David Walker are not set up to handle indexing with `NA`s.
+`fia_estimate()` uses code provided by David Walker to calculate carbon and biomass variables using the National Scale Volume and Biomass estimators (NSVB) [@westfall2024].
 
 ```{r}
 #| label: prep-carbon
-data_midpt_prepped <- prep_carbon(data_midpt)
-data_midpt_prepped
-```
-
-## Estimate carbon
-
-`estimate_carbon()` wraps some of the code David Walker provided into a function that returns a data frame.
-
-::: callout-note
-In particular, it uses the version of `predictCRM2.R` originally from `carbon_code/Decay_and_Dead/R/VT_CRM2_ApplyFuns.R` ([issue #66](https://github.com/mekevans/forestTIME-builder/issues/66){.uri}).
-:::
-
-```{r}
-#| label: estimate-carbon
-carbon_midpt <- estimate_carbon(data_midpt_prepped)
-carbon_midpt
+data_midpt_carbon <- fia_estimate(data_midpt)
+data_midpt_carbon
 ```

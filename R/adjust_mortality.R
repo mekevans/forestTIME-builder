@@ -1,16 +1,15 @@
 #' Adjust interpolated tables for mortality
 #'
-#' Trees in the input `data_interpolated` already have had their switch to
-#' `STATUSCD` 2 (i.e. death) interpolated to the midpoint (rounded down) between
-#' it's last survey alive and first survey dead.
+#' This is an "internal" function—most users will want to run [fia_annualize()]
+#' instead. Trees in the input `data_interpolated` already have had their switch
+#' to `STATUSCD` 2 (i.e. death) interpolated to the midpoint (rounded down)
+#' between it's last survey alive and first survey dead.
 #'
 #' This does the following:
 #' - Optionally figures out if a tree has a recorded `MORTYR` and uses that for
 #'   the transition to `STATUSCD` 2 instead of the interpolated values. If the
 #'   tree is alive (`STATUSCD` 1) in `MORTYR`, then it is assumed it died in the
 #'   following year.
-#' - Drops trees that transition to `STATUSCD` 0 and `RECONCILECD` 5, 6, or 9
-#'   (moved out of plot) at the midpoint between surveys
 #' - Adjusts `STANDING_DEAD_CD` so that it only applies to dead trees
 #' - Adjusts `DECAYCD` so that it only applies to standing dead trees
 #' - Adjusts `DIA`, `HT`, `ACTUALHT`, `CULL`, and `CR` so that they only apply
@@ -20,6 +19,7 @@
 #' @param use_mortyr logical; use `MORTYR` (if recorded) as the first year a
 #'   tree was dead?
 #' @export
+#' @keywords internal
 #' @returns a tibble
 adjust_mortality <- function(data_interpolated, use_mortyr = TRUE) {
   cli::cli_progress_step("Adjusting for mortality")
@@ -67,7 +67,7 @@ adjust_mortality <- function(data_interpolated, use_mortyr = TRUE) {
       ) |>
       # When a tree has a recorded MORTYR, adjust STATUSCD depending on whether
       # MORTYR is before or after the midpoint (first_dead). This works because
-      # MORTYR is filled in for every row of a tree by prep_data() and
+      # MORTYR is filled in for every row of a tree by fia_tidy() and
       # expand_data(). Can't assume tree has STATUSCD 2 after MORTYR since
       # sometimes STATUSCD goes from 1 to 2 to 0.
       dplyr::mutate(

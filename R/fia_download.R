@@ -24,7 +24,7 @@ tables <- c(
 #'
 #' @export
 #' @returns returns nothing
-get_fia_tables <- function(
+fia_download <- function(
   states,
   download_dir = "fia",
   extract = TRUE,
@@ -113,15 +113,3 @@ unzip_csvs <- function(zips, dir, keep_zip) {
   return(invisible(TRUE))
 }
 
-
-#' Read in needed tables
-#'
-#' Wrapper for [rFIA::readFIA] that reads in the necessary tables
-#' @inheritParams rFIA::readFIA
-#'
-#' @export
-#' @returns a list of data frames
-read_fia <- function(states, dir = "fia") {
-  rFIA::readFIA(dir = dir, states = states, tables = tables) |>
-    purrr::map(dplyr::as_tibble)
-}

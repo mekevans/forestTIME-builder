@@ -1,10 +1,10 @@
 library(dplyr)
 test_that("variables with NAs get interpolated correctly", {
-  db <- read_fia(
+  db <- fia_load(
     "DE",
     dir = system.file("exdata", package = "forestTIME.builder")
   )
-  data <- prep_data(db) |>
+  data <- fia_tidy(db) |>
     dplyr::filter(tree_ID == "10_1_1_104_1_28") |>
     dplyr::select(
       plot_ID,
@@ -32,11 +32,11 @@ test_that("variables with NAs get interpolated correctly", {
 })
 
 test_that("interpolation flags negative numbers as fallen dead", {
-  db <- read_fia(
+  db <- fia_load(
     "DE",
     dir = system.file("exdata", package = "forestTIME.builder")
   )
-  data <- prep_data(db) |>
+  data <- fia_tidy(db) |>
     dplyr::filter(tree_ID %in% c("10_1_1_104_3_4", "10_1_1_148_4_2")) |>
     dplyr::select(
       plot_ID,
@@ -71,11 +71,11 @@ test_that("interpolation flags negative numbers as fallen dead", {
 })
 
 test_that("interpolation of CULL is correct", {
-  data <- read_fia(
+  data <- fia_load(
     "DE",
     dir = system.file("exdata", package = "forestTIME.builder")
   ) |>
-    prep_data() |>
+    fia_tidy() |>
     dplyr::filter(tree_ID == "10_1_1_128_1_24")
 
   data_interpolated <- data |>
