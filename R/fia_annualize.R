@@ -15,10 +15,10 @@
 #' analyses (with the caveat that all of this is experimental).
 #' 
 #' @note Most users should use this "wrapper" function rather than running each
-#' step separately as intermediate steps may contain data artifacts.  However,
-#' one reason to use the stepwise workflow would be to save time when generating
-#' interpolated data with and without using `MORTYR` as `interpolate_data()` is
-#' the slowest step.
+#' step separately since the intermediate steps may contain data artifacts.
+#' However, one reason to use the stepwise workflow would be to save time when
+#' generating interpolated data with and without using `MORTYR` as
+#' `interpolate_data()` is the slowest step.
 #' 
 #' @seealso For more details on each step, see: [expand_data()],
 #'   [interpolate_data()], [adjust_mortality()] 

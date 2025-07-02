@@ -1,8 +1,9 @@
 #' Adjust interpolated tables for mortality
 #'
-#' Trees in the input `data_interpolated` already have had their switch to
-#' `STATUSCD` 2 (i.e. death) interpolated to the midpoint (rounded down) between
-#' it's last survey alive and first survey dead.
+#' This is an "internal" function—most users will want to run [fia_annualize()]
+#' instead. Trees in the input `data_interpolated` already have had their switch
+#' to `STATUSCD` 2 (i.e. death) interpolated to the midpoint (rounded down)
+#' between it's last survey alive and first survey dead.
 #'
 #' This does the following:
 #' - Optionally figures out if a tree has a recorded `MORTYR` and uses that for
@@ -18,6 +19,7 @@
 #' @param use_mortyr logical; use `MORTYR` (if recorded) as the first year a
 #'   tree was dead?
 #' @export
+#' @keywords internal
 #' @returns a tibble
 adjust_mortality <- function(data_interpolated, use_mortyr = TRUE) {
   cli::cli_progress_step("Adjusting for mortality")

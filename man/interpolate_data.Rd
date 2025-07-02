@@ -13,11 +13,12 @@ interpolate_data(data_expanded)
 a tibble
 }
 \description{
-Fills in \code{NA}s between survey years with either linear interpolation /
-extrapolation or by switching categorical variables at the midpoint (rounded
-down) between surveys. Linear interpolation/extrapolation is accomplished
-with \code{\link[=inter_extra_polate]{inter_extra_polate()}} and the categorical variables are handled with
-\code{\link[=step_interp]{step_interp()}}. Also converts temporary \code{999} values created by
+This is an "internal" function—most users will want to run \code{\link[=fia_annualize]{fia_annualize()}}
+instead. Fills in \code{NA}s between survey years with either linear interpolation
+/ extrapolation or by switching categorical variables at the midpoint
+(rounded down) between surveys. Linear interpolation/extrapolation is
+accomplished with \code{\link[=inter_extra_polate]{inter_extra_polate()}} and the categorical variables are
+handled with \code{\link[=step_interp]{step_interp()}}. Also converts temporary \code{999} values created by
 \code{\link[=expand_data]{expand_data()}} back to \code{NA}s.  This also assigns a value for \code{TPA_UNADJ}
 based on \code{DESIGNCD} and interpolated values of \code{DIA} according to Appendix G
 of the FIADB user guide.
@@ -41,3 +42,4 @@ Walker, D.M., 2024. The Forest Inventory and Analysis Database User Guide
 (NFI). USDA Forest Service.
 \url{https://research.fs.usda.gov/understory/forest-inventory-and-analysis-database-user-guide-nfi}
 }
+\keyword{internal}

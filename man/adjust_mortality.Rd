@@ -16,9 +16,10 @@ tree was dead?}
 a tibble
 }
 \description{
-Trees in the input \code{data_interpolated} already have had their switch to
-\code{STATUSCD} 2 (i.e. death) interpolated to the midpoint (rounded down) between
-it's last survey alive and first survey dead.
+This is an "internal" function—most users will want to run \code{\link[=fia_annualize]{fia_annualize()}}
+instead. Trees in the input \code{data_interpolated} already have had their switch
+to \code{STATUSCD} 2 (i.e. death) interpolated to the midpoint (rounded down)
+between it's last survey alive and first survey dead.
 }
 \details{
 This does the following:
@@ -33,3 +34,4 @@ following year.
 to live or standing dead trees in sampled conitions.
 }
 }
+\keyword{internal}

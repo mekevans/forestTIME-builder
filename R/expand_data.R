@@ -1,16 +1,18 @@
 #' Expand data to include years between inventory years
 #'
-#' This expands the data frame in preparation for interpolation of now "missing"
-#' values between inventory years. Time-invariant variables `tree_ID`,
-#' `plot_ID`, `SPCD`, `ECOSUBCD`, `DESIGNCD`, and `PROP_BASIS` are simply filled
-#' in with [tidyr::fill()]. Categorical variables `STATUDSCD`, `RECONCILECD`,
-#' `STDORGCD`, `CONDID`, and `COND_STATUS_CD` are modified to replace `NA`s with
-#' `999` so that they are properly interpolated by [interpolate_data()] (which
-#' converts them back to `NA`s).
+#' This is an "internal" function—most users will want to run [fia_annualize()]
+#' instead. This expands the data frame in preparation for interpolation of now
+#' "missing" values between inventory years. Time-invariant variables `tree_ID`,
+#' `plot_ID`, `INTENSITY`, `SPCD`, `MORTYR`, `ECOSUBCD`, `DESIGNCD`, and
+#' `PROP_BASIS` are simply filled in with [tidyr::fill()]. Categorical variables
+#' `STATUDSCD`, `RECONCILECD`, `STDORGCD`, `CONDID`, and `COND_STATUS_CD` are
+#' modified to replace `NA`s with `999` so that they are properly interpolated
+#' by [interpolate_data()] (which converts them back to `NA`s).
 #'
 #' @param data tibble produced by [fia_tidy()]---must have at least `tree_ID`
 #'   and `INVYR` columns.
 #' @export
+#' @keywords internal
 #' @returns a tibble with a logical column `interpolated` marking whether a row
 #'   was present in the original data (`FALSE`) or was added (`TRUE`).
 expand_data <- function(data) {
